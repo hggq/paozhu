@@ -49,7 +49,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void length(unsigned long long);
     void scheme(unsigned char);
     std::shared_ptr<httppeer> get_ptr();
-    std::string make_http2_header(unsigned char flag_code = 0);
+    // index_headers=false：不查/不插编码器动态表（流式 send_writer 路径不持喂入锁，
+    // 编码顺序无法与上线顺序对齐，必须保持不插表表示）。直发路径默认 true，
+    // 且调用必须发生在喂入锁临界区内（见 server.cpp 的 h2_push_headers_wait）。
+    std::string make_http2_header(unsigned char flag_code = 0, bool index_headers = true);
     std::string make_http1_header();
     void set_header(const std::string &, const std::string &);
     std::string get_header(std::string_view);
@@ -209,9 +212,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void make_sse_header();
     void make_sse_body(std::string_view data);
     void make_sse_end();
-
-  private:
-    std::string make_http2_data(unsigned int sid, std::string_view payload, bool is_end);
 
   public:
     std::string host;

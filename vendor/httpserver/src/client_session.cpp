@@ -11,8 +11,11 @@
 #include "http_header.h"
 #include "clientdatacache.h"
 #include "http2_ring_queue.h"
+#include "http2_sender_count_guard.h"
 #include "debug_log.h"
 #include "base64.h"
+#include "server.h"
+#include "datetime.h"
 #include <algorithm>
 
 namespace http
@@ -90,6 +93,12 @@ client_session::~client_session()
         auto &cc = get_http2_ring_queue_obj();
         cc.back_cache_ptr(std::move(http2_ring_queue));
         http2_ring_queue = nullptr;
+    }
+    if (http2_content_queue)
+    {
+        auto &cc = get_http2_ring_queue_obj();
+        cc.back_cache_ptr(std::move(http2_content_queue));
+        http2_content_queue = nullptr;
     }
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
@@ -392,6 +401,10 @@ unsigned int client_session::send_writer(const std::string &msg)
     {
         return 0;
     }
+    if (httpv == 2)
+    {
+        return http2_send_content_frame(msg);
+    }
     try
     {
         unsigned int n = 0;
@@ -435,6 +448,10 @@ unsigned int client_session::send_writer(std::string_view msg)
     if (isclose)
     {
         return 0;
+    }
+    if (httpv == 2)
+    {
+        return http2_send_content_frame(msg);
     }
     try
     {
@@ -601,7 +618,7 @@ asio::awaitable<void> client_session::co_send_setting()
     // （readheaders() 里那条 http_data.size() 判定）：守承诺的对端最多开到 100，
     // 无视承诺的直接被 512 拦住，所以承诺值不需要跟兜底值同源。
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-    if (!http2_ring_queue->push(_recvack, 21))
+    if (!push_control_frame(_recvack, 21))
     {
         http2_ring_queue_drop_count++;
     }
@@ -627,7 +644,7 @@ bool client_session::http2_send_enddata(unsigned int s_stream_id)
     _recvack[5]              = s_stream_id & 0x7F;
 
     // 返回值交给调用点：END_STREAM 丢了这条流永远不结束，调用方必须重投。
-    if (!http2_ring_queue->push(_recvack, 9))
+    if (!push_control_frame(_recvack, 9))
         return false;
     if (http2_need_wakeup)
         wake_ring_consumer();
@@ -638,7 +655,7 @@ asio::awaitable<void> client_session::http2_send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (http2_ring_queue->push(_recvack, 17) && http2_need_wakeup)
+    if (push_control_frame(_recvack, 17) && http2_need_wakeup)
         wake_ring_consumer();
     co_return;
 }
@@ -647,7 +664,7 @@ void client_session::send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (http2_ring_queue->push(_recvack, 17) && http2_need_wakeup)
+    if (push_control_frame(_recvack, 17) && http2_need_wakeup)
         wake_ring_consumer();
 }
 
@@ -665,7 +682,7 @@ bool client_session::send_zero_data(unsigned int stream_id)
     stream_id   = stream_id >> 8;
     _recvack[5] = stream_id & 0x7F;
 
-    if (!http2_ring_queue->push(_recvack, 9))
+    if (!push_control_frame(_recvack, 9))
         return false;
     if (http2_need_wakeup)
         wake_ring_consumer();
@@ -674,10 +691,10 @@ bool client_session::send_zero_data(unsigned int stream_id)
 
 asio::awaitable<bool> client_session::flush_send_ring()
 {
-    // 有界排空：见 client_session.h 注释。不写 socket（写者是 ring_client_server 与
-    // 内联直发协程，共用 FIFO 写锁），只等——每轮 sleep 让出 strand，
-    // 消费者的 async_write 完成事件才能被这个 strand 串行跑出来。
-    // 环空即「全部环内帧已写出」：pop 在 async_write 完成之后（见 ring_client_server 消费序）。
+    // 有界排空：见 client_session.h 注释。不写 socket（写者只有消费者协程），
+    // 只等——每轮 sleep 让出 strand，消费者的 async_write 完成事件才能被这个 strand
+    // 串行跑出来。环空即「全部环内帧已写出」：pop 在 async_write 完成之后
+    // （消费者出环时先写完再前移 head_）。
     if (http2_ring_queue == nullptr)
     {
         co_return true;
@@ -693,7 +710,7 @@ asio::awaitable<bool> client_session::flush_send_ring()
     // 2 秒上限、20 毫秒粒度：本地环排空通常在毫秒级；客户端停读时不无限拖住 teardown。
     for (unsigned int tick = 0; tick < 100; tick++)
     {
-        // 消费者（ring_client_server）遇 isclose/iserror 会退出，环再无人排空；
+        // 消费者遇 isclose/iserror 会退出，环再无人排空；
         // socket 已被关同理。这几种情况立刻放弃等待，不空转满 2 秒。
         if (isclose || iserror)
         {
@@ -717,9 +734,9 @@ asio::awaitable<bool> client_session::flush_send_ring()
 
 asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
 {
-    // GOAWAY 经写锁直接写出，不走环，环满也不会丢。
-    unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    // GOAWAY 入控制环：消费者控制优先，GOAWAY 先于排队中的内容上线。
+    // 环满就地 20ms 一拍重试，2 秒预算——客户端停读时不无限拖住 teardown。
+    unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     fr[9]                = (last_stream_id >> 24) & 0xFF;
     fr[10]               = (last_stream_id >> 16) & 0xFF;
     fr[11]               = (last_stream_id >> 8) & 0xFF;
@@ -728,16 +745,32 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
     fr[14]               = (error_code >> 16) & 0xFF;
     fr[15]               = (error_code >> 8) & 0xFF;
     fr[16]               = error_code & 0xFF;
-    if (co_await http2_write_lock())
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    for (;;)
     {
-        asio::error_code wec;
-        if (isssl)
-            co_await asio::async_write(*sslsocket, asio::buffer(fr, 17), asio::redirect_error(asio::use_awaitable, wec));
-        else
-            co_await asio::async_write(*socket, asio::buffer(fr, 17), asio::redirect_error(asio::use_awaitable, wec));
-        http2_write_unlock();
+        if (isclose || iserror)
+            break;
+        if (push_control_frame(fr, 17))
+        {
+            if (http2_need_wakeup)
+                wake_ring_consumer();
+            // 等 GOAWAY 真的写出再返回：调用方随后 cancel()，不等就把环里的
+            // GOAWAY 与在途响应一起杀掉。
+            co_await flush_send_ring();
+            break;
+        }
+        http2_ring_queue_drop_count++;
+        if (std::chrono::steady_clock::now() >= deadline)
+            break;
+        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_ring_queue->has_size();
+        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        timer.expires_after(std::chrono::microseconds(wait_interval_us));
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        (void)wait_ec;
     }
-    // 关闭冲刷：置 closing + cancel 全部等待者，内联发送协程在循环边界静音退出。
+    // 关闭冲刷：置 closing + cancel 全部等待者，发送生产者在循环边界静音退出。
     http2_close_waiters();
     co_return;
 }
@@ -745,7 +778,7 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
 void client_session::send_recv_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
-    if (!http2_ring_queue->push(_recvack, 9))
+    if (!push_control_frame(_recvack, 9))
     {
         http2_ring_queue_drop_count++;
     }
@@ -770,7 +803,7 @@ bool client_session::push_window_update_conn(unsigned int up_num)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    if (!http2_ring_queue->push(_recvack, 13))
+    if (!push_control_frame(_recvack, 13))
         return false;
     if (http2_need_wakeup)
         wake_ring_consumer();
@@ -798,7 +831,7 @@ bool client_session::push_window_update_stream(unsigned int stmid, unsigned int 
     // RFC 9113 §6.1：流标识符最高位是保留位，发送时必须为 0
     _recvack[5] = stmid & 0x7F;
 
-    if (!http2_ring_queue->push(_recvack, 13))
+    if (!push_control_frame(_recvack, 13))
         return false;
     if (http2_need_wakeup)
         wake_ring_consumer();
@@ -867,6 +900,10 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
     {
         return 0;
     }
+    if (httpv == 2)
+    {
+        return http2_send_content_frame(std::string_view(reinterpret_cast<const char *>(buffer), buffersize));
+    }
 
     try
     {
@@ -932,92 +969,8 @@ void client_session::wake_ring_consumer()
     }
 }
 
-// ---- h2 直发原语 ----
+// ---- h2 停等原语 ----
 // 都在本连接 strand 上跑：容器不用锁，cancel 和 async_wait 同一个 executor。
-
-asio::awaitable<bool> client_session::http2_write_lock()
-{
-    if (isclose || iserror)
-        co_return false;
-    asio::steady_timer timer(co_await asio::this_coro::executor);
-    // 协程在等待中被销毁时局部 timer 析构，队列里的裸指针会悬垂：
-    // 析构即摘除；若已被选为交接对象，把锁传下去，不然 busy 永真。
-    struct waiter_guard
-    {
-        client_session *sess;
-        asio::steady_timer *t;
-        ~waiter_guard()
-        {
-            sess->http2_write_waiters.remove(t);
-            if (sess->http2_write_next_owner == t)
-            {
-                sess->http2_write_next_owner = nullptr;
-                sess->http2_write_unlock();
-            }
-        }
-    } waiter_guard_{this, &timer};
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WRITE_LOCK_TIMEOUT);
-    while (http2_write_busy)
-    {
-        if (isclose || iserror || http2_closing.load(std::memory_order_relaxed))
-            co_return false;
-        const auto left = deadline - std::chrono::steady_clock::now();
-        if (left <= std::chrono::steady_clock::duration::zero())
-        {
-            // FIFO 交接不会饿死等待者：等满预算说明持锁者的 async_write 卡死，
-            // 连接写路径已死。在这里集中判定并叫醒所有人，调用方见 false 即退出，
-            // 不再逐条 RST 同连接的健康流。不关 socket：慢写可能仍在途，
-            // 收尾交给正常 teardown 路径。
-            isclose = true;
-            http2_close_waiters();
-            wake_ring_consumer();
-            co_return false;
-        }
-        http2_write_waiters.push_back(&timer);
-        timer.expires_after(left);
-        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
-        http2_write_waiters.remove(&timer);
-        if (http2_write_next_owner == &timer)
-        {
-            // 被交接选中就拿着锁，不管 ec 是什么都要处置：超时或关闭时把锁传下去或释放，
-            // 不然 busy 永真、队列已空，这条连接就写死了。
-            http2_write_next_owner = nullptr;
-            if (!http2_closing.load(std::memory_order_relaxed) && wait_ec == asio::error::operation_aborted)
-                co_return true;
-            http2_write_unlock();
-            if (wait_ec != asio::error::operation_aborted)
-            {
-                // 交接选中与自然到期撞在同一拍：预算同样已耗尽，按写停滞收尾。
-                isclose = true;
-                http2_close_waiters();
-                wake_ring_consumer();
-            }
-            co_return false;
-        }
-        if (isclose || iserror || http2_closing.load(std::memory_order_relaxed))
-            co_return false;
-        if (wait_ec != asio::error::operation_aborted)
-            co_return false;
-        // 不是交接的 cancel：回循环重判
-    }
-    http2_write_busy = true;
-    co_return true;
-}
-
-void client_session::http2_write_unlock()
-{
-    if (!http2_write_waiters.empty())
-    {
-        // busy 不置 false：所有权交接给队首，它的续体醒来即持锁
-        http2_write_next_owner = http2_write_waiters.front();
-        http2_write_waiters.pop_front();
-        http2_write_next_owner->cancel();
-    }
-    else
-    {
-        http2_write_busy = false;
-    }
-}
 
 asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid, const std::atomic_bool &dead)
 {
@@ -1055,7 +1008,7 @@ asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid
         if (!conn_empty)
         {
             std::lock_guard<std::mutex> lk(stream_send_window_mutex);
-            auto it = stream_send_window.find(sid);
+            auto it            = stream_send_window.find(sid);
             unsigned int avail = (it == stream_send_window.end()) ? remote_initial_window_size.load() : it->second;
             if (avail > 0)
                 co_return true;
@@ -1078,7 +1031,7 @@ asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid
             if (!conn_empty)
             {
                 std::lock_guard<std::mutex> lk(stream_send_window_mutex);
-                auto it = stream_send_window.find(sid);
+                auto it            = stream_send_window.find(sid);
                 unsigned int avail = (it == stream_send_window.end()) ? remote_initial_window_size.load() : it->second;
                 if (avail > 0)
                     co_return true;
@@ -1094,6 +1047,7 @@ void client_session::http2_cancel_conn_waiters()
     // 按登记序 cancel ⇒ 续体按 FIFO 醒来，队首先 reserve
     for (auto *t : http2_conn_window_waiters)
         t->cancel();
+    http2_wake_sync_window_waiters();
 }
 
 void client_session::http2_cancel_stream_waiter(unsigned int sid)
@@ -1101,12 +1055,14 @@ void client_session::http2_cancel_stream_waiter(unsigned int sid)
     auto it = http2_stream_window_waiters.find(sid);
     if (it != http2_stream_window_waiters.end())
         it->second->cancel();
+    http2_wake_sync_window_waiters();
 }
 
 void client_session::http2_cancel_all_stream_waiters()
 {
     for (auto &kv : http2_stream_window_waiters)
         kv.second->cancel();
+    http2_wake_sync_window_waiters();
 }
 
 void client_session::http2_close_waiters()
@@ -1116,30 +1072,41 @@ void client_session::http2_close_waiters()
         t->cancel();
     for (auto &kv : http2_stream_window_waiters)
         kv.second->cancel();
-    for (auto *t : http2_write_waiters)
-        t->cancel();
+    http2_wake_sync_window_waiters();
 }
 
-asio::awaitable<bool> client_session::http2_send_rst_direct(unsigned int s_stream_id, unsigned int stream_error_code)
+void client_session::http2_wake_sync_window_waiters()
 {
-    unsigned char fr[13] = {0x00, 0x00, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    fr[5]                = (s_stream_id >> 24) & 0x7F;
-    fr[6]                = (s_stream_id >> 16) & 0xFF;
-    fr[7]                = (s_stream_id >> 8) & 0xFF;
-    fr[8]                = s_stream_id & 0xFF;
-    fr[9]                = (stream_error_code >> 24) & 0xFF;
-    fr[10]               = (stream_error_code >> 16) & 0xFF;
-    fr[11]               = (stream_error_code >> 8) & 0xFF;
-    fr[12]               = stream_error_code & 0xFF;
-    if (!co_await http2_write_lock())
-        co_return false;
-    asio::error_code wec;
-    if (isssl)
-        co_await asio::async_write(*sslsocket, asio::buffer(fr, 13), asio::redirect_error(asio::use_awaitable, wec));
-    else
-        co_await asio::async_write(*socket, asio::buffer(fr, 13), asio::redirect_error(asio::use_awaitable, wec));
-    http2_write_unlock();
-    co_return !wec;
+    // 只取 sync 世代锁：等待者挂 CV 时也只持这把锁（reserve 在锁外做），
+    // 通知方可能持 stream_send_window_mutex，但等待者绝不持世代锁去取它，无环。
+    {
+        std::lock_guard<std::mutex> lk(http2_sync_window_mutex);
+        ++http2_sync_window_gen;
+    }
+    http2_sync_window_cv.notify_all();
+}
+
+asio::awaitable<bool> client_session::http2_send_rst(unsigned int s_stream_id, unsigned int stream_error_code)
+{
+    // RST 入控制环，满则就地重试：起始 1ms，剩余槽少则加速、多则减速，2 秒预算。
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    for (;;)
+    {
+        if (isclose || iserror)
+            co_return false;
+        if (push_rst_stream(s_stream_id, stream_error_code))
+            co_return true;
+        http2_ring_queue_drop_count++;
+        if (std::chrono::steady_clock::now() >= deadline)
+            co_return false;
+        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_ring_queue->has_size();
+        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        timer.expires_after(std::chrono::microseconds(wait_interval_us));
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        (void)wait_ec;
+    }
 }
 
 bool client_session::push_rst_stream(unsigned int sid, unsigned int code)
@@ -1153,11 +1120,441 @@ bool client_session::push_rst_stream(unsigned int sid, unsigned int code)
     fr[10]               = (code >> 16) & 0xFF;
     fr[11]               = (code >> 8) & 0xFF;
     fr[12]               = code & 0xFF;
-    if (!http2_ring_queue->push(fr, 13))
+    if (!push_control_frame(fr, 13))
         return false;
     if (http2_need_wakeup)
         wake_ring_consumer();
     return true;
+}
+
+bool client_session::push_control_frame(const unsigned char *fr, unsigned int n)
+{
+    // 控制帧与内容批共用喂入锁，但不查 24 闸：持锁直推控制环，环满返回 false 由调用方重试。
+    std::lock_guard<std::mutex> feed(http2_feed_mutex);
+    return http2_ring_queue->push(fr, n);
+}
+
+// ---- 内容环：流式发送纳管 ----
+// 流式响应不再直写 socket：DATA 分片 + 逐片预留窗口后入内容环，HEADERS 帧链整块入环，
+// 唯一写者是消费者协程（H2 专属），控制帧优先、按环序串行写出，I/O 全程不持锁。
+
+static unsigned int h2_frame_sid(std::string_view f)
+{
+    return (static_cast<unsigned int>(static_cast<unsigned char>(f[5])) << 24) |
+           (static_cast<unsigned int>(static_cast<unsigned char>(f[6])) << 16) |
+           (static_cast<unsigned int>(static_cast<unsigned char>(f[7])) << 8) |
+           static_cast<unsigned int>(static_cast<unsigned char>(f[8]));
+}
+static unsigned int h2_frame_payload_len(std::string_view f)
+{
+    return (static_cast<unsigned int>(static_cast<unsigned char>(f[0])) << 16) |
+           (static_cast<unsigned int>(static_cast<unsigned char>(f[1])) << 8) |
+           static_cast<unsigned int>(static_cast<unsigned char>(f[2]));
+}
+std::string h2_make_data_chunk(unsigned int sid, unsigned char flags, const char *payload, unsigned int len)
+{
+    std::string chunk;
+    chunk.resize(9 + static_cast<size_t>(len));
+    chunk[0] = static_cast<char>((len >> 16) & 0xFF);
+    chunk[1] = static_cast<char>((len >> 8) & 0xFF);
+    chunk[2] = static_cast<char>(len & 0xFF);
+    chunk[3] = 0x00;
+    chunk[4] = static_cast<char>(flags);
+    chunk[5] = static_cast<char>((sid >> 24) & 0x7F);
+    chunk[6] = static_cast<char>((sid >> 16) & 0xFF);
+    chunk[7] = static_cast<char>((sid >> 8) & 0xFF);
+    chunk[8] = static_cast<char>(sid & 0xFF);
+    if (len > 0)
+        std::memcpy(&chunk[9], payload, len);
+    return chunk;
+}
+
+void client_session::http2_mark_stream_dead(unsigned int sid)
+{
+    std::lock_guard<std::mutex> lk(http2_dead_streams_mutex);
+    http2_dead_streams.insert(sid);
+}
+
+bool client_session::http2_stream_is_dead(unsigned int sid)
+{
+    std::lock_guard<std::mutex> lk(http2_dead_streams_mutex);
+    return http2_dead_streams.find(sid) != http2_dead_streams.end();
+}
+
+void client_session::http2_content_stream_failed(unsigned int sid, unsigned long long refund_bytes, bool rst)
+{
+    if (refund_bytes > 0)
+    {
+        get_server_app().http2_refund_send_window(this, sid, refund_bytes);
+    }
+    http2_mark_stream_dead(sid);
+    {
+        std::lock_guard<std::mutex> lk(stream_send_window_mutex);
+        stream_send_window.erase(sid);
+    }
+    if (rst && !isclose.load(std::memory_order_relaxed) && !http2_closing.load(std::memory_order_relaxed))
+    {
+        if (!push_rst_stream(sid, CONST_HTTP2_STREAM_ERROR_CANCEL))
+        {
+            // 控制环满：连接已过载，RST 也投不进去，交给 teardown
+            isclose = true;
+        }
+    }
+}
+
+// sync 生产者（业务池线程）的失败收尾：先标死流挡住自己后续帧，再把退款/撤流投递到
+// strand——http2_refund_send_window 会 cancel 窗口停等者，那些容器是 strand 专属的。
+static void h2_content_fail_post(client_session *sess, unsigned int sid, unsigned long long refund_bytes, bool rst)
+{
+    sess->http2_mark_stream_dead(sid);
+    auto self = sess->get_ptr();
+    asio::post(sess->strand_, [self, sid, refund_bytes, rst]()
+               { self->http2_content_stream_failed(sid, refund_bytes, rst); });
+}
+
+// 在途生产者登记（RAII）：消费者只在某流没有在途生产者时才清它的死流标记。
+// 没有这个登记，窗口停等中的生产者醒来时标记可能已被整表清空，会往已重置的流
+// 重新预留窗口并推帧。登记与死流标记同一把锁，登记/注销与清表互斥。
+struct h2_content_producer_guard
+{
+    client_session *sess;
+    unsigned int sid;
+    h2_content_producer_guard(client_session *s, unsigned int id) : sess(s), sid(id)
+    {
+        std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
+        sess->http2_content_producers.insert(sid);
+    }
+    ~h2_content_producer_guard()
+    {
+        std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
+        sess->http2_content_producers.erase(sid);
+    }
+};
+
+// 裸内容帧入环，满则原地等。sync 版：环满 sleep 重试（业务池线程不能 co_await），
+// 起始 1ms、剩余槽少加速/多减速，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT 秒；
+// 等待期间消费者在 strand 上正常排空。
+bool client_session::http2_push_content_raw_sync(std::string frame, unsigned int sid)
+{
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+    for (;;)
+    {
+        if (isclose.load(std::memory_order_relaxed) ||
+            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+            return false;
+        bool pushed = false;
+        {
+            std::lock_guard<std::mutex> feed(http2_feed_mutex);
+            // 喂入锁内复查死流：每条 RST 入环前都已标死，RST 入环也走这把锁，
+            // 所以拿到锁时未见死 ⇒ 该流 RST 尚未入环，本帧必然先于它入环。
+            // 堵住业务池生产者在「锁外查死 → 取锁」间隙被 strand 侧 RST 抢跑的窗口。
+            if (http2_stream_is_dead(sid))
+                return false;
+            pushed = http2_content_queue->push(std::move(frame));
+        }
+        if (pushed)
+        {
+            // 唤醒放在喂入锁外，避免持锁 dispatch 就地复活消费者后重入喂入锁。
+            if (http2_need_wakeup)
+                wake_ring_consumer();
+            return true;
+        }
+        http2_ring_overflow_count++;
+        if (std::chrono::steady_clock::now() >= deadline)
+            return false;
+        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
+        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        std::this_thread::sleep_for(std::chrono::microseconds(wait_interval_us));
+    }
+}
+// async 版：timer 挂在本连接 strand 上，每次让出都让消费者协程的写完成推进，不会互锁。
+// 本协程与 RST 入环同在 strand 上串行，查死与 push 之间无挂起点，无需锁内复查。
+asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, unsigned int sid)
+{
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+    for (;;)
+    {
+        if (isclose.load(std::memory_order_relaxed) ||
+            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+            co_return false;
+        bool pushed = false;
+        {
+            std::lock_guard<std::mutex> feed(http2_feed_mutex);
+            pushed = http2_content_queue->push(std::move(frame));
+        }
+        if (pushed)
+        {
+            // 唤醒放在喂入锁外：本协程在 strand 上，wake 的 dispatch 会就地复活消费者，
+            // 消费者冲刷欠账补量会再取喂入锁，持锁唤醒＝同线程重入非递归锁。
+            if (http2_need_wakeup)
+                wake_ring_consumer();
+            co_return true;
+        }
+        http2_ring_overflow_count++;
+        if (std::chrono::steady_clock::now() >= deadline)
+            co_return false;
+        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
+        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        timer.expires_after(std::chrono::microseconds(wait_interval_us));
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        (void)wait_ec;
+    }
+}
+
+asio::awaitable<bool> client_session::http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid)
+{
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+    for (;;)
+    {
+        if (isclose.load(std::memory_order_relaxed) ||
+            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+            co_return false;
+        bool pushed = false;
+        {
+            // 持喂入锁查闸+推整批：闸 24 + 批 6 = 30 ≤ 31 可用槽，持锁期间别的生产者
+            // 进不来（控制帧也走这把锁），消费者只会 pop 让 has_size 更小，本批必然装得下。
+            std::unique_lock<std::mutex> feed(http2_feed_mutex);
+            if (http2_content_queue->has_size() < CONST_HTTP2_CONTENT_RING_FEED_GATE)
+            {
+                for (std::string &f : frames)
+                {
+                    http2_content_queue->push(std::move(f));
+                }
+                pushed = true;
+            }
+        }
+        if (pushed)
+        {
+            // 唤醒放在喂入锁外：wake 的 dispatch 会就地复活消费者，消费者冲刷欠账补量
+            // 会再取喂入锁，持锁唤醒＝同线程重入非递归锁。整批已入环，唤醒只是通知。
+            if (http2_need_wakeup)
+                wake_ring_consumer();
+            co_return true;
+        }
+        // 闸满：放锁再等，绝不持锁 sleep/co_await（会挡住控制帧与消费者 pop）。
+        http2_ring_overflow_count++;
+        if (std::chrono::steady_clock::now() >= deadline)
+            co_return false;
+        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
+        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        timer.expires_after(std::chrono::microseconds(wait_interval_us));
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        (void)wait_ec;
+    }
+}
+
+unsigned int client_session::http2_send_content_frame(std::string_view frame)
+{
+    if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        return 0;
+    if (frame.size() < 9 || http2_content_queue == nullptr)
+        return 0;
+    const unsigned int sid         = h2_frame_sid(frame);
+    const unsigned char ftype      = static_cast<unsigned char>(frame[3]);
+    const unsigned char fflags     = static_cast<unsigned char>(frame[4]);
+    const unsigned int payload_len = h2_frame_payload_len(frame);
+
+    // HEADERS 帧链：整块入环，不做窗口记账。
+    if (ftype != 0x00)
+    {
+        h2_content_producer_guard producer_guard{this, sid};
+        if (http2_stream_is_dead(sid))
+            return 0;
+        if (http2_push_content_raw_sync(std::string(frame), sid))
+            return static_cast<unsigned int>(frame.size());
+        if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+            !http2_closing.load(std::memory_order_relaxed))
+            h2_content_fail_post(this, sid, 0, true);
+        return 0;
+    }
+    // DATA（含零长 END_STREAM）：payload 直入，拆片/窗口记账在 payload 函数里。
+    if (frame.size() - 9 != payload_len)
+        return 0;
+    return http2_send_data_payload(sid, frame.substr(9), fflags);
+}
+
+unsigned int client_session::http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags)
+{
+    if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        return 0;
+    if (http2_content_queue == nullptr)
+        return 0;
+    h2_content_producer_guard producer_guard{this, sid};
+
+    // 零长 DATA（END_STREAM 收尾）：不占窗口额度，整帧入环。
+    if (payload.empty())
+    {
+        if (http2_stream_is_dead(sid))
+            return 0;
+        std::string chunk = h2_make_data_chunk(sid, end_flags, nullptr, 0);
+        if (http2_push_content_raw_sync(std::move(chunk), sid))
+            return 9;
+        if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+            !http2_closing.load(std::memory_order_relaxed))
+            h2_content_fail_post(this, sid, 0, true);
+        return 0;
+    }
+
+    auto &app             = get_server_app();
+    unsigned int accepted = 0;
+    size_t off            = 0;
+    while (off < payload.size())
+    {
+        if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
+            http2_stream_is_dead(sid))
+            return accepted;
+        const unsigned int cap =
+            std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
+        const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
+        unsigned long long got = app.http2_reserve_send_window(this, sid, want);
+        if (got == 0)
+        {
+            // 同步窗口停等：挂 CV 等唤醒边（WU/IWS/退款/关闭都会递增世代并 notify），
+            // CONST_HTTP2_WINDOW_STALL_TIMEOUT 秒预算；到期撤流（RST CANCEL），连接保留。
+            const auto deadline =
+                std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+            for (;;)
+            {
+                if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
+                    http2_stream_is_dead(sid))
+                    return accepted;
+                const auto left = deadline - std::chrono::steady_clock::now();
+                if (left <= std::chrono::steady_clock::duration::zero())
+                {
+                    if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+                        !http2_closing.load(std::memory_order_relaxed))
+                        h2_content_fail_post(this, sid, 0, true);
+                    return accepted;
+                }
+                // 先快照世代再 reserve：reserve 与挂起之间到达的唤醒已体现在世代里，
+                // wait_for 的谓词立即为真，不会丢唤醒。reserve 不持世代锁（锁序无环）。
+                unsigned long long seen;
+                {
+                    std::lock_guard<std::mutex> wl(http2_sync_window_mutex);
+                    seen = http2_sync_window_gen;
+                }
+                got = app.http2_reserve_send_window(this, sid, want);
+                if (got > 0)
+                    break;
+                std::unique_lock<std::mutex> wl(http2_sync_window_mutex);
+                http2_sync_window_cv.wait_for(wl, left, [this, seen]
+                                              { return http2_sync_window_gen != seen; });
+            }
+        }
+        const bool last   = (off + got >= payload.size());
+        std::string chunk = h2_make_data_chunk(sid, last ? end_flags : static_cast<unsigned char>(end_flags & ~0x01), payload.data() + off, static_cast<unsigned int>(got));
+        if (!http2_push_content_raw_sync(std::move(chunk), sid))
+        {
+            const bool gone = http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
+                              http2_closing.load(std::memory_order_relaxed);
+            h2_content_fail_post(this, sid, got, !gone);
+            return accepted;
+        }
+        off += static_cast<size_t>(got);
+        accepted += 9 + static_cast<unsigned int>(got);
+        time_limit.store(timeid() + 16);
+    }
+    return accepted;
+}
+
+asio::awaitable<unsigned int> client_session::async_http2_send_content_frame(std::string_view frame)
+{
+    auto self = shared_from_this();
+    http2_sender_count_guard count_guard(this);
+    if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        co_return 0;
+    if (frame.size() < 9 || http2_content_queue == nullptr)
+        co_return 0;
+    const unsigned int sid         = h2_frame_sid(frame);
+    const unsigned char ftype      = static_cast<unsigned char>(frame[3]);
+    const unsigned char fflags     = static_cast<unsigned char>(frame[4]);
+    const unsigned int payload_len = h2_frame_payload_len(frame);
+
+    if (ftype != 0x00)
+    {
+        h2_content_producer_guard producer_guard{this, sid};
+        if (http2_stream_is_dead(sid))
+            co_return 0;
+        if (co_await http2_push_content_raw(std::string(frame), sid))
+            co_return static_cast<unsigned int>(frame.size());
+        if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+            !http2_closing.load(std::memory_order_relaxed))
+            http2_content_stream_failed(sid, 0, true);
+        co_return 0;
+    }
+    if (frame.size() - 9 != payload_len)
+        co_return 0;
+    co_return co_await async_http2_send_data_payload(sid, frame.substr(9), fflags);
+}
+
+asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags)
+{
+    auto self = shared_from_this();
+    http2_sender_count_guard count_guard(this);
+    if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        co_return 0;
+    if (http2_content_queue == nullptr)
+        co_return 0;
+    h2_content_producer_guard producer_guard{this, sid};
+
+    if (payload.empty())
+    {
+        if (http2_stream_is_dead(sid))
+            co_return 0;
+        std::string chunk = h2_make_data_chunk(sid, end_flags, nullptr, 0);
+        if (co_await http2_push_content_raw(std::move(chunk), sid))
+            co_return 9;
+        if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+            !http2_closing.load(std::memory_order_relaxed))
+            http2_content_stream_failed(sid, 0, true);
+        co_return 0;
+    }
+
+    auto &app             = get_server_app();
+    unsigned int accepted = 0;
+    size_t off            = 0;
+    // 流级死活的判据走 http2_dead_streams（cleanup_stream 会 cancel 停等者叫醒本协程），
+    // 所以传给 episode 的 dead 旗恒 false，closing 由 episode 内部判。
+    const std::atomic_bool nodead{false};
+    while (off < payload.size())
+    {
+        if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
+            http2_stream_is_dead(sid))
+            co_return accepted;
+        const unsigned int cap =
+            std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
+        const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
+        unsigned long long got = app.http2_reserve_send_window(this, sid, want);
+        if (got == 0)
+        {
+            if (!co_await http2_wait_window_episode(sid, nodead))
+            {
+                if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
+                    !http2_closing.load(std::memory_order_relaxed))
+                    http2_content_stream_failed(sid, 0, true);
+                co_return accepted;
+            }
+            continue;
+        }
+        const bool last   = (off + got >= payload.size());
+        std::string chunk = h2_make_data_chunk(sid, last ? end_flags : static_cast<unsigned char>(end_flags & ~0x01), payload.data() + off, static_cast<unsigned int>(got));
+        if (!co_await http2_push_content_raw(std::move(chunk), sid))
+        {
+            const bool gone = http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
+                              http2_closing.load(std::memory_order_relaxed);
+            http2_content_stream_failed(sid, got, !gone);
+            co_return accepted;
+        }
+        off += static_cast<size_t>(got);
+        accepted += 9 + static_cast<unsigned int>(got);
+        time_limit.store(timeid() + 16);
+    }
+    co_return accepted;
 }
 
 asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)
@@ -1166,6 +1563,10 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned c
     if (isclose)
     {
         co_return 0;
+    }
+    if (httpv == 2)
+    {
+        co_return co_await async_http2_send_content_frame(std::string_view(reinterpret_cast<const char *>(buffer), buffersize));
     }
     try
     {
@@ -1212,6 +1613,10 @@ asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view
     if (isclose)
     {
         co_return 0;
+    }
+    if (httpv == 2)
+    {
+        co_return co_await async_http2_send_content_frame(msg);
     }
     try
     {
@@ -1307,6 +1712,10 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const std::strin
     if (isclose)
     {
         co_return 0;
+    }
+    if (httpv == 2)
+    {
+        co_return co_await async_http2_send_content_frame(msg);
     }
     try
     {

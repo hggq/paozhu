@@ -1575,7 +1575,24 @@ std::string httppeer::make_http1_header()
     http1header.append("Server: Paozhu\r\n");
     return http1header;
 }
-std::string httppeer::make_http2_header(unsigned char flag_code)
+// RFC 7541 §7.1：凭证类头的值不进动态表（CRIME 类压缩侧信道）。set-cookie 在下方
+// 单独走 item4，这里兜住业务经 set_header / http2_send_header 塞进来的同类敏感头。
+static bool h2_never_indexed_name(const std::string &name)
+{
+    std::string lower;
+    lower.reserve(name.size());
+    for (char c : name)
+    {
+        lower.push_back((c >= 'A' && c <= 'Z') ? static_cast<char>(c + 32) : c);
+    }
+    return lower == "authorization" || lower == "proxy-authorization" || lower == "cookie" || lower == "set-cookie";
+}
+static bool h2_never_indexed_code(unsigned char code)
+{
+    return code == HTTP2_CODE_authorization || code == HTTP2_CODE_cookie ||
+           code == HTTP2_CODE_proxy_authorization || code == HTTP2_CODE_set_cookie;
+}
+std::string httppeer::make_http2_header(unsigned char flag_code, bool index_headers)
 {
     std::string http2header;
 
@@ -1590,37 +1607,85 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     streamid              = streamid >> 8;
     http2header[5]        = streamid & 0xFF;
 
+    hpack_enc_table *enc = nullptr;
+#ifdef PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE
+    if (index_headers && socket_session)
+    {
+        enc = &socket_session->hpack_enc;
+        // RFC 7541 §4.2：上限变化后的第一个动态表头块必须以 Size Update 开头。
+        // 缩了又抬时发两个（先最紧值再当前值）：解码器要镜像最紧值那次逐出。
+        // 不插表的流式头块不消费该信号（它们不引用动态表），信号保证先于任何
+        // 变化后的动态引用到达对端。
+        if (enc->size_update_pending)
+        {
+            auto put_update = [&](unsigned int v)
+            {
+                if (v < 31)
+                {
+                    http2header.push_back(static_cast<char>(0x20 | v));
+                }
+                else
+                {
+                    http2header.push_back(0x3F);
+                    v -= 31;
+                    while (v >= 128)
+                    {
+                        http2header.push_back(static_cast<char>((v & 0x7F) | 0x80));
+                        v >>= 7;
+                    }
+                    http2header.push_back(static_cast<char>(v));
+                }
+            };
+            put_update(enc->pending_size_update);
+            if (enc->max_size != enc->pending_size_update)
+                put_update(enc->max_size);
+            enc->size_update_pending = false;
+        }
+    }
+#else
+    (void)index_headers;
+#endif
+
     make_http2_headers_static(http2header, status_code);
     set_http2_headers_flag(http2header, HTTP2_HEADER_END_HEADERS | flag_code);
-    // 同 make_http1_header()：304/204/1xx 不写 Content-Length（RFC 9110 §8.6）。
-    // Same as make_http1_header(): no Content-Length on 304/204/1xx (RFC 9110 §8.6).
-    if (status_code != 304 && status_code != 204 && !(status_code >= 100 && status_code < 200))
+    // 同 make_http1_header()：chunked/SSE（ischunked）正文长度未知，不写 Content-Length；
+    // 写了 0 会让对端把后续 DATA 判成 PROTOCOL_ERROR（RFC 9113 §8.1 长度必须吻合）。
+    // 304/204/1xx 也不写（RFC 9110 §8.6）。
+    // Same as make_http1_header(): no Content-Length on chunked/SSE (unknown length; a 0
+    // makes peers reject later DATA as PROTOCOL_ERROR) nor on 304/204/1xx.
+    if (!ischunked && status_code != 304 && status_code != 204 && !(status_code >= 100 && status_code < 200))
     {
-        make_http2_headers_item3(http2header, HTTP2_CODE_content_length, content_length);
+        make_http2_headers_item3(http2header, HTTP2_CODE_content_length, content_length, enc);
     }
-    make_http2_headers_item3(http2header, HTTP2_CODE_content_type, content_type);
+    make_http2_headers_item3(http2header, HTTP2_CODE_content_type, content_type, enc);
 
     if (compress == 1)
     {
-        make_http2_headers_item3(http2header, HTTP2_CODE_content_encoding, "gzip");
+        make_http2_headers_item3(http2header, HTTP2_CODE_content_encoding, "gzip", enc);
     }
     else if (compress == 2)
     {
-        make_http2_headers_item3(http2header, HTTP2_CODE_content_encoding, "br");
+        make_http2_headers_item3(http2header, HTTP2_CODE_content_encoding, "br", enc);
     }
     if (http2_send_header.size() > 0)
     {
         for (auto [first, second] : http2_send_header)
         {
-            make_http2_headers_item3(http2header, (unsigned char)first, second);
+            if (h2_never_indexed_code((unsigned char)first))
+                make_http2_headers_item4(http2header, (unsigned char)first, second);
+            else
+                make_http2_headers_item3(http2header, (unsigned char)first, second, enc);
         }
     }
-    make_http2_headers_item3(http2header, "server", "Paozhu");
+    make_http2_headers_item3(http2header, "server", "Paozhu", enc);
     if (send_header.size() > 0)
     {
         for (auto [first, second] : send_header)
         {
-            make_http2_headers_item3(http2header, first, second);
+            if (h2_never_indexed_name(first))
+                make_http2_headers_item4(http2header, first, second);
+            else
+                make_http2_headers_item3(http2header, first, second, enc);
         }
     }
     //std::list<std::string> cookielist = cookietoheader();
@@ -1628,7 +1693,8 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     {
         for (auto iter = send_cookie_lists.begin(); iter != send_cookie_lists.end(); iter++)
         {
-            make_http2_headers_item3(http2header, HTTP2_CODE_set_cookie, *iter);
+            // set-cookie 走 never indexed（0001xxxx）：敏感值不进动态表。
+            make_http2_headers_item4(http2header, HTTP2_CODE_set_cookie, *iter);
             //cookielist.pop_front();
         }
     }
@@ -2479,38 +2545,6 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
     return range_parse_t::applied;
 }
 
-std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload, bool is_end)
-{
-    std::string frame(9, '\0');
-
-    // payload length (3 bytes, big-endian)
-    unsigned int len = payload.size();
-    frame[2]         = len & 0xFF;
-    len >>= 8;
-    frame[1] = len & 0xFF;
-    len >>= 8;
-    frame[0] = len & 0xFF;
-
-    // frame type: 0x00 = DATA
-    frame[3] = 0x00;
-
-    // flags: 0x01 = END_STREAM
-    frame[4] = is_end ? 0x01 : 0x00;
-
-    // stream_id (4 bytes, big-endian)
-    unsigned int sid_temp = sid;
-    frame[8]              = sid_temp & 0xFF;
-    sid_temp >>= 8;
-    frame[7] = sid_temp & 0xFF;
-    sid_temp >>= 8;
-    frame[6] = sid_temp & 0xFF;
-    sid_temp >>= 8;
-    frame[5] = sid_temp & 0xFF;
-
-    frame.append(payload);
-    return frame;
-}
-
 // ---------------- 常规发送（Content-Length） ----------------
 void httppeer::send_make_header()
 {
@@ -2525,7 +2559,7 @@ void httppeer::send_make_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2543,10 +2577,9 @@ void httppeer::send_make_body(std::string_view data)
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, data, false);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, data, 0x00);
         }
     }
     else
@@ -2562,10 +2595,9 @@ void httppeer::send_make_end()
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     // HTTP/1.1: Content-Length 模式下，浏览器按长度读取完毕自动结束，无需额外操作
@@ -2586,7 +2618,7 @@ asio::awaitable<void> httppeer::async_send_make_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2605,10 +2637,9 @@ asio::awaitable<void> httppeer::async_send_make_body(std::string_view data)
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, data, false);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, data, 0x00);
         }
     }
     else
@@ -2625,10 +2656,9 @@ asio::awaitable<void> httppeer::async_send_make_end()
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     ischunked = true;
@@ -2650,7 +2680,7 @@ void httppeer::send_chunk_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2673,10 +2703,9 @@ void httppeer::send_chunk_body(std::string_view data)
     }
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, data, false);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, data, 0x00);
         }
     }
     else
@@ -2701,10 +2730,9 @@ void httppeer::send_chunk_end()
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     else
@@ -2731,7 +2759,7 @@ asio::awaitable<void> httppeer::async_send_chunk_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2755,10 +2783,9 @@ asio::awaitable<void> httppeer::async_send_chunk_body(std::string_view data)
     }
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, data, false);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, data, 0x00);
         }
     }
     else
@@ -2784,10 +2811,9 @@ asio::awaitable<void> httppeer::async_send_chunk_end()
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     else
@@ -2818,7 +2844,7 @@ asio::awaitable<void> httppeer::async_make_sse_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2849,7 +2875,7 @@ void httppeer::make_sse_header()
     std::string header_str;
     if (httpv == 2)
     {
-        header_str = make_http2_header(0);
+        header_str = make_http2_header(0, false);
     }
     else
     {
@@ -2873,10 +2899,9 @@ asio::awaitable<void> httppeer::async_make_sse_body(std::string_view data)
 
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, sse_data, false);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, sse_data, 0x00);
         }
     }
     else
@@ -2908,10 +2933,9 @@ void httppeer::make_sse_body(std::string_view data)
 
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, sse_data, false);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, sse_data, 0x00);
         }
     }
     else
@@ -2937,10 +2961,9 @@ asio::awaitable<void> httppeer::async_make_sse_end()
     if (httpv == 2)
     {
         // 发送空 DATA 帧，END_STREAM 标志
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            co_await socket_session->async_send_writer(frame);
+            co_await socket_session->async_http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     else
@@ -2958,10 +2981,9 @@ void httppeer::make_sse_end()
 {
     if (httpv == 2)
     {
-        std::string frame = make_http2_data(stream_id, "", true);
         if (socket_session)
         {
-            socket_session->send_writer(frame);
+            socket_session->http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
     else

@@ -38,12 +38,15 @@ struct http2_send_queue_cache
     // 做减法，先减后加会让这一帧的字节永久留在计数里。
     std::atomic<unsigned long long> bytes{0};
 
-    // 两个 push 都必须把帧字节深拷贝进槽：入环成功后发送对象即可回收，回池的 reset() 会清掉
+    // push 必须把帧字节完整放进槽：入环成功后发送对象即可回收，回池的 reset() 会清掉
     // 它的 content / cache_data / fp。生产者只写 tail_ 那格、消费者只读 head_ 那格，环非空时
     // 二者必不同格。改成零拷贝入环就要同时给回收加一道「等这一格写出」的闸门，否则消费者
     // 会读到已归还给对象池的那份内存。
+    // 拷贝两版深拷贝进槽；移动版成功时把 item 的缓冲移交进槽（源变空），失败（环满）时
+    // 源原样保留，调用方可直接重试。
     bool push(const unsigned char *buffer, unsigned int buffersize);
     bool push(const std::string &item);
+    bool push(std::string &&item);
 
     unsigned char has_size();
     bool pop(std::string &item);

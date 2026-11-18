@@ -42,6 +42,21 @@ bool http2_send_queue_cache::push(const std::string &item)
     lk.unlock();
     return false;
 }
+bool http2_send_queue_cache::push(std::string &&item)
+{
+    std::unique_lock lk(http2_queue_send_mutex);
+    std::size_t tail      = tail_.load(std::memory_order_relaxed);
+    std::size_t next_tail = (tail + 1) & (capacity_ - 1);
+    if (next_tail != head_.load(std::memory_order_acquire))
+    {
+        data[tail] = std::move(item);
+        tail_.store(next_tail, std::memory_order_release);
+        lk.unlock();
+        return true;
+    }
+    lk.unlock();
+    return false;
+}
 unsigned char http2_send_queue_cache::has_size()
 {
 

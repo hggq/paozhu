@@ -180,6 +180,18 @@ foreach(test_src IN LISTS test_cpp_files)
     )
   endif()
 
+  # HPACK 编码器动态表对拍用例：与 headers_split 同一链接面（http2_frame.cpp +
+  # http2_huffman.cpp），用独立迷你解码器对拍真实编码函数。在线帧级判据需要起隔离
+  # 实例，不进自动发现，在 tests/hpack_live/ 自带 run.sh。
+  # The encoder-table roundtrip test shares the headers_split link surface. The live
+  # frame-level test needs an isolated server instance and lives in tests/hpack_live/.
+  if(test_name MATCHES "http2_hpack")
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_frame.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_huffman.cpp"
+    )
+  endif()
+
   # jwt 用例把 http::jwt 实现编进测试目标：jwt.cpp 不在 paozhu_test_orm 的源集里，
   # 不加这一段则 encode/verify/decode_without_verify 三个符号找不到
   # jwt tests compile the http::jwt implementation in; without it the three jwt symbols stay undefined.

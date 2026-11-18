@@ -1,7 +1,8 @@
 /*
  * test_http2_ring_queue.cpp — http2 发送环行为契约单测
- * 契约：两个 push 必须把帧字节深拷贝进槽，入环成功后源内存可被改写/回收/释放。
- * 契约来源：vendor/httpserver/include/http2_ring_queue.h（push 的深拷贝要求）。
+ * 契约：push 必须把帧字节完整放进槽（拷贝两版深拷贝、移动版移交缓冲），
+ * 入环成功后源内存可被改写/回收/释放；移动版失败时源原样保留可重试。
+ * 契约来源：vendor/httpserver/include/http2_ring_queue.h（push 的入环要求）。
  * 输出：每组一行 PASS/FAIL，末行 SUMMARY；全过退出码 0，任一失败退出码 1。
  */
 #include <iostream>
@@ -113,6 +114,31 @@ int main()
         ring.reset();
         bool ok = ring.has_size() == 0 && ring.data[0].size() == 0;
         group_result("reset clears slots and size", ok);
+    }
+
+    // 组7: move 版 push 成功移交缓冲（源变空、pop 得原值）；满环拒收时源原样保留，
+    // 腾一格后重试成功。
+    {
+        http::http2_send_queue_cache ring;
+        std::string src(4096, 'm');
+        bool ok = ring.push(std::move(src));
+        ok      = ok && src.empty();
+        std::string out;
+        ok = ok && ring.pop(out) && out.size() == 4096 && out[0] == 'm' && out[4095] == 'm';
+
+        const int usable = static_cast<int>(ring.capacity_) - 1;
+        for (int i = 0; i < usable && ok; i++)
+        {
+            ok = ring.push("f" + std::to_string(i));
+        }
+        std::string keep(64, 'k');
+        ok = ok && !ring.push(std::move(keep));
+        ok = ok && keep.size() == 64 && keep[0] == 'k' && keep[63] == 'k';
+        std::string tmp;
+        ok = ok && ring.pop(tmp);
+        ok = ok && ring.push(std::move(keep));
+        ok = ok && keep.empty();
+        group_result("move push: success empties source, full-ring rejection keeps source", ok);
     }
 
     if (g_failures == 0)

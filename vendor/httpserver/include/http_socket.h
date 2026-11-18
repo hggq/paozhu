@@ -92,7 +92,7 @@ class socket_api : public std::enable_shared_from_this<socket_api>
         return true;
     }
     // 统一出站接口 —— 和 websocket 同一形状：数据一律进本连接的发送环，
-    // ring_client_server 是这条连接唯一的写者。
+    // 消费者协程是这条连接唯一的 socket 写者。
     // 禁止业务代码直接调用 session_sock->send_writer / async_send_writer 发数据：
     // 报文钩子在业务线程池、周期 tick 在定时线程、协程钩子在这条连接的 strand 上，
     // 两边同时裸写同一个 socket 就会把字节咬交错。

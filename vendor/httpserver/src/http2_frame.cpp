@@ -301,7 +301,6 @@ bool make_http2_headers_item(std::string &hh_data, unsigned char hh_code, const 
     {
         hh_data.push_back((unsigned char)en_value.size() | 0x80);
     }
-    hh_data.push_back((unsigned char)en_value.size() | 0x80);
     hh_data.append((char *)&en_value[0], en_value.size());
     return true;
 }
@@ -399,8 +398,6 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, const
     {
         hh_data.push_back((unsigned char)en_value.size() | 0x80);
     }
-
-    hh_data.push_back((unsigned char)en_value.size() | 0x80);
     hh_data.append((char *)&en_value[0], en_value.size());
     return true;
 }
@@ -426,239 +423,146 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, unsig
     return true;
 }
 
-bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value)
+// ---- HPACK 整数 / 字面量编码 helper（RFC 7541 §5.1 / §6.2）----
+// N-bit 前缀整数：first 是已含类型位的首字节基底，value 填满前缀后走 varint 尾巴。
+// 7-bit + 0x80 = Indexed / 字符串长度；6-bit + 0x40 = Incremental Indexing 的 name 索引；
+// 4-bit + 0x00 / 0x10 = without / never indexed；5-bit + 0x20 = Size Update。
+static void hpack_put_uint(std::string &out, unsigned int prefix_bits, unsigned char first, unsigned int value)
 {
-
-    hh_data.push_back(0x00);
-
-    std::string en_value;
-    http_huffman_encode((unsigned char *)&key[0], key.size(), en_value);
-
-    if (en_value.size() > 0x7F)
+    const unsigned int cap = (1u << prefix_bits) - 1;
+    if (value < cap)
     {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
-        {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
-        }
+        out.push_back(static_cast<char>(first | value));
+        return;
     }
-    else
+    out.push_back(static_cast<char>(first | cap));
+    value -= cap;
+    while (value >= 128)
     {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
+        out.push_back(static_cast<char>((value & 0x7F) | 0x80));
+        value >>= 7;
     }
-    hh_data.append((char *)&en_value[0], en_value.size());
+    out.push_back(static_cast<char>(value));
+}
 
-    en_value.clear();
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
+// 字符串字面量：Huffman 标志（恒编码）+ 7-bit 前缀长度 + 编码字节。
+static void hpack_put_string(std::string &out, const std::string &s)
+{
+    std::string en;
+    if (!s.empty())
+        http_huffman_encode((unsigned char *)&s[0], static_cast<unsigned int>(s.size()), en);
+    hpack_put_uint(out, 7, 0x80, static_cast<unsigned int>(en.size()));
+    out.append(en);
+}
 
-    if (en_value.size() > 0x7F)
+// 静态表查找：name+value 全匹配返回槽号；仅 name 匹配经 out_name_index 返回。
+// 槽 0 是 ":empty" 哨兵，不参与；空 value 不算全匹配（静态表空值条目只做 name 引用）。
+static unsigned int hpack_static_find(const std::string &name, const std::string &value, unsigned int &out_name_index)
+{
+    out_name_index = 0;
+    for (unsigned int i = 1; i <= 61; ++i)
     {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
+        if (http2_header_static_table[i].key == name)
         {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
+            if (!value.empty() && http2_header_static_table[i].value == value)
+                return i;
+            if (out_name_index == 0)
+                out_name_index = i;
         }
     }
-    else
+    return 0;
+}
+
+// 查表 + 插表编码。enc==nullptr 保持原 Literal without Indexing（流式路径 / 宏回退）。
+// known_name_index 非 0 时 name 必须与该静态槽同名（field index 重载的调用契约）。
+static void hpack_encode_field(std::string &hh_data, const std::string &name, const std::string &value,
+                               unsigned int known_name_index, hpack_enc_table *enc)
+{
+    if (enc == nullptr)
     {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
+        hpack_put_uint(hh_data, 4, 0x00, known_name_index);
+        if (known_name_index == 0)
+            hpack_put_string(hh_data, name);
+        hpack_put_string(hh_data, value);
+        return;
     }
-    hh_data.append((char *)&en_value[0], en_value.size());
+
+    unsigned int static_name_ix = 0;
+    unsigned int static_hit     = hpack_static_find(name, value, static_name_ix);
+    if (static_hit > 0)
+    {
+        hpack_put_uint(hh_data, 7, 0x80, static_hit);
+        return;
+    }
+    // 对端表上限为 0：退化为 without-indexing（仍可用静态 name 索引），不插表，
+    // 免得对端每条都做一遍 insert+evict 的空转。
+    if (enc->max_size == 0)
+    {
+        unsigned int name_ix = known_name_index != 0 ? known_name_index : static_name_ix;
+        hpack_put_uint(hh_data, 4, 0x00, name_ix);
+        if (name_ix == 0)
+            hpack_put_string(hh_data, name);
+        hpack_put_string(hh_data, value);
+        return;
+    }
+    unsigned int dyn_name_ix = 0;
+    unsigned int hit         = enc->find(name, value, dyn_name_ix);
+    if (hit > 0)
+    {
+        hpack_put_uint(hh_data, 7, 0x80, hit);
+        return;
+    }
+
+    unsigned int name_ix = known_name_index != 0 ? known_name_index
+                           : (static_name_ix != 0 ? static_name_ix : dyn_name_ix);
+    // Literal with Incremental Indexing（6-bit 前缀）+ 插入动态表。
+    // max_size==0 时 insert 逐空全表，表示本身仍合法，两端同步为空。
+    hpack_put_uint(hh_data, 6, 0x40, name_ix);
+    if (name_ix == 0)
+        hpack_put_string(hh_data, name);
+    hpack_put_string(hh_data, value);
+    enc->insert(name, value);
+}
+
+bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value, hpack_enc_table *enc)
+{
+    hpack_encode_field(hh_data, key, value, 0, enc);
     return true;
 }
 
-bool make_http2_headers_item3(std::string &hh_data, unsigned char hh_code, const std::string &value)
+bool make_http2_headers_item3(std::string &hh_data, unsigned char hh_code, const std::string &value, hpack_enc_table *enc)
 {
-    std::string en_value;
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-
-    if (hh_code > 15)
-    {
-        hh_data.push_back(0x0F);
-        hh_data.push_back(hh_code - 15);
-    }
+    if (hh_code >= 1 && hh_code <= 61)
+        hpack_encode_field(hh_data, http2_header_static_table[hh_code].key, value, hh_code, enc);
     else
-    {
-        hh_data.push_back(hh_code | 0x00);
-    }
-
-    if (en_value.size() > 0x7F)
-    {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
-        {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
-        }
-    }
-    else
-    {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    }
-
-    hh_data.append((char *)&en_value[0], en_value.size());
+        hpack_encode_field(hh_data, std::string(), value, 0, enc);
     return true;
 }
 
-bool make_http2_headers_item3(std::string &hh_data, unsigned char hh_code, unsigned long long num)
+bool make_http2_headers_item3(std::string &hh_data, unsigned char hh_code, unsigned long long num, hpack_enc_table *enc)
 {
-
-    if (hh_code > 15)
-    {
-        hh_data.push_back(0x0F);
-        hh_data.push_back(hh_code - 15);
-    }
-    else
-    {
-        hh_data.push_back(hh_code | 0x00);
-    }
-
-    std::string value, en_value;
-    value = std::to_string(num);
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-    hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    hh_data.append((char *)&en_value[0], en_value.size());
-    return true;
+    return make_http2_headers_item3(hh_data, hh_code, std::to_string(num), enc);
 }
 
+// Literal never indexed（0001xxxx，RFC 7541 §6.2.3）：敏感值（set-cookie）专用，
+// 两端都不插表，避免 CRIME 类压缩侧信道，也不占动态表额度。
 bool make_http2_headers_item4(std::string &hh_data, unsigned char hh_code, const std::string &value)
 {
-    std::string en_value;
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-
-    if (hh_code > 15)
-    {
-        hh_data.push_back(0x1F);
-        hh_data.push_back(hh_code - 15);
-    }
-    else
-    {
-        hh_data.push_back(hh_code | 0x10);
-    }
-
-    if (en_value.size() > 0x7F)
-    {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
-        {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
-        }
-    }
-    else
-    {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    }
-
-    hh_data.append((char *)&en_value[0], en_value.size());
+    hpack_put_uint(hh_data, 4, 0x10, hh_code);
+    hpack_put_string(hh_data, value);
     return true;
 }
 
 bool make_http2_headers_item4(std::string &hh_data, unsigned char hh_code, unsigned long long num)
 {
-
-    if (hh_code > 15)
-    {
-        hh_data.push_back(0x1F);
-        hh_data.push_back(hh_code - 15);
-    }
-    else
-    {
-        hh_data.push_back(hh_code | 0x10);
-    }
-
-    std::string value, en_value;
-    value = std::to_string(num);
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-    hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    hh_data.append((char *)&en_value[0], en_value.size());
-    return true;
+    return make_http2_headers_item4(hh_data, hh_code, std::to_string(num));
 }
 
 bool make_http2_headers_item4(std::string &hh_data, const std::string &key, const std::string &value)
 {
-
     hh_data.push_back(0x10);
-
-    std::string en_value;
-    http_huffman_encode((unsigned char *)&key[0], key.size(), en_value);
-
-    if (en_value.size() > 0x7F)
-    {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
-        {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
-        }
-    }
-    else
-    {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    }
-    hh_data.append((char *)&en_value[0], en_value.size());
-
-    en_value.clear();
-    http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-
-    if (en_value.size() > 0x7F)
-    {
-        unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
-        hh_data.push_back((char)0xFF);
-        if (totalsize > 127)
-        {
-            unsigned char temp    = totalsize / 128;
-            unsigned char tempsub = totalsize % 128;
-            hh_data.push_back((unsigned char)tempsub | 0x80);
-            hh_data.push_back((unsigned char)temp);
-        }
-        else
-        {
-            hh_data.push_back((unsigned char)totalsize);
-        }
-    }
-    else
-    {
-        hh_data.push_back((unsigned char)en_value.size() | 0x80);
-    }
-    hh_data.append((char *)&en_value[0], en_value.size());
+    hpack_put_string(hh_data, key);
+    hpack_put_string(hh_data, value);
     return true;
 }
 }// namespace http

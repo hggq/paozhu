@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <deque>
 #include "http_header.h"
 
 namespace http
@@ -269,6 +270,79 @@ static http2_header_static_table_t http2_header_static_table[] = {
     {"via", ""},
     {"www-authenticate", ""},
 };
+// HPACK 编码器侧动态表（RFC 7541 §2.3.2 / §4.1），每连接一份，挂在 client_session 上。
+// 布局与解码侧 http2parse::dynamic_lists 完全一致：队头最新、尾部逐出。
+// 索引不存条目里：index = 62 + 距队头位置，插入/逐出后全体自动移动（RFC 7541 §2.3.3）。
+// 全部读写点都在连接 strand 上（喂入锁内编码 / SETTINGS 解析），不需要锁；
+// 但编码必须发生在喂入锁临界区内，保证表变更顺序 = HEADERS 上线顺序。
+struct hpack_enc_table
+{
+    std::deque<std::pair<std::string, std::string>> entries;// front = 最新
+    unsigned int size     = 0;    // Σ(name.size + value.size + 32)
+    unsigned int max_size = 4096; // 对端 SETTINGS_HEADER_TABLE_SIZE（默认 4096）
+    // 上次发信号以来经历过的最紧上限。发信号时若它 < 当前 max_size，要先发它再发
+    // 当前值（一个块里允许两个 Size Update）：缩表时编码器已按它逐出过条目，解码器
+    // 必须镜像那次逐出——只发合并后的最终值会让解码器留着编码器已丢的条目，永久失步。
+    unsigned int pending_size_update = 0;
+    bool size_update_pending         = false;
+
+    // 全匹配返回索引（62+位置）；仅 name 匹配经 out_name_index 返回索引；都没有返回 0。
+    unsigned int find(const std::string &name, const std::string &value, unsigned int &out_name_index) const
+    {
+        out_name_index  = 0;
+        unsigned int ix = 62;
+        for (const auto &e : entries)
+        {
+            if (e.first == name)
+            {
+                if (e.second == value)
+                    return ix;
+                if (out_name_index == 0)
+                    out_name_index = ix;
+            }
+            ++ix;
+        }
+        return 0;
+    }
+
+    void evict()
+    {
+        while (!entries.empty() && size > max_size)
+        {
+            const auto &back = entries.back();
+            size -= static_cast<unsigned int>(back.first.size() + back.second.size()) + 32;
+            entries.pop_back();
+        }
+    }
+
+    // 超大条目（> max_size）无条件入表，evict 会把整表逐空（RFC 7541 §4.1）——
+    // 不许加准入判断：对端认为这条已入表，跳过会让两端表长永久错开。
+    void insert(const std::string &name, const std::string &value)
+    {
+        entries.emplace_front(name, value);
+        size += static_cast<unsigned int>(name.size() + value.size()) + 32;
+        evict();
+    }
+
+    // 对端 SETTINGS_HEADER_TABLE_SIZE 变更时调用（RFC 7541 §4.2）：
+    // 上限任何变化（缩小或抬高）都要在下一个头块发 Size Update 信号——解码器的上限
+    // 只跟信号走：缩表不信号，对端还按旧上限留着已逐出的条目；抬表不信号，对端按
+    // 旧（小）上限逐掉本端新插的条目——两个方向都永久失步。
+    void set_max_size(unsigned int new_max)
+    {
+        if (new_max != max_size)
+        {
+            if (!size_update_pending)
+                pending_size_update = new_max;
+            else if (new_max < pending_size_update)
+                pending_size_update = new_max;
+            max_size            = new_max;
+            size_update_pending = true;
+            evict();
+        }
+    }
+};
+
 // http2 header make item
 bool make_http2_headers(std::string &hh_data);
 bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code);
@@ -282,9 +356,12 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char, const std::st
 bool make_http2_headers_item2(std::string &hh_data, const std::string &key, const std::string &value);
 bool make_http2_headers_item2(std::string &hh_data, unsigned char, unsigned long long num);
 
-bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value);
-bool make_http2_headers_item3(std::string &hh_data, unsigned char, const std::string &value);
-bool make_http2_headers_item3(std::string &hh_data, unsigned char, unsigned long long num);
+bool make_http2_headers_item3(std::string &hh_data, const std::string &key, const std::string &value,
+                              hpack_enc_table *enc = nullptr);
+bool make_http2_headers_item3(std::string &hh_data, unsigned char, const std::string &value,
+                              hpack_enc_table *enc = nullptr);
+bool make_http2_headers_item3(std::string &hh_data, unsigned char, unsigned long long num,
+                              hpack_enc_table *enc = nullptr);
 
 bool make_http2_headers_item4(std::string &hh_data, const std::string &key, const std::string &value);
 bool make_http2_headers_item4(std::string &hh_data, unsigned char, const std::string &value);

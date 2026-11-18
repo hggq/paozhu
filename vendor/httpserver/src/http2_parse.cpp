@@ -2867,6 +2867,13 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             // RFC 9113 §6.5.2 给这项留了任意 32 位取值，没有 MUST-error 区间，
             // 所以哪怕广告 4GB 也是合法 SETTINGS，不报错也不放宽本端上限。
             setting_data.header_table_size = ident_value;
+            // 这是对端解码表的上限，约束本端 HPACK 编码器（响应头方向）：
+            // 缩小则逐出并置 Size Update 信号，下一个动态表头块开头补发（RFC 7541 §4.2）。
+            // 解析与编码同在连接 strand 上，无竞态。
+            // RFC 7541 §4.2 允许编码器选用比广告值更小的上限：取 min(广告值, 本地 cap)，
+            // 对端广告 4GB 也不能把每连接编码表撑大；实际选用值变化时照常发 Size Update。
+            peer_session->hpack_enc.set_max_size(
+                ident_value < CONST_HTTP2_ENCODER_TABLE_CAP ? ident_value : CONST_HTTP2_ENCODER_TABLE_CAP);
             break;
 
         case HTTP2_SETTINGS_ENABLE_PUSH:
@@ -3332,6 +3339,9 @@ void http2parse::cleanup_stream(unsigned int sid)
     // 本函数是全部解析侧死亡边（对端 RST / 流级错误 / 收尾）的唯一回收口径，
     // 一处接边即覆盖；本端撤流由发送协程自己置 isclose 并退出。
     peer_session->http2_cancel_stream_waiter(sid);
+    // 内容环 dead 边：这条流可能还有排队中的 HEADERS/DATA（流式响应），标死让
+    // 消费者协程（H2 专属）出队时丢帧并退还 DATA 已预留的窗口额度。
+    peer_session->http2_mark_stream_dead(sid);
     {
         std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
         peer_session->stream_send_window.erase(sid);

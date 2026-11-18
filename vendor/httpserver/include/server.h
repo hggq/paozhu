@@ -95,12 +95,12 @@ class httpserver
     asio::awaitable<unsigned int> client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_http2_loop(unsigned int offset, unsigned int readnum, std::shared_ptr<client_session>);
     // HTTP/2 统一入口（明文直连 / TLS ALPN h2 / h2c 升级三条路径共用）：补读并校验 24 字节连接前言、
-    // 必要时追加 h2c 首帧，再分配发送环 + 启动 ring_client_server + 回 SETTINGS，最后进入 client_http2_loop。
+    // 必要时追加 h2c 首帧，再分配发送环 + 启动 ring_client_http2_send_loop + 回 SETTINGS，最后进入 client_http2_loop。
     // 返回 3 表示进入失败（连接已不可用）。
     //
     // Unified HTTP/2 entry shared by all three paths (cleartext direct / TLS ALPN h2 / h2c upgrade):
     // read and verify the 24-byte connection preface, append the h2c first frame if needed,
-    // then allocate the send ring + start ring_client_server + reply SETTINGS,
+    // then allocate the send ring + start ring_client_http2_send_loop + reply SETTINGS,
     // and finally enter client_http2_loop. Returns 3 on enter failure (connection no longer usable).
     asio::awaitable<unsigned int> client_h2_enter(std::shared_ptr<client_session>, unsigned int &readnum, std::string_view h2c_first_request);
     // 记录首包阶段的错误日志（客户端 ip/port + 已读到的原始字节）。
@@ -195,7 +195,10 @@ class httpserver
     void http2_refund_send_window(client_session *session_obj, unsigned int stream_id, unsigned long long back);
 
 
-    asio::awaitable<void> ring_client_server(std::shared_ptr<client_session> peer_session);
+    // H2 专属：控制环优先 + RST 缓发 + 内容环 gather + dead 复查 + WU 补发
+    asio::awaitable<void> ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session);
+    // 共用：WS / MQTT client / Socket client —— 单环顺序写
+    asio::awaitable<void> ring_client_send_loop(std::shared_ptr<client_session> peer_session);
 
     // MQTT 全局分发协程：扫 mqtt_sessions 清单，把有挂起帧的会话按 FIFO 回灌发送环。
     // 全部排空即退出并置 mqtt_sender_need_spawn，由 websocket_loop 每秒拍重新 spawn。
@@ -241,6 +244,20 @@ class httpserver
 
     asio::awaitable<void> http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
     asio::awaitable<bool> http2_static_file_authority(std::shared_ptr<httppeer> peer);
+
+    // ---- HTTP/2 内部发送原语（原为 file-scope static，改成成员以消除 get_server_app()）----
+    // Abort one stream: mark dead + RST(CANCEL), discard any queued DATA.
+    asio::awaitable<void> http2_abort_stream(std::shared_ptr<httppeer> &peer, unsigned int sid);
+    // HEADERS ring producer: encode + enqueue in one critical section.
+    asio::awaitable<bool> h2_push_headers_wait(const std::shared_ptr<client_session> &sess,
+                                               const std::shared_ptr<httppeer> &peer, unsigned char hflag);
+    // Stall on stream window then retry; false = budget exhausted (caller should abort).
+    asio::awaitable<bool> http2_window_stall(std::shared_ptr<httppeer> &peer, unsigned int sid);
+    // Inline ring producer: headers + batched DATA, for handler direct responses.
+    asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, std::string body, bool head);
+    // File ring producer: headers + batched DATA read from disk (offloaded to pool thread).
+    asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> peer, std::FILE *fp,
+                                               unsigned long long offset, unsigned long long total);
 
     // 集中处理 HTTP/2 解析期错误：连接级→GOAWAY 断连（返回 true，调用方 break）；
     // 流级→RST_STREAM 重置该流（直写）、cleanup、清错；旧由主循环末尾

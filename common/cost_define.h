@@ -194,6 +194,30 @@
 // header_table_size bounds its decoder, not ours.
 #define CONST_HTTP2_DYNAMIC_TABLE_MAX_SIZE 4096
 
+// 编码器动态表的本地上限（响应头方向）。对端 SETTINGS_HEADER_TABLE_SIZE 可以广告到
+// 2^32-1，RFC 7541 §4.2 允许编码器选用不超过该值的任意上限——本端取 min(对端值, 此 cap)，
+// 防止对端用一个巨型广告值把每连接的编码表撑成无界内存。与上面的解码侧上限是两套账。
+// Local ceiling of the HPACK encoder table. RFC 7541 §4.2 lets the encoder pick any size up
+// to the peer-advertised value; we clamp to this cap so a huge SETTINGS advertisement cannot
+// grow per-connection encoder memory without bound. Separate from the decoder ceiling above.
+#define CONST_HTTP2_ENCODER_TABLE_CAP 4096
+
+// HPACK encoder dynamic table switch for response headers. Define to enable Indexed representation;
+// comment out to fall back to Literal without Indexing (0000xxxx).
+#define PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE 1
+
+// Connection-level error COMPRESSION_ERROR (RFC 9113 §7 / RFC 7541). GOAWAY with this code
+// on unrecoverable HEADERS write failure — the connection state cannot be trusted.
+// 连接级错误码 COMPRESSION_ERROR（RFC 9113 §7 / RFC 7541）：HEADERS 写失败后 GOAWAY 带此码断连。
+#define CONST_HTTP2_ERROR_COMPRESSION 0x09
+
+// 连接级错误码 INTERNAL_ERROR（RFC 9113 §7）：handler 抛出未预期异常时的兜底 GOAWAY。
+// 异常点不确定（可能在头编码前/后），不能断言是压缩失步，用 INTERNAL_ERROR 而非 0x09；
+// 也不用 NO_ERROR(0)——那会让客户端把一次服务端故障当成正常收尾。
+// Connection-level INTERNAL_ERROR (RFC 9113 §7): fallback GOAWAY for unexpected handler
+// exceptions. The throw site is unknown, so neither NO_ERROR nor COMPRESSION_ERROR is honest.
+#define CONST_HTTP2_ERROR_INTERNAL 0x02
+
 // HTTP/2 协议允许的最大窗口值（2^31-1）。SETTINGS_INITIAL_WINDOW_SIZE 与
 // WINDOW_UPDATE 累加超过该值必须按 RFC 9113 §6.9.1 报 FLOW_CONTROL_ERROR。
 // HTTP/2 protocol maximum window value (2^31-1). Accumulated SETTINGS_INITIAL_WINDOW_SIZE + WINDOW_UPDATE over this ⇒ FLOW_CONTROL_ERROR per RFC 9113 §6.9.1.
@@ -263,13 +287,47 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 #define CONST_HTTP2_SEND_FRAME_BUF 15360
 
-// 文件直发单批 gather 的字节上限。一次预留、一次写锁、一次 async_write 最多送这么多
-// DATA 字节（仍按对端 MAX_FRAME_SIZE 切成帧）。批尺寸受写锁等待预算约束：慢客户端下
-// 整批写出期间锁被占住，同连接其他流等锁超过 CONST_HTTP2_WRITE_LOCK_TIMEOUT 会被撤流。
-// 32KB 在 6KB/s 客户端下约 5.3s，对 10s 预算留近一倍余量（旧 16KB 单帧约 2.7s）。
-// 对端 MAX_FRAME_SIZE 下限 16384 由解析侧 40216 门禁保证；本值 ≤ 65536 ⇒ 单批至多 4 帧、
-// 9 块 buffer（含首批 HEADERS），发送侧 fhs/bufs 的栈上界依此成立。
-#define CONST_HTTP2_FILE_BATCH_BYTES 32768
+// 内联/文件发送每轮入内容环的 DATA 帧数上限：一次窗口预留按字节记账，切成至多这么多帧
+// 逐帧入环（仍按对端 MAX_FRAME_SIZE 切帧）。与下面的补喂闸配套：闸 24 + 批 6 = 30 ≤ 31
+// 可用槽，一批开始喂入后不会因本批而卡满。
+#define CONST_HTTP2_SEND_BATCH_FRAMES 6
+
+// 内容环补喂闸：积压槽数达到本值就就地等（20ms 一拍自醒），给在途批次与控制帧留槽。
+#define CONST_HTTP2_CONTENT_RING_FEED_GATE 24
+
+// 环满等待：基础拍长（微秒）+ 自适应边界。
+// 起始从 BASE 起步，剩余槽 < FAST_SLOTS 持续减半加速（消费还在忙，快点查空槽）；
+// 剩余槽 > SLOW_SLOTS 持续翻倍减速（消费刚排空，慢点查省 CPU）。
+// 持续朝同一方向推就持续指数退避，直到 MIN / MAX 封顶。
+// Base ring-full wait (μs) + adaptive bounds. Start from BASE; keep halving when remaining <
+// FAST_SLOTS (consumer still busy, poll sooner); keep doubling when remaining > SLOW_SLOTS
+// (consumer just drained, poll slower to save CPU).
+#define CONST_HTTP2_RING_FULL_WAIT_BASE     1000
+#define CONST_HTTP2_RING_FULL_WAIT_MIN      100       // 100μs
+#define CONST_HTTP2_RING_FULL_WAIT_MAX      200000    // 200ms
+#define CONST_HTTP2_RING_FULL_WAIT_FAST     3         // remaining < 3 → 加速
+#define CONST_HTTP2_RING_FULL_WAIT_SLOW     18        // remaining > 18 → 减速
+
+// 根据当前间隔 + 剩余槽数，算出下一次等待间隔（微秒）。
+// Compute next wait interval (μs) from current value + remaining ring slots.
+constexpr unsigned int http2_ring_wait_adjust_us(unsigned int current_us, unsigned char remaining_slots)
+{
+    if (remaining_slots < CONST_HTTP2_RING_FULL_WAIT_FAST)
+    {
+        if (current_us > CONST_HTTP2_RING_FULL_WAIT_MIN)
+            current_us /= 2;
+        if (current_us < CONST_HTTP2_RING_FULL_WAIT_MIN)
+            current_us = CONST_HTTP2_RING_FULL_WAIT_MIN;
+    }
+    else if (remaining_slots > CONST_HTTP2_RING_FULL_WAIT_SLOW)
+    {
+        if (current_us < CONST_HTTP2_RING_FULL_WAIT_MAX)
+            current_us *= 2;
+        if (current_us > CONST_HTTP2_RING_FULL_WAIT_MAX)
+            current_us = CONST_HTTP2_RING_FULL_WAIT_MAX;
+    }
+    return current_us;
+}
 
 // h1 文件直发单块尺寸（fread + 一次写）。原 4096 让 100KB 文件付 26 次写 syscall；
 // 64KB 块降到 2~3 次。心跳必须每块刷：64KB 在 6.2KB/s 慢客户端下约 10s 一块，
@@ -290,8 +348,6 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // 一次窗口停等的总预算：到期 RST(CANCEL) 撤流，连接保留。按次重算，不是整条响应的
 // 预算；被 WU 叫醒后用剩余量重挂，小增量不续命。
 #define CONST_HTTP2_WINDOW_STALL_TIMEOUT 10
-// 写锁等待预算，和窗口停等预算分开：慢写占锁不该被当成窗口停等而误撤流。
-#define CONST_HTTP2_WRITE_LOCK_TIMEOUT 10
 
 // RST_STREAM 流错误码（RFC 9113 §7）。CANCEL 表示「流被撤销」，不表示对端违反协议；
 // 本地背压/过载放弃发送时应使用它，而不是 PROTOCOL_ERROR(0x01)。
