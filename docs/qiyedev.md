@@ -28,13 +28,13 @@
 | 模块 | 说明 | 原推荐方案 | Paozhu 状态 | 修订建议 |
 |------|------|-----------|------------|----------|
 | 用户认证 | 登录/登出/Token | jwt-cpp | ✅ 内置 | 删除第三方，用内置 `jwt.h` |
-| 权限管理 | RBAC/ABAC | Casbin-cpp | 🔧 半内置 | 框架提供 Session/路由钩子，角色权限表与中间件需自研 |
+| 权限管理 | RBAC | Casbin-cpp | ✅ 内置 | 框架完整内置企业级 RBAC（`libs/rbac/`），含多租户权限窄化、注解式路由守卫、进程内授权缓存、角色/权限/用户管理 API 与管理页；**数据权限（行级过滤）** 需业务层自研 |
 | OAuth2/SSO | 微信/钉钉/LDAP | 自研 + HTTP 客户端 | 🔧 半内置 | 用内置 `httpclient.h` 对接，协议流程自研 |
 | 密码加密 | bcrypt/argon2/PBKDF2 | libargon2 | ✅ 内置（OpenSSL） | 用 OpenSSL 哈希，无需额外库 |
 | HTTPS/TLS | 传输层加密 | OpenSSL 手写 | ✅ 内置 | 删除"手动集成"，框架已封装 TLS |
 | 验证码 | 图形/滑动 | 自研 | 🔧 半内置 | 用 `pzimage` 绘图自研，或接第三方 |
-| 防暴力破解 | 登录锁定/IP 限流 | Redis 计数 | 🔧 半内置 | 用内置 `pzredis` 计数 + 自研中间件 |
-| CSRF/XSS | Web 安全过滤 | 自研中间件 | 🔧 半内置 | 基于框架钩子自研中间件 |
+| 防暴力破解 | 登录锁定/IP 限流 | Redis 计数 | ✅ 内置 | 路由注解 `//@urlpath(...):ratelimit(time,num)` 即按 IP + 路由粒度限流，超限返回 429；框架用 `ipratelimit` 实现，无需额外库 |
+| CSRF/XSS | Web 安全过滤 | 自研中间件 | ✅ 内置 | `libs/rbac/rbacapi.h` 已提供一次一用的 CSRF 令牌（`issue_csrf` / `check_csrf`），RBAC 管理页全部覆盖；XSS 用模板自动 escape（`html_encode` / `json_escape`） |
 | 接口签名 | HMAC-SHA256 防篡改 | OpenSSL | ✅ 内置 | 用 OpenSSL 签名校验 |
 | 数据脱敏 | 手机/身份证掩码 | 自研工具 | 🔧 半内置 | 写 `libs/` 工具函数 |
 | ACME 证书 | 自动签发/续期 | （原文档遗漏） | ✅ 内置 | **新增**：`acme.conf` `acme_auto`，零停机续期 |
@@ -110,7 +110,7 @@
 |------|------|
 | 用户管理 | 增删改查、头像、状态、批量导入 |
 | 组织架构 | 部门树、岗位、上下级关系 |
-| 角色权限 | 菜单/按钮/数据权限（基于框架钩子自研） |
+| 角色权限 | 菜单/按钮权限（RBAC 框架已内置，管理页/API 已提供）；数据权限（行级过滤）需业务层自研 |
 | 操作日志 | 谁在何时做了何操作 |
 | 登录日志 | IP/设备/地点/异常告警 |
 | 系统配置 | 动态参数、开关、主题 |
@@ -127,8 +127,8 @@
 
 | 模块 | 说明 | 原推荐方案 | Paozhu 状态 | 修订建议 |
 |------|------|-----------|------------|----------|
-| 健康检查 | /health 接口 | 自研 | 🔧 半内置 | 自写路由即可 |
-| 性能监控 | QPS/延迟/错误率 | Prometheus | ➕ 需引入 | 保留 `prometheus-cpp` + 自埋点 |
+| 健康检查 | /health 接口 | 自研 | ✅ 内置 | `serverwatch.cpp` 已提供 `/paozhu_status`（HTML 仪表盘 + `?json=1`）和 `/metrics`，自写路由做业务探针即可 |
+| 性能监控 | QPS/延迟/错误率 | Prometheus | ✅ 内置 | `/metrics` 暴露标准 Prometheus 文本格式（内存、连接、MQTT 会话、限流、线程池、ORM 池 up/down、timeloop 任务等），无需引入 `prometheus-cpp`；业务指标自行埋点即可 |
 | 链路追踪 | 分布式调用链 | OpenTelemetry | ➕ 需引入 | 保留外部方案 |
 | 告警通知 | 钉钉/企微/邮件 | Webhook + HTTP 客户端 | 🔧 半内置 | 用内置 `httpclient.h` + `send_email` |
 | 灰度发布 | 流量切分/A-B | Nginx + 自研 | ➕ 需引入 | 保留 Nginx 层 |
@@ -146,8 +146,8 @@
 | 参数校验 | 必填/类型/范围/正则 | 自研 Validator | 🔧 半内置 | `client.post/get` 取值 + 自研校验 |
 | 接口文档 | Swagger/OpenAPI | 自研/手写 YAML | ➕ 需引入 | 保留（框架无内置注解生成） |
 | 版本管理 | /api/v1 | 路由前缀 | ✅ 内置 | 路由前缀即可 |
-| 分页/排序/过滤 | 通用查询参数 | 自研工具 | 🔧 半内置 | ORM + 自研工具类 |
-| 幂等性 | 防重复提交 | Token/唯一键 | 🔧 半内置 | 基于 `pzredis` 唯一键自研 |
+| 分页/排序/过滤 | 通用查询参数 | 自研工具 | ✅ 内置 | ORM 自带 `page(page, per_page, list_num)` 分页（返回 bar_min/bar_max/current_page/total_page），`order()` 排序，`where()` 过滤 |
+| 幂等性 | 防重复提交 | Token/唯一键 | 🔧 半内置 | 表单层 CSRF 已内置（`rbacapi.h` 一次一用作废）；API 层幂等键/唯一键仍需业务用 `pzredis` 自研 |
 
 ---
 
@@ -173,7 +173,7 @@
 ├── Paozhu HTTP/路由 + HTTP/2
 ├── ORM + 连接池 + ORM 二级缓存
 ├── 用户认证（内置 jwt.h）
-├── RBAC 权限（Session + 钩子自研）
+├── RBAC 权限（框架内置，含多租户窄化 + 注解式路由守卫 + 授权缓存）
 ├── 统一响应 + 参数校验（client.val/out_json）
 └── 内置日志 + ACME/OCSP（HTTPS 免运维）
 
@@ -206,7 +206,7 @@
 ## 总结
 
 选用 **Paozhu** 后，原文档"需集成 15~25 个第三方库"的结论不再成立：
-- **已内置（无需引入）**：HTTP/HTTP2 服务器、模板、JSON、ini 配置、日志、协程/线程池、JWT、TLS/ACME/OCSP、ORM+连接池、Redis 缓存、ORM 二级缓存、Excel/PDF/Word/图片/压缩包处理、短信、邮件、WebSocket、HTTP 客户端、MQTT 5.0 Broker、多主题/多租户、优雅停机、代码生成器、图形报表。
-- **仍需引入/自研**：全文搜索（ES/MeiliSearch）、对象存储 SDK、消息队列（RabbitMQ/Kafka）、gRPC、条码（一维码）、文件预览、Prometheus 监控、OpenTelemetry 链路追踪、Swagger 文档、RBAC/工作流/校验/限流等具体业务规则。
+- **已内置（无需引入）**：HTTP/HTTP2 服务器、模板、JSON、ini 配置、日志、协程/线程池、JWT、TLS/ACME/OCSP、RBAC 权限（多租户窄化 + 路由守卫 + 授权缓存 + 管理页）、CSRF（一次一用作废令牌）、ORM+连接池、Redis 缓存、ORM 二级缓存、Excel/PDF/Word/图片/压缩包处理、短信、邮件、WebSocket、HTTP 客户端、MQTT 5.0 Broker、多主题/多租户、优雅停机、代码生成器、图形报表、**健康监控（Prometheus `/metrics` + 状态仪表盘 `/paozhu_status`）**。
+- **仍需引入/自研**：全文搜索（ES/MeiliSearch）、对象存储 SDK、消息队列（RabbitMQ/Kafka）、gRPC、条码（一维码）、文件预览、OpenTelemetry 链路追踪、Swagger 文档、ABAC 数据权限（行级过滤）/工作流/校验/限流等具体业务规则。
 
 核心难点不在单个模块集成，而在于：统一异常处理、并发安全（连接池/缓存/队列）、可配置化（功能开关热更新）、可观测性（埋点）。

@@ -2080,6 +2080,10 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                         send_file_obj->content.resize(want_num);
                         if (!send_file_obj->fp.get())
                         {
+                            if (readnum == 0)
+                            {
+                                co_await http1_send_bad_server(peer, peer_session);
+                            }
                             peer_session->isclose = true;
                             peer->isclose         = true;
                             peer->state.keepalive = false;
@@ -2089,6 +2093,12 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                         if (nread == 0)
                         {
                             ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
+                            // 头还没承诺长度：回 500 再断连，比静默断连可诊断（对齐 h2 撤流 RST）；
+                            // 中途失败（readnum>0）200+半截正文已上线，只能断连，不能追加 500。
+                            if (readnum == 0)
+                            {
+                                co_await http1_send_bad_server(peer, peer_session);
+                            }
                             peer_session->isclose = true;
                             peer->isclose         = true;
                             peer->state.keepalive = false;
@@ -2302,6 +2312,10 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                         send_file_obj->content.resize(want_num);
                         if (!send_file_obj->fp.get())
                         {
+                            if (readnum == 0)
+                            {
+                                co_await http1_send_bad_server(peer, peer_session);
+                            }
                             peer_session->isclose = true;
                             peer->isclose         = true;
                             peer->state.keepalive = false;
@@ -2311,6 +2325,12 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                         if (nread == 0)
                         {
                             ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
+                            // 头还没承诺长度：回 500 再断连，比静默断连可诊断（对齐 h2 撤流 RST）；
+                            // 中途失败（readnum>0）200+半截正文已上线，只能断连，不能追加 500。
+                            if (readnum == 0)
+                            {
+                                co_await http1_send_bad_server(peer, peer_session);
+                            }
                             peer_session->isclose = true;
                             peer->isclose         = true;
                             peer->state.keepalive = false;
