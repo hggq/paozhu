@@ -691,16 +691,20 @@ bool client_session::send_zero_data(unsigned int stream_id)
 
 asio::awaitable<bool> client_session::flush_send_ring()
 {
-    // 有界排空：见 client_session.h 注释。不写 socket（写者只有消费者协程），
-    // 只等——每轮 sleep 让出 strand，消费者的 async_write 完成事件才能被这个 strand
-    // 串行跑出来。环空即「全部环内帧已写出」：pop 在 async_write 完成之后
-    // （消费者出环时先写完再前移 head_）。
-    if (http2_ring_queue == nullptr)
+    // 有界排空：等控制环 + 内容环同时空。控制帧（GOAWAY/SETTINGS/RST）和内容帧
+    // （HEADERS/DATA）分别入两个环，消费者协程是唯一 socket 写者、strand 串行消费。
+    // 只等控制环不够——async_send_goway 原流程：投 GOAWAY（控制环）→ flush → closing
+    // → cancel()，会把内容环里尚未写出的在途响应连同 END_STREAM 一起杀掉。
+    auto drained = [this]()
     {
-        co_return true;
-    }
+        if (http2_ring_queue != nullptr && http2_ring_queue->has_size() != 0)
+            return false;
+        if (http2_content_queue != nullptr && http2_content_queue->has_size() != 0)
+            return false;
+        return true;
+    };
     // 空环快路径：绝大多数响应到这里环已排空，省掉每响应一次 timer 构造。
-    if (http2_ring_queue->has_size() == 0)
+    if (drained())
     {
         co_return true;
     }
@@ -721,7 +725,7 @@ asio::awaitable<bool> client_session::flush_send_ring()
         {
             co_return false;
         }
-        if (http2_ring_queue->has_size() == 0)
+        if (drained())
         {
             co_return true;
         }
@@ -729,13 +733,12 @@ asio::awaitable<bool> client_session::flush_send_ring()
         co_await drain_timer.async_wait(asio::use_awaitable);
     }
     // 超时仍未排空：调用方不能接着直写 HEADERS，否则会抢在环内 SETTINGS 前面。
-    co_return http2_ring_queue->has_size() == 0;
+    co_return drained();
 }
 
 asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
 {
-    // GOAWAY 入控制环：消费者控制优先，GOAWAY 先于排队中的内容上线。
-    // 环满就地 20ms 一拍重试，2 秒预算——客户端停读时不无限拖住 teardown。
+    // GOAWAY 入控制环，环满就地自适应重试，2 秒预算——客户端停读时不无限拖住 teardown。
     unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     fr[9]                = (last_stream_id >> 24) & 0xFF;
     fr[10]               = (last_stream_id >> 16) & 0xFF;
@@ -745,6 +748,10 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
     fr[14]               = (error_code >> 16) & 0xFF;
     fr[15]               = (error_code >> 8) & 0xFF;
     fr[16]               = error_code & 0xFF;
+    // 先等在途内容写出再投 GOAWAY：消费者控制优先，GOAWAY 一旦入环就抢在内容环
+    // 排队帧之前上线，错误码非 0 时不少客户端收到 GOAWAY 即停读，在途响应就白发了。
+    // flush 自带 2 秒预算，排不空也继续投 GOAWAY，由它通知对端收尾。
+    co_await flush_send_ring();
     asio::steady_timer timer(co_await asio::this_coro::executor);
     unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
     const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(2);
@@ -757,15 +764,20 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
             if (http2_need_wakeup)
                 wake_ring_consumer();
             // 等 GOAWAY 真的写出再返回：调用方随后 cancel()，不等就把环里的
-            // GOAWAY 与在途响应一起杀掉。
-            co_await flush_send_ring();
+            // GOAWAY 与在途响应一起杀掉。超时未排空时后续 cancel() 仍会丢帧，
+            // 记一条日志留诊断线索。
+            if (!co_await flush_send_ring())
+                DEBUG_LOG("http2 goaway flush timeout last_sid=%u err=%u", last_stream_id, error_code);
             break;
         }
         http2_ring_queue_drop_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             break;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_ring_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        const unsigned char backlog = http2_ring_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
+        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
+        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
+            continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         (void)wait_ec;
@@ -1088,7 +1100,7 @@ void client_session::http2_wake_sync_window_waiters()
 
 asio::awaitable<bool> client_session::http2_send_rst(unsigned int s_stream_id, unsigned int stream_error_code)
 {
-    // RST 入控制环，满则就地重试：起始 1ms，剩余槽少则加速、多则减速，2 秒预算。
+    // RST 入控制环，满则就地重试：起始 1ms，按积压自适应（醒早翻倍/睡过头减半），2 秒预算。
     asio::steady_timer timer(co_await asio::this_coro::executor);
     unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
     const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(2);
@@ -1101,8 +1113,11 @@ asio::awaitable<bool> client_session::http2_send_rst(unsigned int s_stream_id, u
         http2_ring_queue_drop_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             co_return false;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_ring_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        const unsigned char backlog = http2_ring_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
+        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
+        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
+            continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         (void)wait_ec;
@@ -1194,11 +1209,20 @@ void client_session::http2_content_stream_failed(unsigned int sid, unsigned long
     }
     if (rst && !isclose.load(std::memory_order_relaxed) && !http2_closing.load(std::memory_order_relaxed))
     {
-        if (!push_rst_stream(sid, CONST_HTTP2_STREAM_ERROR_CANCEL))
-        {
-            // 控制环满：连接已过载，RST 也投不进去，交给 teardown
-            isclose = true;
-        }
+        // 控制环满时一次 push 就丢 RST，这条流会既无响应也无收尾。改用带 2 秒
+        // 自适应重试的 http2_send_rst。本函数是 strand 上的同步函数，用 co_spawn
+        // 投递到同一 strand，不跨线程碰等待者容器；环满不再等于「连接过载」，
+        // 流已标死，同连接其它流照常服务。
+        auto self = get_ptr();
+        asio::co_spawn(strand_,
+                       [self, sid]() -> asio::awaitable<void>
+                       {
+                           if (!co_await self->http2_send_rst(sid, CONST_HTTP2_STREAM_ERROR_CANCEL))
+                           {
+                               DEBUG_LOG("http2 RST dropped after retry sid=%u", sid);
+                           }
+                       },
+                       asio::detached);
     }
 }
 
@@ -1231,42 +1255,31 @@ struct h2_content_producer_guard
     }
 };
 
-// 裸内容帧入环，满则原地等。sync 版：环满 sleep 重试（业务池线程不能 co_await），
-// 起始 1ms、剩余槽少加速/多减速，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT 秒；
-// 等待期间消费者在 strand 上正常排空。
-bool client_session::http2_push_content_raw_sync(std::string frame, unsigned int sid)
+// 裸内容帧入环，sync 版：一次尝试立刻返回，不 sleep、不循环。
+// 环满 / 流已死 / 连接已关都返回 false。调用方决定 retry 策略和预算。
+// 按右值引用收帧：环的 push 只在成功时移动，拒收时调用方的源缓冲原样保留，可复用重试。
+bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned int sid)
 {
-    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
-    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-    for (;;)
+    if (isclose.load(std::memory_order_relaxed) ||
+        http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+        return false;
+    bool pushed = false;
     {
-        if (isclose.load(std::memory_order_relaxed) ||
-            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+        std::lock_guard<std::mutex> feed(http2_feed_mutex);
+        // 喂入锁内复查死流：堵住「锁外查死 → 取锁」间隙被 strand 侧 RST 抢跑的窗口。
+        if (http2_stream_is_dead(sid))
             return false;
-        bool pushed = false;
-        {
-            std::lock_guard<std::mutex> feed(http2_feed_mutex);
-            // 喂入锁内复查死流：每条 RST 入环前都已标死，RST 入环也走这把锁，
-            // 所以拿到锁时未见死 ⇒ 该流 RST 尚未入环，本帧必然先于它入环。
-            // 堵住业务池生产者在「锁外查死 → 取锁」间隙被 strand 侧 RST 抢跑的窗口。
-            if (http2_stream_is_dead(sid))
-                return false;
-            pushed = http2_content_queue->push(std::move(frame));
-        }
-        if (pushed)
-        {
-            // 唤醒放在喂入锁外，避免持锁 dispatch 就地复活消费者后重入喂入锁。
-            if (http2_need_wakeup)
-                wake_ring_consumer();
-            return true;
-        }
-        http2_ring_overflow_count++;
-        if (std::chrono::steady_clock::now() >= deadline)
-            return false;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
-        std::this_thread::sleep_for(std::chrono::microseconds(wait_interval_us));
+        pushed = http2_content_queue->push(std::move(frame));
     }
+    if (pushed)
+    {
+        // 唤醒放在喂入锁外，避免持锁 dispatch 就地复活消费者后重入喂入锁。
+        if (http2_need_wakeup)
+            wake_ring_consumer();
+        return true;
+    }
+    http2_ring_overflow_count++;
+    return false;
 }
 // async 版：timer 挂在本连接 strand 上，每次让出都让消费者协程的写完成推进，不会互锁。
 // 本协程与 RST 入环同在 strand 上串行，查死与 push 之间无挂起点，无需锁内复查。
@@ -1296,8 +1309,11 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
         http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             co_return false;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        const unsigned char backlog = http2_content_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
+        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
+        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
+            continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         (void)wait_ec;
@@ -1340,8 +1356,11 @@ asio::awaitable<bool> client_session::http2_push_content_batch(std::vector<std::
         http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             co_return false;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - http2_content_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        const unsigned char backlog = http2_content_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
+        // 闸已开就立即重试打满，不睡；只有闸仍关才按自适应间隔等。
+        if (backlog < CONST_HTTP2_CONTENT_RING_FEED_GATE)
+            continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         (void)wait_ec;
@@ -1365,8 +1384,23 @@ unsigned int client_session::http2_send_content_frame(std::string_view frame)
         h2_content_producer_guard producer_guard{this, sid};
         if (http2_stream_is_dead(sid))
             return 0;
-        if (http2_push_content_raw_sync(std::string(frame), sid))
+        std::string headers_frame(frame);
+        if (http2_push_content_raw_sync(std::move(headers_frame), sid))
             return static_cast<unsigned int>(frame.size());
+        // retry：环满 sleep 等消费者腾槽，死流/连接关不 retry。push 拒收保留源缓冲，
+        // 复用同一帧。HEADERS 丢了响应就没有头，宁可等满预算再撤也不能第一次 false 就丢。
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+        for (;;)
+        {
+            if (http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
+                http2_closing.load(std::memory_order_relaxed))
+                return 0;
+            if (std::chrono::steady_clock::now() >= deadline)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            if (http2_push_content_raw_sync(std::move(headers_frame), sid))
+                return static_cast<unsigned int>(frame.size());
+        }
         if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
             !http2_closing.load(std::memory_order_relaxed))
             h2_content_fail_post(this, sid, 0, true);
@@ -1394,6 +1428,19 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
         std::string chunk = h2_make_data_chunk(sid, end_flags, nullptr, 0);
         if (http2_push_content_raw_sync(std::move(chunk), sid))
             return 9;
+        // retry：END_STREAM 丢了流永远不结束，必须等。push 拒收保留源缓冲，复用 chunk。
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+        for (;;)
+        {
+            if (http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
+                http2_closing.load(std::memory_order_relaxed))
+                return 0;
+            if (std::chrono::steady_clock::now() >= deadline)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            if (http2_push_content_raw_sync(std::move(chunk), sid))
+                return 9;
+        }
         if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
             !http2_closing.load(std::memory_order_relaxed))
             h2_content_fail_post(this, sid, 0, true);
@@ -1450,10 +1497,34 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
         std::string chunk = h2_make_data_chunk(sid, last ? end_flags : static_cast<unsigned char>(end_flags & ~0x01), payload.data() + off, static_cast<unsigned int>(got));
         if (!http2_push_content_raw_sync(std::move(chunk), sid))
         {
-            const bool gone = http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
-                              http2_closing.load(std::memory_order_relaxed);
-            h2_content_fail_post(this, sid, got, !gone);
-            return accepted;
+            // retry：环满 sleep 等消费者腾槽，死流/连接关直接撤流退款。
+            // push 拒收保留源缓冲，复用 chunk；重试成功落回正常记账继续外层循环。
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+            bool pushed         = false;
+            for (;;)
+            {
+                const bool gone = http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
+                                  http2_closing.load(std::memory_order_relaxed);
+                if (gone)
+                {
+                    h2_content_fail_post(this, sid, got, false);
+                    return accepted;
+                }
+                if (std::chrono::steady_clock::now() >= deadline)
+                    break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if (http2_push_content_raw_sync(std::move(chunk), sid))
+                {
+                    pushed = true;
+                    break;
+                }
+            }
+            if (!pushed)
+            {
+                // 预算耗尽：退款 got + RST
+                h2_content_fail_post(this, sid, got, true);
+                return accepted;
+            }
         }
         off += static_cast<size_t>(got);
         accepted += 9 + static_cast<unsigned int>(got);

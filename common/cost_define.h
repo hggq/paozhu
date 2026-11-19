@@ -295,31 +295,31 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // 内容环补喂闸：积压槽数达到本值就就地等（20ms 一拍自醒），给在途批次与控制帧留槽。
 #define CONST_HTTP2_CONTENT_RING_FEED_GATE 24
 
-// 环满等待：基础拍长（微秒）+ 自适应边界。
-// 起始从 BASE 起步，剩余槽 < FAST_SLOTS 持续减半加速（消费还在忙，快点查空槽）；
-// 剩余槽 > SLOW_SLOTS 持续翻倍减速（消费刚排空，慢点查省 CPU）。
+// 环满等待：基础拍长（微秒）+ 自适应边界。入参是环的积压槽数（has_size），不是剩余槽。
+// 积压 > SLOW：消费者还没排空多少，说明自己醒早了，持续翻倍加长等待；
+// 积压 < FAST：环几乎空了，说明上一觉睡过头（等待过长），持续减半缩短等待。
 // 持续朝同一方向推就持续指数退避，直到 MIN / MAX 封顶。
-// Base ring-full wait (μs) + adaptive bounds. Start from BASE; keep halving when remaining <
-// FAST_SLOTS (consumer still busy, poll sooner); keep doubling when remaining > SLOW_SLOTS
-// (consumer just drained, poll slower to save CPU).
+// Base ring-full wait (μs) + adaptive bounds. Input is ring BACKLOG (has_size), not remaining
+// slots. Backlog > SLOW: consumer barely drained, we woke too early — keep doubling the wait;
+// backlog < FAST: ring nearly empty, we overslept — keep halving it. Capped at MIN / MAX.
 #define CONST_HTTP2_RING_FULL_WAIT_BASE     1000
 #define CONST_HTTP2_RING_FULL_WAIT_MIN      100       // 100μs
 #define CONST_HTTP2_RING_FULL_WAIT_MAX      200000    // 200ms
-#define CONST_HTTP2_RING_FULL_WAIT_FAST     3         // remaining < 3 → 加速
-#define CONST_HTTP2_RING_FULL_WAIT_SLOW     18        // remaining > 18 → 减速
+#define CONST_HTTP2_RING_FULL_WAIT_FAST     3         // backlog < 3 → 睡过头，减半
+#define CONST_HTTP2_RING_FULL_WAIT_SLOW     18        // backlog > 18 → 醒早了，翻倍
 
-// 根据当前间隔 + 剩余槽数，算出下一次等待间隔（微秒）。
-// Compute next wait interval (μs) from current value + remaining ring slots.
-constexpr unsigned int http2_ring_wait_adjust_us(unsigned int current_us, unsigned char remaining_slots)
+// 根据当前间隔 + 环积压槽数，算出下一次等待间隔（微秒）。
+// Compute next wait interval (μs) from current value + ring backlog (has_size).
+constexpr unsigned int http2_ring_wait_adjust_us(unsigned int current_us, unsigned char backlog_slots)
 {
-    if (remaining_slots < CONST_HTTP2_RING_FULL_WAIT_FAST)
+    if (backlog_slots < CONST_HTTP2_RING_FULL_WAIT_FAST)
     {
         if (current_us > CONST_HTTP2_RING_FULL_WAIT_MIN)
             current_us /= 2;
         if (current_us < CONST_HTTP2_RING_FULL_WAIT_MIN)
             current_us = CONST_HTTP2_RING_FULL_WAIT_MIN;
     }
-    else if (remaining_slots > CONST_HTTP2_RING_FULL_WAIT_SLOW)
+    else if (backlog_slots > CONST_HTTP2_RING_FULL_WAIT_SLOW)
     {
         if (current_us < CONST_HTTP2_RING_FULL_WAIT_MAX)
             current_us *= 2;

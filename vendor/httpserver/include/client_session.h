@@ -237,10 +237,13 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 停等/环满/失败收尾语义与 http2_send_content_frame 的 DATA 分支完全一致。
     unsigned int http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
     asio::awaitable<unsigned int> async_http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
-    // 裸内容帧入环（窗口额度由调用方预留/退还）：按值收帧，成功时移动进槽（零拷贝），
-    // 环满重试期间帧留在本地。环满原地等（sync 自适应 sleep / async 挂 timer），
-    // 预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT 秒；false = 预算耗尽或连接/流已死。
-    bool http2_push_content_raw_sync(std::string frame, unsigned int sid);
+    // 裸内容帧入环（窗口额度由调用方预留/退还）。
+    // sync 版：一次尝试立刻返回，不 sleep、不循环；环满/流已死/连接已关返回 false，
+    // 重试策略和预算由调用方决定。按右值引用收帧：成功才移动进槽，拒收时源缓冲原样
+    // 保留，调用方可复用同一帧重试。
+    bool http2_push_content_raw_sync(std::string &&frame, unsigned int sid);
+    // async 版：按值收帧，环满原地挂 timer 自适应重试，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT
+    // 秒；false = 预算耗尽或连接/流已死。
     asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
     // 内联/文件 DATA 批入环：持喂入锁一次推完整批（≤CONST_HTTP2_SEND_BATCH_FRAMES 帧），
     // 锁内查 CONST_HTTP2_CONTENT_RING_FEED_GATE 闸，满则放锁等 20ms 再竞争。闸+批 ≤ 可用槽，

@@ -204,8 +204,11 @@ asio::awaitable<bool> httpserver::h2_push_headers_wait(const std::shared_ptr<cli
         sess->http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             co_return false;
-        const unsigned char remaining = CONST_HTTP2_RING_QUEUE_CAPACITY - 1 - sess->http2_content_queue->has_size();
-        wait_interval_us              = http2_ring_wait_adjust_us(wait_interval_us, remaining);
+        const unsigned char backlog = sess->http2_content_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
+        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
+        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
+            continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         (void)wait_ec;
@@ -1768,11 +1771,22 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
     }
     if (peer->isclose)
     {
-        DEBUG_LOG("http2loop exception send_goway");
-        // last_stream_id 用这条流自己的 id：留空等于告诉客户端「整条连接一条流都没处理过」，
-        // 它会把已经应答过的请求（含 POST）全部重发。水位口径见本文件另外三处 async_send_goway
-        // 错误码 INTERNAL_ERROR：异常点不确定，不能断言压缩失步（0x9），也不是正常收尾（0）。
-        co_await peer->socket_session->async_send_goway(peer->stream_id, CONST_HTTP2_ERROR_INTERNAL);
+        DEBUG_LOG("http2loop exception send_rst_stream");
+        // 单流异常不能 GOAWAY 整条连接：async_send_goway 末尾会置 http2_closing，
+        // 同连接其它在途流的发送协程全部被静音退出。用 RST_STREAM 只杀这条流，
+        // 连接保留，错误码 0x02 (INTERNAL_ERROR) 就是为此定义的。
+        if (auto sess = peer->socket_session;
+            sess && !sess->isclose.load(std::memory_order_relaxed) &&
+            !sess->http2_closing.load(std::memory_order_relaxed))
+        {
+            // 先标死流：内容环里本流排队的 DATA 由消费者丢弃并退款，
+            // 同时挡住同流其它在途生产者继续推帧。
+            sess->http2_mark_stream_dead(peer->stream_id);
+            // 不用一次尝试的 push_rst_stream：控制环满时它直接丢帧，这条流就变成
+            // 「既无响应也无 RST」，客户端只能挂到超时。http2_send_rst 带 2 秒
+            // 自适应重试，timer 挂在 strand 上，让出时消费者协程能继续推进。
+            co_await sess->http2_send_rst(peer->stream_id, CONST_HTTP2_STREAM_ERROR_INTERNAL);
+        }
     }
     co_return;
 }
