@@ -232,7 +232,34 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
                 error = 40006;
                 return;
             }
-            if (http_data.size() >= CONST_HTTP2_MAX_STREAMS || http2_header_recvs.size() >= CONST_HTTP2_MAX_STREAMS)
+            // 先扫一遍 http_data_weak 里已死亡的条目：peer 析构后 weak_ptr 仍留在 map 里，
+            // 累积到一定程度会让 live_streams 计数不准。每次新 HEADERS 到达时顺手清。
+            // 只扫 weak_ptr：http_data 在 extract 后已被移走，cleanup_stream 对 http_data.erase 是空操作，
+            // 但对 http2_header_recvs / stream_list 等内部表的清理在异常路径下有意义。
+            {
+                std::vector<unsigned int> dead_sids;
+                for (auto wit = http_data_weak.begin(); wit != http_data_weak.end();)
+                {
+                    if (wit->second.lock() == nullptr)
+                    {
+                        dead_sids.push_back(wit->first);
+                        wit = http_data_weak.erase(wit);
+                    }
+                    else
+                    {
+                        ++wit;
+                    }
+                }
+                for (unsigned int dead_sid : dead_sids)
+                    cleanup_stream(dead_sid);
+            }
+            // 卡闸用 http_data_weak 里 lock() 非空数（真正存活流数），
+            // 避免 process() 连续 parse 多 HEADERS 帧时 http_data 累积到 CONST_HTTP2_MAX_STREAMS
+            unsigned int live_streams = 0;
+            for (auto &wit : http_data_weak)
+                if (wit.second.lock())
+                    live_streams++;
+            if (live_streams >= CONST_HTTP2_MAX_STREAMS || http2_header_recvs.size() >= CONST_HTTP2_MAX_STREAMS)
             {
                 // 「body 未结束的流」和「头部块未结束的流」都必须计数
                 error = 40010;
@@ -397,6 +424,9 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         error = 40006;
         return;
     }
+    // 立即登记弱引用：process() 里连续 parse 多 HEADERS 帧时，http_data_weak 与 http_data 同步增长。
+    // 卡闸用 http_data_weak.lock() 非空数（真正存活流），后续 cleanup 也靠 sweep 这张表。
+    http_data_weak.insert_or_assign(iter->second.stream_id, steam_httppeer);
     steam_httppeer->content_length = 0;
     steam_httppeer->stream_id      = iter->second.stream_id;
     steam_httppeer->httpv          = 2;

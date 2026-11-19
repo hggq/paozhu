@@ -17,6 +17,7 @@
 #include "server.h"
 #include "datetime.h"
 #include <algorithm>
+#include <cassert>
 
 namespace http
 {
@@ -632,25 +633,6 @@ asio::awaitable<void> client_session::co_send_setting()
     co_return;
 }
 
-bool client_session::http2_send_enddata(unsigned int s_stream_id)
-{
-    unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-    _recvack[8]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[7]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[6]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[5]              = s_stream_id & 0x7F;
-
-    // 返回值交给调用点：END_STREAM 丢了这条流永远不结束，调用方必须重投。
-    if (!push_control_frame(_recvack, 9))
-        return false;
-    if (http2_need_wakeup)
-        wake_ring_consumer();
-    return true;
-}
-
 asio::awaitable<void> client_session::http2_send_ping()
 {
     unsigned char _recvack[] =
@@ -666,27 +648,6 @@ void client_session::send_ping()
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     if (push_control_frame(_recvack, 17) && http2_need_wakeup)
         wake_ring_consumer();
-}
-
-bool client_session::send_zero_data(unsigned int stream_id)
-{
-    // 必须是栈上缓冲。函数级 static 全进程只有一份，多个连接同时调用会互相覆盖，
-    // 「空 DATA + END_STREAM」会被发到另一条流上（A 流永不结束、B 流被截断）。
-    unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-
-    _recvack[8] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[7] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[6] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[5] = stream_id & 0x7F;
-
-    if (!push_control_frame(_recvack, 9))
-        return false;
-    if (http2_need_wakeup)
-        wake_ring_consumer();
-    return true;
 }
 
 asio::awaitable<bool> client_session::flush_send_ring()
@@ -991,9 +952,14 @@ asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid
     // 注销两边都清：timer 可能换过登记边，残留条目会被 cancel 成悬垂指针。
     auto unregister = [&]()
     {
-        auto it = http2_stream_window_waiters.find(sid);
-        if (it != http2_stream_window_waiters.end() && it->second == &timer)
-            http2_stream_window_waiters.erase(it);
+        auto range = http2_stream_window_waiters.equal_range(sid);
+        for (auto it = range.first; it != range.second; )
+        {
+            if (it->second == &timer)
+                it = http2_stream_window_waiters.erase(it);  // multimap::erase returns successor
+            else
+                ++it;
+        }
         auto &v = http2_conn_window_waiters;
         v.erase(std::remove(v.begin(), v.end(), &timer), v.end());
     };
@@ -1029,7 +995,7 @@ asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid
         if (conn_empty)
             http2_conn_window_waiters.push_back(&timer);
         else
-            http2_stream_window_waiters[sid] = &timer;
+            http2_stream_window_waiters.emplace(sid, &timer);
         timer.expires_after(left);
         auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
         unregister();
@@ -1064,8 +1030,8 @@ void client_session::http2_cancel_conn_waiters()
 
 void client_session::http2_cancel_stream_waiter(unsigned int sid)
 {
-    auto it = http2_stream_window_waiters.find(sid);
-    if (it != http2_stream_window_waiters.end())
+    auto range = http2_stream_window_waiters.equal_range(sid);
+    for (auto it = range.first; it != range.second; ++it)
         it->second->cancel();
     http2_wake_sync_window_waiters();
 }
@@ -1320,7 +1286,13 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
     }
 }
 
-asio::awaitable<bool> client_session::http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid)
+// ① 把隐式不变量提升为编译期约束：闸 + 批 ≤ 环可用槽(capacity-1)。
+//    Feed-gate + batch must fit in the content ring.
+static_assert(CONST_HTTP2_CONTENT_RING_FEED_GATE + CONST_HTTP2_SEND_BATCH_FRAMES
+                  <= CONST_HTTP2_RING_QUEUE_CAPACITY - 1,
+              "feed gate + batch must fit in the content ring");
+
+asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid)
 {
     asio::steady_timer timer(co_await asio::this_coro::executor);
     unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
@@ -1329,33 +1301,47 @@ asio::awaitable<bool> client_session::http2_push_content_batch(std::vector<std::
     {
         if (isclose.load(std::memory_order_relaxed) ||
             http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
-            co_return false;
-        bool pushed = false;
+            co_return 0;
+        bool               done = false;
+        unsigned long long pushed_bytes = 0;
         {
-            // 持喂入锁查闸+推整批：闸 24 + 批 6 = 30 ≤ 31 可用槽，持锁期间别的生产者
-            // 进不来（控制帧也走这把锁），消费者只会 pop 让 has_size 更小，本批必然装得下。
             std::unique_lock<std::mutex> feed(http2_feed_mutex);
-            if (http2_content_queue->has_size() < CONST_HTTP2_CONTENT_RING_FEED_GATE)
+            const unsigned char backlog   = http2_content_queue->has_size();
+            const unsigned int  free_slots = (CONST_HTTP2_RING_QUEUE_CAPACITY - 1) - backlog;
+            // ② 闸 + 剩余槽双判定：任一不满足则整批不入环，frames 未被 move，可安全重试。
+            //    Dual check: gate and free slots; frames untouched on retry path.
+            if (backlog < CONST_HTTP2_CONTENT_RING_FEED_GATE &&
+                frames.size() <= free_slots)
             {
+                done = true;
+                // ③ 接住返回值；按实际上环字节记账，绝不静默吞帧。
+                //    Check push() result; account bytes actually enqueued.
                 for (std::string &f : frames)
                 {
-                    http2_content_queue->push(std::move(f));
+                    const unsigned int flen = h2_frame_payload_len(f);  // take payload length before move
+                    if (!http2_content_queue->push(std::move(f)))
+                    {
+                        http2_ring_queue_drop_count++;
+                        assert(false && "batch push failed inside feed gate");
+                        break;
+                    }
+                    pushed_bytes += flen;
                 }
-                pushed = true;
             }
         }
-        if (pushed)
+        if (done)
         {
             // 唤醒放在喂入锁外：wake 的 dispatch 会就地复活消费者，消费者冲刷欠账补量
-            // 会再取喂入锁，持锁唤醒＝同线程重入非递归锁。整批已入环，唤醒只是通知。
+            // 会再取喂入锁，持锁唤醒＝同线程重入非递归锁。
             if (http2_need_wakeup)
                 wake_ring_consumer();
-            co_return true;
+            // 成功时 pushed_bytes == 各帧载荷长之和 == 调用方预留的 got（got>0 恒成立）。
+            co_return pushed_bytes;
         }
         // 闸满：放锁再等，绝不持锁 sleep/co_await（会挡住控制帧与消费者 pop）。
         http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
-            co_return false;
+            co_return 0;
         const unsigned char backlog = http2_content_queue->has_size();
         wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
         // 闸已开就立即重试打满，不睡；只有闸仍关才按自适应间隔等。

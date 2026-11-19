@@ -102,10 +102,6 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::string getlocalip();
     unsigned int getlocalport();
 
-    // 收尾帧返回「是否成功入环」：环满时 push 返回 false，而 END_STREAM 一旦
-    // 丢失这条流就永远不结束，调用方必须重投。
-    bool http2_send_enddata(unsigned int s_stream_id);
-    bool send_zero_data(unsigned int stream_id);
     asio::awaitable<void> co_send_setting();
 
     bool send_switch101();
@@ -247,10 +243,9 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
     // 内联/文件 DATA 批入环：持喂入锁一次推完整批（≤CONST_HTTP2_SEND_BATCH_FRAMES 帧），
     // 锁内查 CONST_HTTP2_CONTENT_RING_FEED_GATE 闸，满则放锁等 20ms 再竞争。闸+批 ≤ 可用槽，
-    // 持锁期间别的生产者进不来，本批必然装得下，故全入环或一帧未推（all-or-nothing）。
-    // 成功时逐帧移动进槽（frames 变空串）；false = 预算耗尽或流/连接已死（一帧未推，
-    // frames 原样保留，调用方退全额）。
-    asio::awaitable<bool> http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid);
+    // 持锁期间别的生产者进不来，本批必然装得下。实际入环字节数 = 返回值；返回 0 表示预算耗尽
+    // 或流/连接已死（一帧未推，frames 原样保留）。返回 < got 时调用方退差额。
+    asio::awaitable<unsigned long long> http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid);
 
   public:
     unsigned char *_cache_data  = nullptr;
@@ -347,7 +342,7 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     // ---- h2 停等状态（都在 strand 上）----
     // 窗口停等登记：流级一流一个 timer；连接级按登记序 FIFO。
-    std::map<unsigned int, asio::steady_timer *> http2_stream_window_waiters;
+    std::multimap<unsigned int, asio::steady_timer *> http2_stream_window_waiters;
     std::vector<asio::steady_timer *> http2_conn_window_waiters;
     // 关闭旗：置位后等待者都退出，不再有新发送。
     std::atomic_bool http2_closing{false};

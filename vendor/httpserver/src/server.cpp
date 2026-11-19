@@ -281,7 +281,7 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
             continue;
         }
         // 本批额度切成 ≤6 枚 ≤mfs 的帧，一次持喂入锁整批入环（锁内查 24 闸）。
-        // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。all-or-nothing：失败退全额。
+        // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。失败按实际上环字节退差额。
         std::vector<std::string> frames;
         frames.reserve(CONST_HTTP2_SEND_BATCH_FRAMES);
         unsigned long long pos = 0;
@@ -292,13 +292,18 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
             frames.push_back(h2_make_data_chunk(sid, fflags, body.data() + sent + pos, static_cast<unsigned int>(flen)));
             pos += flen;
         }
-        if (!co_await sess->http2_push_content_batch(frames, sid))
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid);
+        if (pushed_bytes != got)
         {
-            http2_refund_send_window(sess.get(), sid, got);
+            // 退还「预留了但未上环」的字节；已上环帧由 abort 标死后消费者丢弃并退款。
+            // Refund only the bytes reserved but not enqueued; enqueued frames are refunded
+            // by the consumer when it drops dead-stream DATA.
+            if (pushed_bytes < got)
+                http2_refund_send_window(sess.get(), sid, got - pushed_bytes);
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
-        sent += got;
+        sent += pushed_bytes;
         sess->time_limit.store(timeid() + 16);
     }
     co_return true;
@@ -383,7 +388,7 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
             continue;
         }
         // 本批额度切成 ≤6 枚 ≤mfs 的帧，一次持喂入锁整批入环（锁内查 24 闸）。
-        // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。all-or-nothing：失败退全额。
+        // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。失败按实际上环字节退差额。
         std::vector<std::string> frames;
         frames.reserve(CONST_HTTP2_SEND_BATCH_FRAMES);
         unsigned long long pos = 0;
@@ -395,14 +400,19 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
             frames.push_back(h2_make_data_chunk(sid, fflags, chunk.data() + chunk_pos + pos, static_cast<unsigned int>(flen)));
             pos += flen;
         }
-        if (!co_await sess->http2_push_content_batch(frames, sid))
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid);
+        if (pushed_bytes != got)
         {
-            http2_refund_send_window(sess.get(), sid, got);
+            // 退还「预留了但未上环」的字节；已上环帧由 abort 标死后消费者丢弃并退款。
+            // Refund only the bytes reserved but not enqueued; enqueued frames are refunded
+            // by the consumer when it drops dead-stream DATA.
+            if (pushed_bytes < got)
+                http2_refund_send_window(sess.get(), sid, got - pushed_bytes);
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
-        chunk_pos += static_cast<size_t>(got);
-        sent += got;
+        chunk_pos += static_cast<size_t>(pushed_bytes);
+        sent += pushed_bytes;
         sess->time_limit.store(timeid() + 16);
     }
     co_return true;
@@ -3805,42 +3815,38 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     access_loglist.emplace_back(log_item);
                 }
 #endif
-                // 弱引用条目不会随 shared_ptr 释放而自动从 map 里消失，流 id 又绝不复用，
-                // 所以这张表只能靠扫一遍来缩。只摘 lock() 已经拿不到对象的条目：那种 peer
-                // 响应发完、发送槽归还后就再没人引用，条目纯粹是残渣。
-                // 不能按流 id 水位删「还 lock 得到」的条目——慢客户端的流还在等窗口额度，
-                // 删掉就等于把它的 WINDOW_UPDATE 判成陌生流而静默丢弃。
-                if (http2pre->http_data_weak.size() >= CONST_HTTP2_MAX_STREAMS / 2)
+                // http_data_weak 已在 readheaders 里登记、sweep 也已在 readheaders 开头做过，
+                // 这里额外清 peer_session 上的 stream_send_window（cleanup_stream 不碰它）。
+                // 正常路径下 http_data 在 extract 后已移走，但 stream_send_window 条目留着，
+                // 会随请求数线性增长。lock()==null 等价于 peer 已析构、发送协程已结束，可安全清。
                 {
-                    unsigned int sweep_removed = 0;
                     std::vector<unsigned int> dead_sids;
                     for (auto wit = http2pre->http_data_weak.begin(); wit != http2pre->http_data_weak.end();)
                     {
                         if (wit->second.lock() == nullptr)
                         {
                             dead_sids.push_back(wit->first);
-                            http2pre->http_data_weak.erase(wit++);
-                            sweep_removed++;
+                            wit = http2pre->http_data_weak.erase(wit);
                         }
                         else
                         {
                             ++wit;
                         }
                     }
-                    // 顺带回收发送窗口条目：正常响应发完没人删这张表（cleanup_stream
-                    // 只管对端 RST / 解析错误边），流 id 永不复用，不回收就随请求数
-                    // 线性增长。lock()==null 说明 peer 已释放、发送协程不可能还在跑，
-                    // WU 也过不了存活判定、懒建入口不会重建，在这里删是安全的。
                     if (!dead_sids.empty())
                     {
                         std::lock_guard<std::mutex> winlk(peer_session->stream_send_window_mutex);
                         for (unsigned int dead_sid : dead_sids)
                             peer_session->stream_send_window.erase(dead_sid);
                     }
-                    http2pre->weak_sweep_removed += sweep_removed;
-                    DEBUG_LOG("http2 weak sweep removed %u size %u", sweep_removed, (unsigned int)http2pre->http_data_weak.size());
+                    http2pre->weak_sweep_removed += dead_sids.size();
+                    if (!dead_sids.empty())
+                        DEBUG_LOG("http2 sweep removed %u weak size %u",
+                                  (unsigned int)dead_sids.size(),
+                                  (unsigned int)http2pre->http_data_weak.size());
                 }
-                // 登记这条流的 peer 弱引用：WINDOW_UPDATE、RST 等帧到达时用它能判断流还在不在。
+                // 登记这条流的 peer 弱引用：http2parse 里已在 HEADERS emplace 时同步 insert 过，
+                // 这里是 extract 后对同一个 sid 同一个对象的幂等覆盖，无害且保留原设计。
                 http2pre->http_data_weak.insert_or_assign(block_steamid, stream_ptr);
             }
 
