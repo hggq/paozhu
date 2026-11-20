@@ -3816,7 +3816,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 }
 #endif
                 // http_data_weak 已在 readheaders 里登记、sweep 也已在 readheaders 开头做过，
-                // 这里额外清 peer_session 上的 stream_send_window（cleanup_stream 不碰它）。
+                // 这里额外清 peer_session 上的 stream_send_window（cleanup_stream 只清 RST/错误边，正常结束边靠这里）。
                 // 正常路径下 http_data 在 extract 后已移走，但 stream_send_window 条目留着，
                 // 会随请求数线性增长。lock()==null 等价于 peer 已析构、发送协程已结束，可安全清。
                 {
@@ -6319,6 +6319,14 @@ unsigned long long httpserver::http2_reserve_send_window(client_session *session
         auto it = session_obj->stream_send_window.find(stream_id);
         if (it == session_obj->stream_send_window.end())
         {
+            // 死流不懒重建：sid 已被 cleanup_stream 摘出 http_data_weak，sweep 扫不到，
+            // 重建的条目会留到连接关闭（RST 风暴下累积）。cleanup 先标死后 erase，
+            // 持本锁见条目缺失时 dead 必可见；dead 锁是叶子锁，stream→dead 锁序无环。
+            if (session_obj->http2_stream_is_dead(stream_id))
+            {
+                session_obj->has_send_update_num.fetch_sub(conn_take, std::memory_order_acq_rel);
+                return 0;
+            }
             it = session_obj->stream_send_window
                      .emplace(stream_id, session_obj->remote_initial_window_size.load())
                      .first;

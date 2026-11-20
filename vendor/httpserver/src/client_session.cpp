@@ -1327,7 +1327,9 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
                     if (!http2_content_queue->push(std::move(f)))
                     {
                         http2_ring_queue_drop_count++;
-                        assert(false && "batch push failed inside feed gate");
+                        // 防御性兜底：feed-gate + free_slots 双判定 + static_assert 保证理论不可达，
+                        // 触发即环容量约束被破坏。不用 assert：debug 会 abort、release 静默。
+                        LOG_ERROR << "http2 batch push failed inside feed gate, frames=" << static_cast<unsigned long long>(frames.size()) << LOG_END;
                         break;
                     }
                     pushed_bytes += flen;
@@ -1445,13 +1447,14 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
     }
 
     auto &app             = get_server_app();
-    unsigned int accepted = 0;
+    // 内部用 64 位累加避免 >4GB 回绕，返回处按函数签名收窄。
+    unsigned long long accepted = 0;
     size_t off            = 0;
     while (off < payload.size())
     {
         if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
             http2_stream_is_dead(sid))
-            return accepted;
+            return static_cast<unsigned int>(accepted);
         const unsigned int cap =
             std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
         const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
@@ -1466,14 +1469,14 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
             {
                 if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
                     http2_stream_is_dead(sid))
-                    return accepted;
+                    return static_cast<unsigned int>(accepted);
                 const auto left = deadline - std::chrono::steady_clock::now();
                 if (left <= std::chrono::steady_clock::duration::zero())
                 {
                     if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
                         !http2_closing.load(std::memory_order_relaxed))
                         h2_content_fail_post(this, sid, 0, true);
-                    return accepted;
+                    return static_cast<unsigned int>(accepted);
                 }
                 // 先快照世代再 reserve：reserve 与挂起之间到达的唤醒已体现在世代里，
                 // wait_for 的谓词立即为真，不会丢唤醒。reserve 不持世代锁（锁序无环）。
@@ -1505,7 +1508,7 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
                 if (gone)
                 {
                     h2_content_fail_post(this, sid, got, false);
-                    return accepted;
+                    return static_cast<unsigned int>(accepted);
                 }
                 if (std::chrono::steady_clock::now() >= deadline)
                     break;
@@ -1520,14 +1523,14 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
             {
                 // 预算耗尽：退款 got + RST
                 h2_content_fail_post(this, sid, got, true);
-                return accepted;
+                return static_cast<unsigned int>(accepted);
             }
         }
         off += static_cast<size_t>(got);
-        accepted += 9 + static_cast<unsigned int>(got);
+        accepted += 9 + got;
         time_limit.store(timeid() + 16);
     }
-    return accepted;
+    return static_cast<unsigned int>(accepted);
 }
 
 asio::awaitable<unsigned int> client_session::async_http2_send_content_frame(std::string_view frame)
@@ -1584,7 +1587,8 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsi
     }
 
     auto &app             = get_server_app();
-    unsigned int accepted = 0;
+    // 内部用 64 位累加避免 >4GB 回绕，返回处按函数签名收窄。
+    unsigned long long accepted = 0;
     size_t off            = 0;
     // 流级死活的判据走 http2_dead_streams（cleanup_stream 会 cancel 停等者叫醒本协程），
     // 所以传给 episode 的 dead 旗恒 false，closing 由 episode 内部判。
@@ -1593,7 +1597,7 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsi
     {
         if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
             http2_stream_is_dead(sid))
-            co_return accepted;
+            co_return static_cast<unsigned int>(accepted);
         const unsigned int cap =
             std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
         const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
@@ -1605,7 +1609,7 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsi
                 if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
                     !http2_closing.load(std::memory_order_relaxed))
                     http2_content_stream_failed(sid, 0, true);
-                co_return accepted;
+                co_return static_cast<unsigned int>(accepted);
             }
             continue;
         }
@@ -1616,13 +1620,13 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsi
             const bool gone = http2_stream_is_dead(sid) || isclose.load(std::memory_order_relaxed) ||
                               http2_closing.load(std::memory_order_relaxed);
             http2_content_stream_failed(sid, got, !gone);
-            co_return accepted;
+            co_return static_cast<unsigned int>(accepted);
         }
         off += static_cast<size_t>(got);
-        accepted += 9 + static_cast<unsigned int>(got);
+        accepted += 9 + got;
         time_limit.store(timeid() + 16);
     }
-    co_return accepted;
+    co_return static_cast<unsigned int>(accepted);
 }
 
 asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)
