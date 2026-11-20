@@ -230,6 +230,25 @@ long long money_put_num(double a);
 long long num_put_money(long long a);
 long long num_get_money(long long a);
 
+// 全系统金额列以“分”为单位(CONST_MONEY_PART=100)：
+// money_put_num(元)->分, money_get_num(分)->元, money_format(分)->"12.34"。
+// ORM 字段保存的就是分，读取/写回只做类型转换
+template <typename T>
+long long money_to_cents(T value)
+{
+    return static_cast<long long>(value);
+}
+
+template <typename T>
+T money_from_cents(long long cents)
+{
+    return static_cast<T>(cents);
+}
+
+// 分 -> 元字符串，固定两位小数
+std::string money_format(long long cents);
+
+
 // IP 是否为本机回环或内网单播（127/8、10/8、192.168/16、172.16-31/12、IPv6 fc00::/7 与 ::1）。
 // 用于证书下载页等敏感路由的来源 IP 闸门。严格解析，带端口/空格/主机名一律拒。
 bool ip_is_local(const std::string &ip);

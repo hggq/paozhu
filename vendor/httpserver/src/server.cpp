@@ -10851,38 +10851,6 @@ void httpserver::run(const std::string &sysconfpath)
 #endif
         total_count              = 0;
         clientrunpool.io_context = io_context.get();
-        std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        std::thread https(std::bind(&httpserver::listeners, this));
-        std::thread http(std::bind(&httpserver::listener, this));
-#ifdef BENCHMARK
-        // 压测构建：HTTP/HTTPS 各两条 accept 线程，各自用 SO_REUSEPORT 绑同一端口，由内核分摊新连接。
-        // Benchmark builds run two accept threads per port; each acceptor binds with SO_REUSEPORT
-        // and the kernel spreads incoming connections across them.
-        std::thread https_second(std::bind(&httpserver::listeners, this));
-        std::thread http_second(std::bind(&httpserver::listener, this));
-#endif
-
-// set thread priority — 设置线程优先级
-// set thread priority.
-#ifdef _WIN32
-        set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
-#endif
-#else
-        set_thread_priority(https, 90);
-        set_thread_priority(http, 90);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, 90);
-        set_thread_priority(http_second, 90);
-#endif
-#ifndef BENCHMARK
-        set_thread_priority(httpwatch, 50);
-#endif
-#endif
 
         {
             client_context &client_context = get_client_context_obj(io_context);
@@ -10975,6 +10943,39 @@ void httpserver::run(const std::string &sysconfpath)
             }
         }
 #endif
+
+        std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
+        std::thread https(std::bind(&httpserver::listeners, this));
+        std::thread http(std::bind(&httpserver::listener, this));
+#ifdef BENCHMARK
+        // 压测构建：HTTP/HTTPS 各两条 accept 线程，各自用 SO_REUSEPORT 绑同一端口，由内核分摊新连接。
+        // Benchmark builds run two accept threads per port; each acceptor binds with SO_REUSEPORT
+        // and the kernel spreads incoming connections across them.
+        std::thread https_second(std::bind(&httpserver::listeners, this));
+        std::thread http_second(std::bind(&httpserver::listener, this));
+#endif
+
+// set thread priority — 设置线程优先级
+// set thread priority.
+#ifdef _WIN32
+        set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
+#ifdef BENCHMARK
+        set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
+#endif
+#else
+        set_thread_priority(https, 90);
+        set_thread_priority(http, 90);
+#ifdef BENCHMARK
+        set_thread_priority(https_second, 90);
+        set_thread_priority(http_second, 90);
+#endif
+#ifndef BENCHMARK
+        set_thread_priority(httpwatch, 50);
+#endif
+#endif
+
         if (https.joinable())
         {
             https.join();

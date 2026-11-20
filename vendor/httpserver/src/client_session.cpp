@@ -1005,8 +1005,8 @@ asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid
         {
             // 自然到期与 WU 到达可能撞在同一拍：返回前再查一次两级窗口，
             // 有额度就放调用方去 reserve，不误撤流。
-            const bool conn_empty = window_update_num.load() <= has_send_update_num.load();
-            if (!conn_empty)
+            const bool still_conn_empty = window_update_num.load() <= has_send_update_num.load();
+            if (!still_conn_empty)
             {
                 std::lock_guard<std::mutex> lk(stream_send_window_mutex);
                 auto it            = stream_send_window.find(sid);
@@ -1248,7 +1248,8 @@ bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned i
     return false;
 }
 // async 版：timer 挂在本连接 strand 上，每次让出都让消费者协程的写完成推进，不会互锁。
-// 本协程与 RST 入环同在 strand 上串行，查死与 push 之间无挂起点，无需锁内复查。
+// 注：h2_content_fail_post 从业务线程直接调 http2_mark_stream_dead，打破 strand 串行不变量，
+// 喂入锁内必须复查死流（与 sync 版 http2_push_content_raw_sync 对齐）。
 asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, unsigned int sid)
 {
     asio::steady_timer timer(co_await asio::this_coro::executor);
@@ -1262,6 +1263,10 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
         bool pushed = false;
         {
             std::lock_guard<std::mutex> feed(http2_feed_mutex);
+            // 喂入锁内复查死流：h2_content_fail_post 可能在锁外查死到取锁间隙内
+            // 从业务线程标记该流为死，sync 版已有此复查，async 版对齐。
+            if (http2_stream_is_dead(sid))
+                co_return false;
             pushed = http2_content_queue->push(std::move(frame));
         }
         if (pushed)
@@ -1355,6 +1360,9 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
 
 unsigned int client_session::http2_send_content_frame(std::string_view frame)
 {
+    // 自保活：sync 路径的 CV 停等/重试循环期间若 peer 引用断链，session 不能析构。
+    // Self-preserve: keep session alive during sync wait_for / retry loops.
+    auto self = shared_from_this();
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         return 0;
     if (frame.size() < 9 || http2_content_queue == nullptr)
@@ -1400,6 +1408,9 @@ unsigned int client_session::http2_send_content_frame(std::string_view frame)
 
 unsigned int client_session::http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags)
 {
+    // 自保活：sync 路径的 CV 停等（wait_for）期间 session 不能析构。
+    // Self-preserve: keep session alive during sync window wait_for.
+    auto self = shared_from_this();
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         return 0;
     if (http2_content_queue == nullptr)

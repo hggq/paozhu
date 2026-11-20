@@ -2563,6 +2563,15 @@ long long num_put_money(long long a)
     return a * CONST_MONEY_PART;
 }
 
+std::string money_format(long long cents)
+{
+    bool neg = cents < 0;
+    unsigned long long abs_cents = neg ? static_cast<unsigned long long>(-cents) : static_cast<unsigned long long>(cents);
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%s%llu.%02llu", neg ? "-" : "", abs_cents / 100, abs_cents % 100);
+    return std::string(buf);
+}
+
 bool ip_is_local(const std::string &ip)
 {
     if (ip.empty())

@@ -73,6 +73,8 @@ fi
 echo ""
 echo "[Step 1/${TOTAL_STEPS}] Cleaning common/ registration files..."
 
+mkdir -p common
+
 cat > common/autocontrolmethod.hpp << 'EOF'
 #ifndef __HTTP_AUTO_REG_CONTROL_HTTPMETHOD_HPP
 #define __HTTP_AUTO_REG_CONTROL_HTTPMETHOD_HPP
@@ -390,10 +392,12 @@ skip == 0
 '
 for entry_file in startup/main_dev.cpp startup/main_daemon.cpp; do
     if [ -f "$entry_file" ]; then
-        before_lines=$(grep -c "" "$entry_file")
+        # grep -c exits 1 when there are zero matches; without `|| true` that
+        # aborts the whole script under `set -e` on an already-clean tree.
+        before_lines=$(grep -c "" "$entry_file" || true)
         awk "$rbac_strip_awk" "$entry_file" > "$entry_file.tmp" && mv "$entry_file.tmp" "$entry_file"
-        left=$(grep -c "paozhu-rbac\|install_route_guard" "$entry_file")
-        after_lines=$(grep -c "" "$entry_file")
+        left=$(grep -c "paozhu-rbac\|install_route_guard" "$entry_file" || true)
+        after_lines=$(grep -c "" "$entry_file" || true)
         echo "  OK $entry_file: $before_lines → $after_lines lines, rbac references left: $left"
     fi
 done
@@ -438,6 +442,9 @@ echo "  OK models/ schema/ orm/ emptied (empty orm/orm.h kept)"
 echo ""
 echo "[Step 4/${TOTAL_STEPS}] Cleaning view files..."
 
+# Create every directory written below so a partial tree does not abort under set -e.
+mkdir -p viewsrc/include view www/default
+
 # 4.1 Remove the compiled view sources; empty view/ but keep the directory.
 #   view/ is an INPUT: paozhu_cli view only warns "view directory not in
 #   current path" when it is missing and never creates it, so leave an empty
@@ -445,7 +452,6 @@ echo "[Step 4/${TOTAL_STEPS}] Cleaning view files..."
 #   the destination before writing, so that one may go.
 rm -rf viewsrc/view/
 rm -rf view/*
-mkdir -p view
 
 # 4.2 Empty the internal namespace in viewsrc.h
 cat > viewsrc/include/viewsrc.h << 'EOF'
@@ -517,6 +523,7 @@ echo "  OK www/default cleaned, only index.html kept"
 #   /paozhu_status and /paozhu_routes self-check pages.
 # ============================================================
 echo ""
+mkdir -p controller/include controller/src
 if [ "$BENCHMARK_MODE" -eq 1 ]; then
     echo "[Step 5/${TOTAL_STEPS}] Cleaning controller (benchmark mode: delete all)..."
     rm -rf controller/include/*
@@ -544,6 +551,9 @@ if [ "$BENCHMARK_MODE" -eq 1 ]; then
         echo "ERROR: Benchmark source dir not found: $BENCHMARK_SRC"
         exit 1
     fi
+
+    # Create all copy destinations before cp/rm -rf so a partial tree still works.
+    mkdir -p orm libs/types viewsrc conf
 
     # controller: techempower
     mkdir -p controller/include controller/src
