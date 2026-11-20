@@ -282,6 +282,12 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 由解析器重填的，keep-alive 上的下一个请求就把任务名换成了新 URL 的段，
     // 任务名因此活不过下一次请求；这里改成任务自己的一份。
     std::string timeloop_taskname;
+    // 池化回收的丢弃旗：HTTP/2 本连接池 release 时若还有在途定时器/fastcgi 回调就置真，
+    // acquire_peer 的 deleter 见真只销毁、不回全局池，防止残留状态被新请求继承。
+    // reset_for_reuse 会清掉它，对象下一世可正常回池。
+    // Pool-return discard flag: set by the h2 per-connection release when in-flight
+    // timers or fastcgi callbacks remain; the deleter then destroys instead of re-pooling.
+    bool no_repool = false;
     unsigned int request_time = 0;
     //unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;

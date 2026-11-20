@@ -416,7 +416,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    auto steam_httppeer = httpserver::acquire_peer();
+    auto steam_httppeer = acquire_peer_from_pool();
     if (!http_data.emplace(iter->second.stream_id, steam_httppeer).second)
     {
         // 同一流 id 已经建过请求对象：emplace 会静默失败，新 peer 变成没人应答的孤儿，
@@ -3353,16 +3353,21 @@ void http2parse::cleanup_stream(unsigned int sid)
     auto wit = http_data_weak.find(sid);
     if (wit != http_data_weak.end())
     {
-        // 这条流被 RST 或已关闭：peer 还在就把 isclose 置真（停止外发的信号），然后从弱表里摘掉。
-        // lock() 复活出来的强引用只在本语句块内有效；isclose 是 std::atomic<bool>，
-        // 内联发送协程在每帧开始前只读它做停止判断，
-        // 这里不碰其他成员，所以跨线程读写不会交织。
+        // 这条流被 RST 或已关闭：先 lock 取值、再 erase、最后写 isclose。
+        // erase 会使 wit 失效，失效后再解引用就是 UB，所以 lock 必须排在 erase 前。
+        // 时序目标不变：弱表条目存在说明该 peer 还没走过 release_peer_to_pool
+        //（它第一步就 erase），lock 复活的不可能是池化复用对象；sid 又严格递增永不复用，
+        // 写入目标一定是本流自己的 peer。
         std::shared_ptr<httppeer> temp_peer = wit->second.lock();
+        http_data_weak.erase(wit);
         if (temp_peer)
         {
+            // lock 成功：有真正的 peer 还活着（业务协程未退或发送中），
+            // isclose=true 是合法的"停止外发"信号。
+            // isclose 是 std::atomic<bool>，内联发送协程每帧前只读它做停等判据，
+            // 这里不碰其他成员，所以跨线程读写不会交织。
             temp_peer->isclose = true;
         }
-        http_data_weak.erase(wit);
     }
     // 直发架构 dead 边：上面已把 peer->isclose 置真（内联发送协程的停等判据），
     // 这里 cancel 该流的窗口停等者让它立刻醒来见 dead，而不是睡满 10 秒预算。
@@ -5873,5 +5878,69 @@ unsigned int http2parse::process(const unsigned char *buffer, unsigned int buffe
     }
     // 出错时停在坏帧末尾：其后已读进来的帧要靠这个返回值交给调用方续着解
     return readoffset;
+}
+
+http2parse::~http2parse()
+{
+    // 连接关闭时，本连接池里残留的 idle peer 交回全局池。
+    // clear() 释放每个 shared_ptr 时触发 acquire_peer 的回收 deleter：
+    // reset_for_reuse + 回全局池，池满则销毁——与 h1/rpc 走的是同一条回收路径。
+    // 析构天然在最后一个 post(strand_, release_peer_to_pool) 执行完后才触发——
+    // 因为每个 post lambda 都按值 capture 了 shared_ptr<http2parse>，
+    // 把 refcount 撑到 lambda 自己跑完才归零。
+    // 所以能进到这里的 idle peer 都已经过 release_peer_to_pool → reset_for_reuse，
+    // socket_session/issend/isclose 全清了，不会吊着连接。
+    peer_pool.idle.clear();
+}
+
+std::shared_ptr<httppeer> http2parse::acquire_peer_from_pool()
+{
+    peer_pool.acquire_total++;
+    if (!peer_pool.idle.empty())
+    {
+        auto p = std::move(peer_pool.idle.back());
+        peer_pool.idle.pop_back();
+        return p;
+    }
+    // 本连接池空了，兜底走全局 acquire_peer。返回的 shared_ptr 自带回收 deleter，
+    // 之后无论经本连接池 release 还是被丢弃，最终都走 deleter 决定回池还是销毁。
+    return httpserver::acquire_peer();
+}
+
+void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer> p)
+{
+    // 1) 显式 erase 弱表——归还式复用的根本前提
+    //    没 erase 就进池，下次复用同 sid 的 RST 会打到复用对象上
+    http_data_weak.erase(sid);
+
+    // 2) 禁止入池检查——reset_for_reuse 里没有这些检查，必须在这里前置。
+    //    置 no_repool 后出作用域销毁：deleter 见真只销毁、不回全局池，
+    //    防止在途定时器/fastcgi 回调的残留状态被新请求继承。
+    if (p->timeloop_num.load() != 0 || p->timeloop_inflight)
+    {
+        peer_pool.discard_total++;
+        p->no_repool = true;
+        return;
+    }
+    // user_code_handler_call 是 fastcgi 回调队列，不能让新请求继承。
+    // release 时机在协程跑完之后，队列此时应已为空——还非空说明 handler 还在跑。
+    if (!p->user_code_handler_call.empty())
+    {
+        peer_pool.discard_total++;
+        p->no_repool = true;
+        return;
+    }
+
+    // 3) reset_for_reuse——清 socket_session 等所有应清零字段
+    p->reset_for_reuse();
+
+    // 4) 本连接池上限——满则出作用域，deleter 把它转交全局池兜底
+    if (peer_pool.idle.size() >= CONST_HTTP2_PEER_POOL_MAX)
+    {
+        peer_pool.discard_total++;
+        return;
+    }
+    peer_pool.release_total++;
+    peer_pool.idle.push_back(std::move(p));
 }
 }// namespace http

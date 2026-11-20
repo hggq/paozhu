@@ -235,9 +235,25 @@ class http2parse
     {
     }
 
-    ~http2parse()
+    ~http2parse();
+
+    // ---- 本连接 httppeer 热池 ----
+    // acquire: 先试 idle，空了走全局 acquire_peer()（返回的 shared_ptr 自带回收 deleter）。
+    // release: reset_for_reuse 后放回 idle；在途定时器/fastcgi 回调未清的置 no_repool 销毁；池满的经 deleter 转全局池。
+    // 析构时 idle 里的 peer 经 deleter 自动回全局池。
+    // 全部访问在 strand 上（readheaders / cleanup_stream / process 都串行），无锁。
+    static constexpr unsigned int CONST_HTTP2_PEER_POOL_MAX = 32;
+    struct peer_pool_t
     {
-    }
+        std::vector<std::shared_ptr<httppeer>> idle;
+        unsigned int acquire_total = 0;
+        unsigned int release_total = 0;
+        unsigned int discard_total = 0;
+    };
+    peer_pool_t peer_pool;
+
+    std::shared_ptr<httppeer> acquire_peer_from_pool();
+    void release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer> p);
     static std::string str_tolower(std::string_view str)
     {
         std::string result;

@@ -2442,6 +2442,12 @@ void httppeer::reset_for_reuse()
     linktype = 0;
 
     socket_session = nullptr;
+
+    // 丢弃旗随复位一起清掉：本对象下一世允许正常回池
+    no_repool = false;
+
+    // struct stat 没有默认 reset，显式清零避免上一请求的 etag/mtime 泄漏到新响应
+    memset(&fileinfo, 0, sizeof(fileinfo));
 }
 
 range_parse_t parse_range_header(std::string_view header_value, headstate_t &state)

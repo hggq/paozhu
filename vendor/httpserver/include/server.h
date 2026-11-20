@@ -163,7 +163,8 @@ class httpserver
     void clear_peer_data(std::shared_ptr<httppeer> &peer);
 
     // 取一个可跨连接复用的 httppeer。最后一个引用放开时走 reset_for_reuse() 回池，
-    // 池满则在锁外销毁。http1 / rpc / HTTP/2 连接级各取一个，HTTP/2 每条流也各取一个。
+    // 池满或置了 no_repool 丢弃旗则在锁外销毁。http1 / rpc / HTTP/2 连接级各取一个，
+    // HTTP/2 每条流经本连接池 acquire_peer_from_pool 兜底调用这里。
     static std::shared_ptr<httppeer> acquire_peer();
 #ifdef BENCHMARK
     static constexpr std::size_t PEER_POOL_MAX = 4096;
@@ -171,7 +172,19 @@ class httpserver
     static constexpr std::size_t PEER_POOL_MAX = 512;
 #endif
     static std::mutex peer_pool_mutex;
-    static std::vector<std::unique_ptr<httppeer>> peer_pool;
+    // 存 shared_ptr 而不是 unique_ptr：HTTP/2 本连接池流转的是 shared_ptr，
+    // 连接关闭时 deleter 自动把对象送回来；shared→unique 的所有权提取做不到，
+    // 池子统一 shared 才能让 h1/h2 走同一条回收路径。
+    // (Stores shared_ptr: the h2 per-connection pool hands out shared_ptr and the
+    // deleter returns objects on connection close; shared->unique extraction is
+    // impossible, so one pooled type for all paths.)
+    static std::vector<std::shared_ptr<httppeer>> peer_pool;
+    // 进程退出时置真：静态 peer_pool 析构会逐个释放元素并触发回收 deleter，
+    // deleter 若照旧 push_back 就是在往正在析构的 vector 里塞对象（UB）。
+    // 置真后 deleter 只销毁不回池。定义顺序必须早于 peer_pool，析构才晚于它。
+    // Set at shutdown: destroying the static pool fires each peer's deleter, and
+    // re-pooling into a vector under destruction is UB; the deleter then only destroys.
+    static std::atomic<bool> peer_pool_closed;
 
     bool http2_send_file(std::shared_ptr<httppeer>);
     asio::awaitable<void> http2_send_file_range(std::shared_ptr<httppeer> peer);
@@ -372,7 +385,10 @@ class httpserver
         }
         // 池里的 peer 在线程都 join 完之后、其它成员析构之前放掉。
         // 先 swap 出来再销毁：~httppeer 可能再释放一个 peer，攥着同一把非递归 mutex 会死锁。
-        std::vector<std::unique_ptr<httppeer>> pool_drain;
+        // 先置 closed 旗：clear() 触发每个元素的回收 deleter，见旗只销毁不回池——
+        // 否则对象会被塞回 peer_pool，留到静态析构阶段再踩一遍正在析构的 vector。
+        peer_pool_closed.store(true);
+        std::vector<std::shared_ptr<httppeer>> pool_drain;
         {
             std::lock_guard<std::mutex> lock(peer_pool_mutex);
             pool_drain.swap(peer_pool);

@@ -1264,29 +1264,32 @@ void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::str
     }
 }
 std::mutex httpserver::peer_pool_mutex;
-std::vector<std::unique_ptr<httppeer>> httpserver::peer_pool;
+// closed 旗定义在 peer_pool 之前：静态析构按定义逆序，peer_pool 先析构时旗仍然存活
+std::atomic<bool> httpserver::peer_pool_closed{false};
+std::vector<std::shared_ptr<httppeer>> httpserver::peer_pool;
 
 std::shared_ptr<httppeer> httpserver::acquire_peer()
 {
-    httppeer *raw = nullptr;
     {
         std::lock_guard<std::mutex> lock(peer_pool_mutex);
         if (!peer_pool.empty())
         {
-            raw = peer_pool.back().release();
+            auto p = std::move(peer_pool.back());
             peer_pool.pop_back();
+            // 池里取出的对象自带回收 deleter，直接传出去
+            return p;
         }
     }
-    if (raw == nullptr)
-    {
-        raw = new httppeer();
-    }
-    return std::shared_ptr<httppeer>(raw, [](httppeer *p)
+    return std::shared_ptr<httppeer>(new httppeer(), [](httppeer *p)
                                      {
                                          // hold 先接管所有权，且声明在锁的外层：复位和销毁都可能析构协程帧、
                                          // 帧里再释放一个 peer，攥着同一把非递归 mutex 会死锁。
-                                         std::unique_ptr<httppeer> hold(p);
+                                         std::shared_ptr<httppeer> hold(p);
+                                         // 丢弃旗先读再复位：置真说明还有在途定时器/fastcgi 回调，
+                                         // 这种对象绝不能进池被新请求继承，只销毁。
+                                         bool discard = hold->no_repool;
                                          hold->reset_for_reuse();
+                                         if (!discard && !peer_pool_closed.load())
                                          {
                                              std::lock_guard<std::mutex> lock(peer_pool_mutex);
                                              if (peer_pool.size() < PEER_POOL_MAX)
@@ -1294,9 +1297,10 @@ std::shared_ptr<httppeer> httpserver::acquire_peer()
                                                  peer_pool.push_back(std::move(hold));
                                              }
                                          }
-                                         // 走到这里 hold 还非空就是池满（或 push_back 抛了），在锁外销毁。
+                                         // 走到这里 hold 还非空就是丢弃或池满（或 push_back 抛了），在锁外销毁。
                                      });
 }
+
 void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
 {
     peer->output.clear();
@@ -3753,8 +3757,23 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 // 只捕 sp 即可，响应头挂在 peer 自己的容器里，协程持有 sp 就不会悬垂
                 if (stream_ptr->iscors)
                 {
-                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
-                                   { co_await send_cors_domain(sp); },
+                    asio::co_spawn(peer_session->strand_, [this, peer_session, h2 = http2pre, sp = stream_ptr]() -> asio::awaitable<void>
+                                   {
+                                       const unsigned int sid = sp->stream_id;
+                                       try
+                                       {
+                                           co_await send_cors_domain(sp);
+                                       }
+                                       catch (...)
+                                       {
+                                           // 取消/异常半途收尾；归还照常走汇合点，不绕过在途检查
+                                           DEBUG_LOG("http2 cors preflight aborted stream %u", sid);
+                                       }
+                                       asio::post(peer_session->strand_,
+                                                  [h2, sid, p = std::move(sp)]() mutable {
+                                                      h2->release_peer_to_pool(sid, std::move(p));
+                                                  });
+                                   },
                                    asio::detached);
                 }
                 else if (stream_ptr->reject_status > 0)
@@ -3762,8 +3781,22 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     // 站点上传限额：头块解完就判掉了，正文一帧没收，直接回状态页，不进业务控制器。
                     // 与下面 405 那条同一个形状；这条流后续到达的 DATA 由解析器丢弃并还回连接窗口。
                     std::string limit_body = "<h3>" + std::to_string(stream_ptr->reject_status) + " upload size limit</h3>";
-                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr, body = std::move(limit_body)]() -> asio::awaitable<void>
-                                   { co_await http2_send_status_content(sp, sp->reject_status, body); },
+                    asio::co_spawn(peer_session->strand_, [this, peer_session, h2 = http2pre, sp = stream_ptr, body = std::move(limit_body)]() -> asio::awaitable<void>
+                                   {
+                                       const unsigned int sid = sp->stream_id;
+                                       try
+                                       {
+                                           co_await http2_send_status_content(sp, sp->reject_status, body);
+                                       }
+                                       catch (...)
+                                       {
+                                           DEBUG_LOG("http2 reject status aborted stream %u", sid);
+                                       }
+                                       asio::post(peer_session->strand_,
+                                                  [h2, sid, p = std::move(sp)]() mutable {
+                                                      h2->release_peer_to_pool(sid, std::move(p));
+                                                  });
+                                   },
                                    asio::detached);
                 }
                 else if (is_unsupported_method(stream_ptr->method))
@@ -3771,8 +3804,22 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     // 与 h1 的 method_not_allowed 同一口径：这四个方法框架有意不支持，
                     // 直接回 405，不进业务控制器（h1 走 http1_send_method_not_allowed）
                     stream_ptr->set_header("Allow", std::string(http_supported_methods_text));
-                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
-                                   { co_await http2_send_status_content(sp, 405, "<h3>405 Method Not Allowed</h3>"); },
+                    asio::co_spawn(peer_session->strand_, [this, peer_session, h2 = http2pre, sp = stream_ptr]() -> asio::awaitable<void>
+                                   {
+                                       const unsigned int sid = sp->stream_id;
+                                       try
+                                       {
+                                           co_await http2_send_status_content(sp, 405, "<h3>405 Method Not Allowed</h3>");
+                                       }
+                                       catch (...)
+                                       {
+                                           DEBUG_LOG("http2 405 send aborted stream %u", sid);
+                                       }
+                                       asio::post(peer_session->strand_,
+                                                  [h2, sid, p = std::move(sp)]() mutable {
+                                                      h2->release_peer_to_pool(sid, std::move(p));
+                                                  });
+                                   },
                                    asio::detached);
                 }
                 else if (stream_ptr->method == static_cast<unsigned char>(HEAD_METHOD::UNKNOW))
@@ -3780,14 +3827,45 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     // 方法名不在框架认得的表里（例如 PATCH）：回 501，同样不进业务控制器。
                     // h1 侧对同一个请求走 http1_send_not_implemented，并且必须关连接
                     //（正文没人消费）；这里帧是自定界的，只作废这一条流。
-                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
-                                   { co_await http2_send_status_content(sp, 501, "<h3>501 Not Implemented</h3>"); },
+                    asio::co_spawn(peer_session->strand_, [this, peer_session, h2 = http2pre, sp = stream_ptr]() -> asio::awaitable<void>
+                                   {
+                                       const unsigned int sid = sp->stream_id;
+                                       try
+                                       {
+                                           co_await http2_send_status_content(sp, 501, "<h3>501 Not Implemented</h3>");
+                                       }
+                                       catch (...)
+                                       {
+                                           DEBUG_LOG("http2 501 send aborted stream %u", sid);
+                                       }
+                                       asio::post(peer_session->strand_,
+                                                  [h2, sid, p = std::move(sp)]() mutable {
+                                                      h2->release_peer_to_pool(sid, std::move(p));
+                                                  });
+                                   },
                                    asio::detached);
                 }
                 else
                 {
-                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
-                                   { co_await http2loop(sp); },
+                    asio::co_spawn(peer_session->strand_, [this, peer_session, h2 = http2pre, sp = stream_ptr]() -> asio::awaitable<void>
+                                   {
+                                       const unsigned int sid = sp->stream_id;
+                                       try
+                                       {
+                                           co_await http2loop(sp);
+                                       }
+                                       catch (...)
+                                       {
+                                           // 客户端断连时 async_write 抛 operation_aborted；不接住
+                                           // 这一步的 sp 只能由 deleter 直接回全局池，
+                                           // 绕过本连接池的在途定时器检查。
+                                           DEBUG_LOG("http2loop aborted stream %u", sid);
+                                       }
+                                       asio::post(peer_session->strand_,
+                                                  [h2, sid, p = std::move(sp)]() mutable {
+                                                      h2->release_peer_to_pool(sid, std::move(p));
+                                                  });
+                                   },
                                    asio::detached);
                 }
 
