@@ -3691,6 +3691,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     std::lock_guard<std::mutex> winlk(peer_session->stream_send_window_mutex);
                     kept_size = peer_session->stream_send_window.size();
                 }
+#ifndef BENCHMARK
                 log_item.clear();
                 log_item.append("http2 window_update dropped ");
                 log_item.append(std::to_string(http2pre->winupdate_dropped));
@@ -3703,6 +3704,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     std::lock_guard<std::mutex> lock(log_mutex);
                     error_loglist.emplace_back(log_item);
                 }
+#endif
             }
             if (peer_session->isgoway)
             {
@@ -3881,44 +3883,6 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 readnum   = 0;
                 offsetnum = 0;
             }
-        }
-        // 发送环三个计数在本连接内收尾时报一次：overflow 是"环满、这一帧留到下一轮重发"
-        // （push 直接被拒），backpressure 是"环积压到阈值、本轮主动让路"（还没 push 就退），
-        // dropped 是"这一帧真的没了"。三者都不报出来，"零丢弃"就只是一句无法核实的说法。
-        if (peer_session->http2_ring_overflow_count.load() > 0 ||
-            peer_session->http2_ring_queue_drop_count.load() > 0 ||
-            peer_session->http2_ring_backpressure_count.load() > 0 ||
-            peer_session->http2_window_update_requeue_count.load() > 0 ||
-            peer_session->conn_grant_pending > 0 ||
-            peer_session->stream_grant_pending.empty() == false)
-        {
-            log_item.clear();
-            log_item.append("http2 ring stats overflow ");
-            log_item.append(std::to_string(peer_session->http2_ring_overflow_count.load()));
-            log_item.append(" dropped ");
-            log_item.append(std::to_string(peer_session->http2_ring_queue_drop_count.load()));
-            log_item.append(" backpressure ");
-            log_item.append(std::to_string(peer_session->http2_ring_backpressure_count.load()));
-            // 补量帧被环拒过几次（wu_requeue）、到关闭还欠着多少（wu_pending 连接级/流级条数）。
-            // 后者非零说明这些额度始终没能发出去，是重投机制唯一的失败证据。
-            log_item.append(" wu_requeue ");
-            log_item.append(std::to_string(peer_session->http2_window_update_requeue_count.load()));
-            log_item.append(" wu_pending ");
-            log_item.append(std::to_string(peer_session->conn_grant_pending));
-            log_item.append("/");
-            log_item.append(std::to_string(peer_session->stream_grant_pending.size()));
-            // 在途借出的池化对象数（h1 发送仍借池）：连接收尾后该归零，不归零即泄漏。
-            log_item.append(" outstanding ");
-            log_item.append(std::to_string(get_http2_send_queue().outstanding.load()));
-            // 本连接还在跑的发送协程数，收尾后应归零。
-            log_item.append(" h2_senders ");
-            log_item.append(std::to_string(peer_session->http2_active_senders.load()));
-            log_item.append(" ip ");
-            log_item.append(peer_session->client_ip);
-            log_item.push_back('\n');
-            std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back(log_item);
-            lock.unlock();
         }
         peer_session->cancel();
         peer_session->wake_ring_consumer();

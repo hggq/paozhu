@@ -216,6 +216,10 @@ std::string array_to_sql(const std::vector<_Tp> &a, char b = ',')
 std::string array_to_sql(const std::vector<std::string>, char b = ',', bool isquote = true);
 
 std::string str_addslash(const std::string &content);
+// 旧数据兼容：历史入库流程先用 obj_val::to_escape()、再由 ORM stringaddslash()
+// 转义，导致库中比原始输入多一层反斜杠（" 存成 \"，\ 存成 \\，换行存成 \n）。
+// 出库展示前用本函数还原这一层；新数据已去掉 to_escape()，不需要再转换。
+std::string strip_sql_escape(std::string_view str);
 std::string json_addslash(const std::string &content);
 std::string json_escape(const std::string &content);
 

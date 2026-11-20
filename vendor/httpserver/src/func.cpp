@@ -1938,6 +1938,29 @@ std::string str_addslash(const std::string &content)
     }
     return temp;
 }
+std::string strip_sql_escape(std::string_view str)
+{
+    std::string out;
+    out.reserve(str.size());
+    for (size_t i = 0; i < str.size(); ++i)
+    {
+        if (str[i] == '\\' && i + 1 < str.size())
+        {
+            switch (str[i + 1])
+            {
+            case '"':  out.push_back('"');  ++i; continue;
+            case '\'': out.push_back('\''); ++i; continue;
+            case '\\': out.push_back('\\'); ++i; continue;
+            case 'n':  out.push_back('\n'); ++i; continue;
+            case 'r':  out.push_back('\r'); ++i; continue;
+            default: break;
+            }
+        }
+        out.push_back(str[i]);
+    }
+    return out;
+}
+
 std::string json_addslash(const std::string &content)
 {
     std::string temp;
