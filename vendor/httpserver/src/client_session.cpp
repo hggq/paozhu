@@ -728,7 +728,9 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
             // GOAWAY 与在途响应一起杀掉。超时未排空时后续 cancel() 仍会丢帧，
             // 记一条日志留诊断线索。
             if (!co_await flush_send_ring())
+            {
                 DEBUG_LOG("http2 goaway flush timeout last_sid=%u err=%u", last_stream_id, error_code);
+            }
             break;
         }
         http2_ring_queue_drop_count++;

@@ -14,9 +14,17 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v5
-      - uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: branch@dev
+      - name: Install xmake (prebuilt release)
+        shell: pwsh
+        run: |
+          $version = 'v3.1.2'
+          $installer = Join-Path $env:RUNNER_TEMP "xmake-$version.win64.exe"
+          $installDir = Join-Path $env:RUNNER_TEMP "xmake-$version"
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri "https://github.com/xmake-io/xmake/releases/download/$version/xmake-$version.win64.exe" -OutFile $installer
+          & $installer /NOADMIN /S "/D=$installDir"
+          Add-Content -Path $env:GITHUB_PATH -Value $installDir
+          & (Join-Path $installDir 'xmake.exe') --version
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
         #- name: download mysql

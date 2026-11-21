@@ -177,7 +177,7 @@
 // server.cpp 的 steam_count 只统计「已派发」的流，客户端只发 HEADERS 不开 END_STREAM
 // 时永远不会触发，因此这里必须再卡一道，否则 http_data/http_post_data 可被撑爆。
 // HTTP/2 per-connection resource caps (http2_parse.cpp). Guards against clients that send HEADERS without END_STREAM — server.cpp's stream_count only tracks dispatched streams and never fires for this case.
-#define CONST_HTTP2_MAX_STREAMS 512
+#define CONST_HTTP2_MAX_STREAMS 2048
 
 // HTTP/2 的 host / :authority 最大长度（与 HTTP/1 的 host 口径一致）。
 // 超过这个长度一律拒绝，避免超长值进入 header_host_process 的逐字符循环。
