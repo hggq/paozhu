@@ -625,6 +625,15 @@ void serverconfig::init_path()
         std::size_t found = configfile.find_last_of("/");
         configpath        = configfile.substr(0, found);
         configpath.push_back('/');
+        // configfile = ".../conf/server.conf" 已解析，chdir 到项目根目录
+        // 让 server.conf 里的相对路径 fallback（如 wwwpath 未配置时用
+        // current_path()/www/default/）正确解析，而不是落在 conf/ 或 /tmp。
+        // configfile = ".../conf/server.conf" is resolved; chdir to the
+        // project root so relative-path fallbacks in server.conf (e.g.
+        // wwwpath defaults to current_path()/www/default/) resolve against
+        // the project root, not conf/ or /tmp.
+        fs::path project_root = fs::path(configfile).parent_path().parent_path();
+        ::chdir(project_root.c_str());
     }
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.config_path      = configpath;

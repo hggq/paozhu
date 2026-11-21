@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -43,14 +44,26 @@ void init_daemon(void)
     //是第二子进程，继续
     //第二子进程不再是会话组长
 
-    unsigned int n = chdir("/tmp");//改变工作目录到/
-    if (n > 0)
+    // After both forks + setsid, close ALL inherited fds except 0/1/2.
+    // This prevents fd exhaustion when launchd/shell leaves random fds
+    // open, and keeps ORM connection pools, TLS sockets, etc. as the
+    // only fds the daemon uses. Redirect 0/1/2 to /dev/null so asio
+    // and OpenSSL sanity checks on standard fds won't misbehave.
+    // 两次 fork + setsid 完成后，关掉所有继承 fd ≥ 3。
+    // 防止 launchd/shell 遗留 fd 耗尽上限，ORM/TLS 连接等从零开始分配。
+    // 0/1/2 重定向到 /dev/null，确保 asio/OpenSSL 标准 fd 检查正常。
     {
-        n = 0;
+        int devnull = open("/dev/null", O_RDWR);
+        if (devnull >= 0)
+        {
+            dup2(devnull, 0);
+            dup2(devnull, 1);
+            dup2(devnull, 2);
+            if (devnull > 2) close(devnull);
+        }
+        for (int i = 3; i < getdtablesize(); ++i)
+            close(i);
     }
-
-    for (int i = 0; i < getdtablesize(); ++i)//关闭打开的文件描述符
-        close(i);
     umask(022);//重设文件创建掩模
 #endif
     return;
