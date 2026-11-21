@@ -540,6 +540,9 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
         char key = server_first_msg[pos++];
         if (pos >= server_first_msg.size())
             break;
+        // key=value 结构，跳过分隔符
+        if (server_first_msg[pos] == '=')
+            pos++;
         std::string value;
         while (pos < server_first_msg.size() && server_first_msg[pos] != ',')
             value.push_back(server_first_msg[pos++]);
@@ -657,6 +660,9 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
             char key = server_final[pos++];
             if (key == 'v')
             {
+                // key=value 结构，跳过分隔符
+                if (pos < server_final.size() && server_final[pos] == '=')
+                    pos++;
                 while (pos < server_final.size() && server_final[pos] != ',')
                     server_signature_b64.push_back(server_final[pos++]);
                 break;
@@ -1444,6 +1450,9 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                     char key = server_first_msg[pos++];
                     if (pos >= server_first_msg.size())
                         break;
+                    // key=value 结构，跳过分隔符
+                    if (server_first_msg[pos] == '=')
+                        pos++;
                     std::string value;
                     while (pos < server_first_msg.size() && server_first_msg[pos] != ',')
                         value.push_back(server_first_msg[pos++]);
@@ -1654,6 +1663,9 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                         char key = server_final[pos2++];
                         if (key == 'v')
                         {
+                            // key=value 结构，跳过分隔符
+                            if (pos2 < server_final.size() && server_final[pos2] == '=')
+                                pos2++;
                             while (pos2 < server_final.size() && server_final[pos2] != ',')
                                 server_signature_b64.push_back(server_final[pos2++]);
                             break;
