@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <filesystem>
+#include <system_error>
 #include <csignal>
 #include <atomic>
 #include <chrono>
@@ -32,20 +33,29 @@ int main(int argc, char *argv[])
     if (argc > 1)
     {
         // server.conf filepath or confpath
-        argv_str.append(argv[1]);
+        argv_str           = (argv[1] != nullptr) ? argv[1] : "";
         fs::path conf_path = argv_str;
-        if (!fs::is_regular_file(conf_path))
+        std::error_code ec;
+        if (!fs::is_regular_file(conf_path, ec) || ec)
         {
-            if (argv_str.back() == '/')
+            if (argv_str.empty())
             {
-                argv_str = argv_str + "server.conf";
+                std::cerr << "paozhu: empty argv[1]; pass server.conf path or conf directory\n";
+                return 1;
+            }
+            if (fs::is_directory(conf_path, ec) && !ec)
+            {
+                fs::path candidate = conf_path / "conf" / "server.conf";
+                if (!fs::is_regular_file(candidate, ec) || ec)
+                    candidate = conf_path / "server.conf";
+                argv_str = candidate.string();
             }
             else
             {
-                argv_str = argv_str + "/server.conf";
+                argv_str = (conf_path / "server.conf").string();
             }
             conf_path = argv_str;
-            if (!fs::is_regular_file(conf_path))
+            if (!fs::is_regular_file(conf_path, ec) || ec)
             {
                 // 容器里这条路径尤其要响：静默 return 0 会被 docker 当成"正常跑完"，
                 // restart 策略再把同一个失败重复一遍，日志里一行线索都没有。
@@ -66,11 +76,15 @@ int main(int argc, char *argv[])
             conf_path = argv_str;
             if (!fs::is_regular_file(conf_path))
             {
-                // 这里的候选只有两条，比配置加载器（serverconfig::init_path）少一条
-                // /etc/paozhu/conf/server.conf：装在那儿的部署走不到加载器就先退出了。
-                std::cerr << "paozhu: server.conf not found, tried: " << argv_str
-                          << " and /usr/local/etc/paozhu/server.conf; mount the conf dir or pass the path\n";
-                return 1;
+                argv_str  = "/etc/paozhu/conf/server.conf";
+                conf_path = argv_str;
+                if (!fs::is_regular_file(conf_path))
+                {
+                    std::cerr << "paozhu: server.conf not found; tried ./conf/server.conf, "
+                                 "/usr/local/etc/paozhu/server.conf and /etc/paozhu/conf/server.conf; "
+                                 "mount the conf dir or pass the path\n";
+                    return 1;
+                }
             }
         }
     }

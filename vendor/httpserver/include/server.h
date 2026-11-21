@@ -251,6 +251,9 @@ class httpserver
     void compute_rate_from_load(unsigned int has_save_link_count);
     // 被限速连接入队：同时进跟踪表 + 限速队列，通知 ratelimiter
     void enqueue_rate_limited(std::shared_ptr<client_session> peer);
+    // 只在 run() 的单线程启动阶段调用一次：accept 线程与 ratelimiter 无锁读这些参数，
+    // 不能等到 httpwatch 线程里才装载/校正。
+    void init_rate_limit_config();
 
     asio::awaitable<void> http1_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
     asio::awaitable<bool> http1_static_file_authority(std::shared_ptr<httppeer> peer);

@@ -1299,7 +1299,9 @@ static_assert(CONST_HTTP2_CONTENT_RING_FEED_GATE + CONST_HTTP2_SEND_BATCH_FRAMES
                   <= CONST_HTTP2_RING_QUEUE_CAPACITY - 1,
               "feed gate + batch must fit in the content ring");
 
-asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid)
+asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std::vector<std::string> &frames,
+                                                                            unsigned int sid,
+                                                                            unsigned long long reserved_bytes)
 {
     asio::steady_timer timer(co_await asio::this_coro::executor);
     unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
@@ -1308,7 +1310,12 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
     {
         if (isclose.load(std::memory_order_relaxed) ||
             http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+        {
+            // 一帧未推：退还本批全部预留额度。
+            // Nothing pushed: refund the whole reservation.
+            get_server_app().http2_refund_send_window(this, sid, reserved_bytes);
             co_return 0;
+        }
         bool               done = false;
         unsigned long long pushed_bytes = 0;
         {
@@ -1344,13 +1351,21 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
             // 会再取喂入锁，持锁唤醒＝同线程重入非递归锁。
             if (http2_need_wakeup)
                 wake_ring_consumer();
-            // 成功时 pushed_bytes == 各帧载荷长之和 == 调用方预留的 got（got>0 恒成立）。
+            // 批内异常只推了部分时退还未入环差额；全部入环时差值为 0。
+            // Refund the unpushed remainder on the defensive partial-push path.
+            if (pushed_bytes < reserved_bytes)
+                get_server_app().http2_refund_send_window(this, sid, reserved_bytes - pushed_bytes);
             co_return pushed_bytes;
         }
         // 闸满：放锁再等，绝不持锁 sleep/co_await（会挡住控制帧与消费者 pop）。
         http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
+        {
+            // 一帧未推：退还本批全部预留额度。
+            // Nothing pushed: refund the whole reservation.
+            get_server_app().http2_refund_send_window(this, sid, reserved_bytes);
             co_return 0;
+        }
         const unsigned char backlog = http2_content_queue->has_size();
         wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
         // 闸已开就立即重试打满，不睡；只有闸仍关才按自适应间隔等。

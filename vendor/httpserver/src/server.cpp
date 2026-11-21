@@ -292,14 +292,12 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
             frames.push_back(h2_make_data_chunk(sid, fflags, body.data() + sent + pos, static_cast<unsigned int>(flen)));
             pos += flen;
         }
-        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid);
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid, got);
         if (pushed_bytes != got)
         {
-            // 退还「预留了但未上环」的字节；已上环帧由 abort 标死后消费者丢弃并退款。
-            // Refund only the bytes reserved but not enqueued; enqueued frames are refunded
+            // 差额已由 batch 内部退还；已上环帧由 abort 标死后消费者丢弃并退款。
+            // The remainder is refunded inside the batch; enqueued frames are refunded
             // by the consumer when it drops dead-stream DATA.
-            if (pushed_bytes < got)
-                http2_refund_send_window(sess.get(), sid, got - pushed_bytes);
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
@@ -400,14 +398,12 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
             frames.push_back(h2_make_data_chunk(sid, fflags, chunk.data() + chunk_pos + pos, static_cast<unsigned int>(flen)));
             pos += flen;
         }
-        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid);
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid, got);
         if (pushed_bytes != got)
         {
-            // 退还「预留了但未上环」的字节；已上环帧由 abort 标死后消费者丢弃并退款。
-            // Refund only the bytes reserved but not enqueued; enqueued frames are refunded
+            // 差额已由 batch 内部退还；已上环帧由 abort 标死后消费者丢弃并退款。
+            // The remainder is refunded inside the batch; enqueued frames are refunded
             // by the consumer when it drops dead-stream DATA.
-            if (pushed_bytes < got)
-                http2_refund_send_window(sess.get(), sid, got - pushed_bytes);
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
@@ -8647,8 +8643,6 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
 
 void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file)
 {
-    serverconfig &sysconfigpath = getserversysconfig();
-
     // ORM init 已前移到 run() 的 startup_orm_init()，这里不再重复初始化。
 
     server_loaclvar &static_server_var = get_server_global_var();
@@ -8670,6 +8664,15 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     restart_file.append("restart_server");
     restart_ssl_file.append("restart_ssl_config");
     orm_log_file.append("orm_debug.log");
+}
+
+// 限速参数必须在单线程启动阶段装载：listener()/listeners() 的 accept 热路径与
+// ratelimiter() 都会无锁读这些 atomic，不能留到 httpwatch 线程里再做初始化，
+// 否则早期连接会按类内默认值而不是 server.conf 的配置限速，甚至踩到未校正的
+// num2 > num1（compute_rate_from_load 的 unsigned 减法会回绕成巨大放行率）。
+void httpserver::init_rate_limit_config()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
 
     rate_limit_new_wait_num    = sysconfigpath.rate_limit_new_wait_num;
     rate_limit_accept_wait_num = sysconfigpath.rate_limit_accept_wait_num;
@@ -10723,6 +10726,12 @@ void httpserver::run(const std::string &sysconfpath)
     {
         isstop = false;
 
+        // get_client_context_obj 是"首个调用者定型"的单例（默认参数 nullptr）。
+        // 必须在任何 acceptor / worker 线程以及配置加载里的无参调用之前，用真 io_context
+        // 把它构造出来；否则先到的调用会把 ioc 永久钉成 nullptr，后续 make_strand(*ioc)
+        // 会在第一个用到出站客户端的请求上崩掉。这个顺序不能靠 sleep 兜。
+        get_client_context_obj(io_context);
+
         serverconfig &sysconfigpath = getserversysconfig();
         sysconfigpath.init_path();
         if (sysconfigpath.configfile.empty())
@@ -10754,9 +10763,8 @@ void httpserver::run(const std::string &sysconfpath)
 
 #ifdef ENABLE_REDIS
         // 用当前 server.conf 全路径推导同目录下的 redis.conf。
-        // 这里必须传自己的 io_context，不能顺手 get_client_context_obj()：那个单例由"第一个
-        // 调用的人"定型（参数默认 nullptr），在下面 9024 行带着真 ioc 构造之前先调一次，
-        // 就等于把 ioc 永久钉成 nullptr——之后 http::client 的构造（make_strand(*ioc)）就是空指针。
+        // client_context 已在 run() 顶部用真 io_context 构造，这里仍显式传自己的 io_context，
+        // 不依赖任何"首次调用者"语义。
         if (!pz::redis::load_redis_config(*io_context, sysconfigpath.configfile))
         {
             std::cerr << "[redis] redis.conf load failed or missing, redis disabled" << std::endl;
@@ -10782,6 +10790,8 @@ void httpserver::run(const std::string &sysconfpath)
         debug_log::instance().setLogfile(static_server_var.log_path);
 
         rate_limit_status = static_server_var.rate_limit_status;
+        // 限速阈值由 accept 线程和 ratelimiter 无锁读取，必须在起线程之前装载并校正完毕。
+        init_rate_limit_config();
 
 #ifdef DEBUG
         static_server_var.show_visitinfo = true;
@@ -10901,12 +10911,10 @@ void httpserver::run(const std::string &sysconfpath)
 #endif
         total_count              = 0;
         clientrunpool.io_context = io_context.get();
+        // 共享状态（限速阈值、client_context 单例）已在上面单线程阶段就绪，
+        // 这几条线程谁先跑起来都不影响正确性，无需 sleep 做顺序兜底。
         std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
-        
-        //need sleep 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::thread ratelimiter(std::bind(&httpserver::ratelimiter, this));
-        
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
 #ifdef BENCHMARK
@@ -10939,7 +10947,7 @@ void httpserver::run(const std::string &sysconfpath)
 #endif
 
         {
-            client_context &client_context = get_client_context_obj(io_context);
+            client_context &client_context = get_client_context_obj();
             client_context.run();
         }
 

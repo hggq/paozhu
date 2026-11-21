@@ -324,10 +324,18 @@ if(ENABLE_REDIS)
   list(APPEND paozhu_srcs ${pzredis_list})
 endif()
 
+if(WIN32)
+  # main_daemon.cpp 依赖 fork/waitpid/kill，Windows 走前台模式，由调用方管理生命周期。
+  set(paozhu_main_src ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_docker.cpp)
+else()
+  set(paozhu_main_src
+    $<IF:$<CONFIG:Release>,
+      ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
+      ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_dev.cpp>)
+endif()
+
 add_executable(paozhu
-  $<IF:$<CONFIG:Release>,
-    ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
-    ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_dev.cpp>
+  ${paozhu_main_src}
   ${paozhu_srcs}
 )
 

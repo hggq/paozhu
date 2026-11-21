@@ -5,7 +5,7 @@ namespace http
 //@urlpath(null,hello)
 asio::awaitable<std::string> testhello(std::shared_ptr<httppeer> peer)
 {
-    peer->output = "<p>Hello, world!</p>";
+    peer->output = "Hello, world!";
     co_return "";
 }
 

@@ -243,9 +243,12 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
     // 内联/文件 DATA 批入环：持喂入锁一次推完整批（≤CONST_HTTP2_SEND_BATCH_FRAMES 帧），
     // 锁内查 CONST_HTTP2_CONTENT_RING_FEED_GATE 闸，满则放锁等 20ms 再竞争。闸+批 ≤ 可用槽，
-    // 持锁期间别的生产者进不来，本批必然装得下。实际入环字节数 = 返回值；返回 0 表示预算耗尽
-    // 或流/连接已死（一帧未推，frames 原样保留）。返回 < got 时调用方退差额。
-    asio::awaitable<unsigned long long> http2_push_content_batch(std::vector<std::string> &frames, unsigned int sid);
+    // 持锁期间别的生产者进不来，本批必然装得下。reserved_bytes 是本批预留的窗口额度；
+    // 未入环的差额由本函数内部退款，已入环后被消费者丢弃的死流 DATA 仍由消费者退款。
+    // 返回实际入环字节数；返回 0 表示预算耗尽或流/连接已死（一帧未推，frames 原样保留）。
+    asio::awaitable<unsigned long long> http2_push_content_batch(std::vector<std::string> &frames,
+                                                                unsigned int sid,
+                                                                unsigned long long reserved_bytes);
 
   public:
     unsigned char *_cache_data  = nullptr;
