@@ -2303,7 +2303,9 @@ asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<ht
         unsigned int k = static_cast<unsigned int>(sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size());
         if (k > j)
         {
-            co_return true;
+            // 前缀比 urlpath 长，不可能匹配，跳过继续
+            // prefix longer than urlpath can never match; skip to the next one
+            continue;
         }
         if (k > 0)
         {
