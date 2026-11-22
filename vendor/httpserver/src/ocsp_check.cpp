@@ -9,11 +9,11 @@
 namespace http
 {
 
-// 取 ASN1_STRING 字节长度：3.2 起提供 get_length（size_t），旧版本回退到 length（int）
-// Byte length of an ASN1_STRING: get_length (size_t) since 3.2, fall back to length (int) on older versions
+// 取 ASN1_STRING 字节长度：4.1 起提供 get_length（size_t），旧版本回退到 length（int）
+// Byte length of an ASN1_STRING: get_length (size_t) since 4.1, fall back to length (int) on older versions
 static inline std::size_t asn1_string_length(const ASN1_STRING *s)
 {
-#if OPENSSL_VERSION_NUMBER >= 0x30200000L
+#if OPENSSL_VERSION_NUMBER >= 0x40100000L
     return ASN1_STRING_get_length(s);
 #else
     return static_cast<std::size_t>(ASN1_STRING_length(s));
