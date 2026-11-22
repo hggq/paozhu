@@ -73,15 +73,33 @@ bool db_conn::begin_commit()
         iserror     = true;
         return false;
     }
-    if (db_type == DB_TYPE::MYSQL)
+    try
     {
-        return mysql_begin_commit_impl();
+        if (db_type == DB_TYPE::MYSQL)
+        {
+            return mysql_begin_commit_impl();
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_begin_commit_impl();
+        }
+        return pg_begin_commit_impl();
     }
-    else if (db_type == DB_TYPE::SQLITE)
+    catch (const std::exception &e)
     {
-        return sqlite_begin_commit_impl();
+        // 取连接时可能抛出（如启动期数据库未就绪、建连失败）：
+        // 与各引擎 begin_commit_impl 的失败路径保持一致，只复位事务标志并返回 false，
+        // 不置 iserror，避免锁死 db_conn 导致后续重试的语句被静默跳过。
+        // Same as the engine impl failure paths: only reset the transaction flags and return
+        // false; do not latch iserror so a retried transaction can still run.
+        error_msg   = e.what();
+        islock_conn = false;
+        iscommit    = false;
+        mysql_edit_conn.reset();
+        pg_edit_conn.reset();
+        sqlite_edit_conn.reset();
+        return false;
     }
-    return pg_begin_commit_impl();
 }
 
 bool db_conn::mysql_begin_commit_impl()
@@ -305,15 +323,31 @@ asio::awaitable<bool> db_conn::async_begin_commit()
         iserror     = true;
         co_return false;
     }
-    if (db_type == DB_TYPE::MYSQL)
+    try
     {
-        co_return co_await mysql_async_begin_commit_impl();
+        if (db_type == DB_TYPE::MYSQL)
+        {
+            co_return co_await mysql_async_begin_commit_impl();
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_begin_commit_impl();
+        }
+        co_return co_await pg_async_begin_commit_impl();
     }
-    else if (db_type == DB_TYPE::SQLITE)
+    catch (const std::exception &e)
     {
-        co_return co_await sqlite_async_begin_commit_impl();
+        // 同同步版：建连抛出按普通失败处理，只复位事务标志并返回 false，不置 iserror。
+        // Same as the synchronous version: treat a connect failure as a normal failure,
+        // reset the transaction flags, do not latch iserror.
+        error_msg   = e.what();
+        islock_conn = false;
+        iscommit    = false;
+        mysql_edit_conn.reset();
+        pg_edit_conn.reset();
+        sqlite_edit_conn.reset();
+        co_return false;
     }
-    co_return co_await pg_async_begin_commit_impl();
 }
 
 asio::awaitable<bool> db_conn::mysql_async_begin_commit_impl()

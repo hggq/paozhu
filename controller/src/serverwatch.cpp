@@ -357,7 +357,8 @@ std::string write_prometheus_metrics(httpserver &app, const server_loaclvar &gva
                         (slot->sqlite_select_conn ? 1 : 0);
         }
         orm_samples.push_back({kv.first, dbtype, edit_n, select_n,
-                               pool->error_msg.empty() ? std::uint64_t{1} : std::uint64_t{0}});
+                               pool->pool_down.load(std::memory_order_relaxed) ? std::uint64_t{0}
+                                                                               : std::uint64_t{1}});
     }
     for (auto &sample : orm_samples)
     {

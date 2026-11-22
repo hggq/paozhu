@@ -8646,18 +8646,24 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
         return;
     }
 
-    // BENCHMARK 档 httpwatch 不把 error_loglist 落盘，错误行直接打 stderr，启动即可见。
+    // BENCHMARK 档 httpwatch 不把 error_loglist 落盘，错误与警告行直接打 stderr，启动即可见。
+    // In BENCHMARK builds httpwatch never flushes error_loglist, so echo both error and warning lines to stderr.
     {
         size_t pos = 0;
-        while ((pos = orm_log_file.find("[ORM-ERROR]", pos)) != std::string::npos)
+        while (pos < orm_log_file.size())
         {
             size_t eol = orm_log_file.find('\n', pos);
             if (eol == std::string::npos)
             {
                 eol = orm_log_file.size();
             }
-            fprintf(stderr, "%.*s\n", static_cast<int>(eol - pos), orm_log_file.data() + pos);
-            pos = eol;
+            std::string_view line(orm_log_file.data() + pos, eol - pos);
+            if (line.find("[ORM-ERROR]") != std::string_view::npos ||
+                line.find("[ORM-WARN]") != std::string_view::npos)
+            {
+                fprintf(stderr, "%.*s\n", static_cast<int>(line.size()), line.data());
+            }
+            pos = eol + 1;
         }
     }
     {

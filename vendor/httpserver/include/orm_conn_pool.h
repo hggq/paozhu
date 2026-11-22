@@ -252,9 +252,18 @@ class orm_conn_pool
     // max_pool 是全局预算，init 时按槽数切分成每槽配额（见 slot_max_of）；
     // min_pool 是每槽独立预建数，不切分（见 slot_min_of）。槽只读，不持有副本。
     std::array<orm_conn_t, 2> conf_data;
-    // 最近一次启动预建失败的原因。预建失败不再注销 tag：池保留下来，
+    // 最近一次启动预建失败的原因，仅用于日志。预建失败不再注销 tag：池保留下来，
     // 后续 get_*_conn 会按 conf_data 懒建连接，数据库起来后自动恢复。
     std::string error_msg;
+    // 建连健康标记：最近一次建连尝试失败即 true，成功即 false。启动预建失败与运行期
+    // 任何一次 add_*_connect 建不出连接（conn_failed()）都置 true，建成功的那条分支复位。
+    // 语义是被动的：库里还躺着可用连接、数据库刚停时仍报 up；池被抽干后
+    // 第一条建不出连接的请求才把它翻成 down。
+    // 健康指标 paozhu_orm_pool_up 读它，不读上面的 error_msg，避免跨线程读写字符串。
+    // Connection health flag: set by every failed connect attempt (startup prebuild and
+    // on-demand lazy connect), cleared by a successful one. The health metric reads this flag
+    // instead of the error_msg string.
+    std::atomic<bool> pool_down{false};
     // 兼容成员：槽 0 的 ioc 裸指针。httpcli 代码生成器与旧调用点直接写它，
     // 新代码一律用 slots[s]->io_context。
     asio::io_context *io_context = nullptr;
@@ -266,6 +275,9 @@ class orm_conn_pool
     unsigned int pick_slot(unsigned int role);
     // 每槽上限：max_pool 未配置（0）按 1；link_type 0=edit，1=select。
     unsigned int max_pool_of(unsigned int link_type) const;
+
+    // ---- 建连失败统一出口（置 pool_down 后抛出，文本与逐点 throw 完全一致）----
+    [[noreturn]] void conn_failed(const std::string &op, const std::string &reason);
 
     // ---- 槽内建连（锁外调用，成功后把该角色的名额绑到这条连接上）----
     std::shared_ptr<mysql_conn_base> add_mysql_edit_connect(orm_slot &slot);

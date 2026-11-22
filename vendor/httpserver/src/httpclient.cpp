@@ -13,6 +13,7 @@
 #include <sstream>
 #include <ctime>
 #include <array>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <random>
@@ -596,7 +597,7 @@ asio::awaitable<void> client::async_send_data()
 
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
-        unsigned int n;
+        std::int64_t n;
         if (requesttype > 0)
         {
             for (auto &p : senddata)
@@ -611,7 +612,7 @@ asio::awaitable<void> client::async_send_data()
                     break;
                 case 1:
                 {
-                    unsigned int readnum = 0;
+                    std::int64_t readnum = 0;
                     co_await asio::async_write(*sock, asio::buffer(p.tempfile), asio::use_awaitable);
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -672,7 +673,7 @@ asio::awaitable<void> client::async_send_data()
                 break;
                 case 2:
                 {
-                    unsigned int readnum = 0;
+                    std::int64_t readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -735,15 +736,16 @@ asio::awaitable<void> client::async_send_data()
         while (true)
         {
             memset(read_data, 0x00, 2048);
-            //BUG Not considering the file state
-            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
+            std::size_t read_len = 2048;
+            if (page.file.size > page.content.size())
             {
-                n = co_await sock->async_read_some(asio::buffer(read_data, page.file.size - page.content.size()), asio::use_awaitable);
+                unsigned long long remain = page.file.size - page.content.size();
+                if (remain < 2048)
+                {
+                    read_len = static_cast<std::size_t>(remain);
+                }
             }
-            else
-            {
-                n = co_await sock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
-            }
+            n = co_await sock->async_read_some(asio::buffer(read_data, read_len), asio::use_awaitable);
             read_data[2048] = 0x00;
             if (n == 0)
             {
@@ -895,7 +897,7 @@ client &client::send_data()
 
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
-        unsigned int n;
+        std::int64_t n;
         if (requesttype > 0)
         {
             for (auto &p : senddata)
@@ -906,7 +908,7 @@ client &client::send_data()
                 case 3: sock->write_some(asio::buffer(p.tempfile)); break;
                 case 1:
                 {
-                    unsigned int readnum = 0;
+                    std::int64_t readnum = 0;
                     sock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
@@ -968,7 +970,7 @@ client &client::send_data()
                 break;
                 case 2:
                 {
-                    unsigned int readnum = 0;
+                    std::int64_t readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -1030,18 +1032,32 @@ client &client::send_data()
         while (true)
         {
             memset(read_data, 0x00, 2048);
-            //BUG Not considering the file state
-            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
+            std::size_t read_len = 2048;
+            if (page.file.size > page.content.size())
             {
-                n = sock->read_some(asio::buffer(read_data, page.file.size - page.content.size()), ec);
+                unsigned long long remain = page.file.size - page.content.size();
+                if (remain < 2048)
+                {
+                    read_len = static_cast<std::size_t>(remain);
+                }
             }
-            else
-            {
-                n = sock->read_some(asio::buffer(read_data, 2048), ec);
-            }
+            n = sock->read_some(asio::buffer(read_data, read_len), ec);
             read_data[2048] = 0x00;
-            if (n == 0)
+            if (ec || n == 0)
             {
+                if (iswait_exit)
+                {
+                    page.code = 0;
+                    iserror   = 2;
+                    error_msg = "time out";
+                }
+                else if (ec && ec != asio::error::eof)
+                {
+                    page.code = 0;
+                    iserror   = 2;
+                    error_msg = ec.message();
+                    close_connect();
+                }
                 break;
             }
             readoffset = 0;
@@ -1101,7 +1117,14 @@ bool client::init_https_sock()
     //asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.ioc, ssl_context);
     ssl_context->set_default_verify_paths();
     asio::ip::tcp::resolver resolver(strand_);
-    auto endpoints = resolver.resolve(host.c_str(), port);
+    asio::error_code dns_ec;
+    auto endpoints = resolver.resolve(host, port, dns_ec);
+    if (dns_ec)
+    {
+        error_msg = host + " resolve error! " + dns_ec.message();
+        DEBUG_LOG("%s", error_msg.c_str());
+        return false;
+    }
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
 
@@ -1110,6 +1133,7 @@ bool client::init_https_sock()
     {
         error_msg = host + " connect error! ";
         DEBUG_LOG("%s", error_msg.c_str());
+        close_connect();
         return false;
     }
 
@@ -1127,6 +1151,7 @@ bool client::init_https_sock()
         {
             error_msg = use_certificate_file + " use_certificate_file error! ";
             DEBUG_LOG("%s", error_msg.c_str());
+            close_connect();
             return false;
         }
     }
@@ -1138,6 +1163,7 @@ bool client::init_https_sock()
         {
             error_msg = use_private_key_file + " use_private_key_file error! ";
             DEBUG_LOG("%s", error_msg.c_str());
+            close_connect();
             return false;
         }
     }
@@ -1148,6 +1174,7 @@ bool client::init_https_sock()
     {
         error_msg = host + " handshake error! ";
         DEBUG_LOG("%s", error_msg.c_str());
+        close_connect();
         return false;
     }
     return true;
@@ -1286,7 +1313,7 @@ asio::awaitable<void> client::async_send_ssl_data()
             }
         }
 
-        int n;
+        std::int64_t n;
 
         n = co_await asio::async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
 
@@ -1307,7 +1334,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                     break;
                 case 1:
                 {
-                    int readnum = 0;
+                    std::int64_t readnum = 0;
                     co_await asio::async_write(*sslsock, asio::buffer(p.tempfile), asio::use_awaitable);
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -1368,7 +1395,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                 break;
                 case 2:
                 {
-                    int readnum = 0;
+                    std::int64_t readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -1429,15 +1456,16 @@ asio::awaitable<void> client::async_send_ssl_data()
         while (true)
         {
             memset(read_data, 0x00, 2048);
-            //BUG Not considering the file state
-            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
+            std::size_t read_len = 2048;
+            if (page.file.size > page.content.size())
             {
-                n = co_await sslsock->async_read_some(asio::buffer(read_data, page.file.size - page.content.size()), asio::use_awaitable);
+                unsigned long long remain = page.file.size - page.content.size();
+                if (remain < 2048)
+                {
+                    read_len = static_cast<std::size_t>(remain);
+                }
             }
-            else
-            {
-                n = co_await sslsock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
-            }
+            n = co_await sslsock->async_read_some(asio::buffer(read_data, read_len), asio::use_awaitable);
             read_data[2048] = 0x00;
             if (n == 0)
             {
@@ -1590,7 +1618,7 @@ client &client::send_ssl_data()
             }
         }
 
-        int n;
+        std::int64_t n;
         n = sslsock->write_some(asio::buffer(request));
 
         timeout_total = timeid() + timeout_total;
@@ -1606,7 +1634,7 @@ client &client::send_ssl_data()
                 case 3: sslsock->write_some(asio::buffer(p.tempfile)); break;
                 case 1:
                 {
-                    int readnum = 0;
+                    std::int64_t readnum = 0;
                     sslsock->write_some(asio::buffer(p.tempfile));
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
@@ -1668,7 +1696,7 @@ client &client::send_ssl_data()
                 break;
                 case 2:
                 {
-                    int readnum = 0;
+                    std::int64_t readnum = 0;
                     // FILE *fp = fopen(p.filename.c_str(), "rb");
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
@@ -1729,18 +1757,32 @@ client &client::send_ssl_data()
         while (true)
         {
             memset(read_data, 0x00, 2048);
-            //BUG Not considering the file state
-            if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
+            std::size_t read_len = 2048;
+            if (page.file.size > page.content.size())
             {
-                n = sslsock->read_some(asio::buffer(read_data, page.file.size - page.content.size()), ec);
+                unsigned long long remain = page.file.size - page.content.size();
+                if (remain < 2048)
+                {
+                    read_len = static_cast<std::size_t>(remain);
+                }
             }
-            else
-            {
-                n = sslsock->read_some(asio::buffer(read_data, 2048), ec);
-            }
+            n = sslsock->read_some(asio::buffer(read_data, read_len), ec);
             read_data[2048] = 0x00;
-            if (n == 0)
+            if (ec || n == 0)
             {
+                if (iswait_exit)
+                {
+                    page.code = 0;
+                    iserror   = 2;
+                    error_msg = "time out";
+                }
+                else if (ec && ec != asio::error::eof)
+                {
+                    page.code = 0;
+                    iserror   = 2;
+                    error_msg = ec.message();
+                    close_connect();
+                }
                 break;
             }
             readoffset = 0;

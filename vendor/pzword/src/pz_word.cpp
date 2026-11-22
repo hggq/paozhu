@@ -8,6 +8,7 @@
 #include <map>
 #include <fstream>
 #include <algorithm>
+#include <limits>
 #include "pzzip.h"
 #include "pz_word.h"
 
@@ -758,7 +759,17 @@ void word::parse_table(const std::string &content, size_t begin, size_t end, WOR
                 {
                     std::string wval = get_tag_attr(content, gc, "w:w");
                     unsigned int w = 0;
-                    for(char c : wval) if(c >= '0' && c <= '9') w = w * 10 + (c - '0');
+                    for(char c : wval)
+                    {
+                        if(c < '0' || c > '9') continue;
+                        unsigned int digit = c - '0';
+                        if(w > (std::numeric_limits<unsigned int>::max() - digit) / 10)
+                        {
+                            w = std::numeric_limits<unsigned int>::max();
+                            break;
+                        }
+                        w = w * 10 + digit;
+                    }
                     table.col_widths.push_back(w);
                 }
             }
@@ -2715,7 +2726,16 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                             while(wpos < cs.size() && cs[wpos] == ' ') wpos++;
                             unsigned int v = 0;
                             while(wpos < cs.size() && cs[wpos] >= '0' && cs[wpos] <= '9')
-                                { v = v * 10 + (cs[wpos] - '0'); wpos++; }
+                            {
+                                unsigned int digit = cs[wpos] - '0';
+                                if(v > (std::numeric_limits<unsigned int>::max() - digit) / 10)
+                                {
+                                    v = std::numeric_limits<unsigned int>::max();
+                                    break;
+                                }
+                                v = v * 10 + digit;
+                                wpos++;
+                            }
                             w_px = v;
                         }
                     }
@@ -2725,7 +2745,8 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                         std::string wa = get_html_attr(col_attrs, "width");
                         w_px = parse_css_px(wa);
                     }
-                    table.col_widths.push_back(w_px > 0 ? w_px * 15 : 0);
+                    constexpr unsigned int max_w = std::numeric_limits<unsigned int>::max();
+                    table.col_widths.push_back(w_px > 0 ? std::min(w_px, max_w / 15) * 15 : 0);
                     cp = col_gt + 1;
                 }
             }

@@ -640,11 +640,12 @@ std::string init_orm_conn_pool(
         }
 
         // 每轮 init 每个 tag 清一次 error_msg，避免跨轮累积；edit/select 共用一个池，
-        // 只在首条 item 清，否则后一条的成功会抹掉前一条的失败（健康指标读它）
+        // 只在首条 item 清，否则后一条的成功会抹掉前一条的失败（error_msg 只留日志）
         if (std::find(cleared_tags.begin(), cleared_tags.end(), item.tag) == cleared_tags.end())
         {
             cleared_tags.push_back(item.tag);
             conn->error_msg.clear();
+            conn->pool_down.store(false, std::memory_order_relaxed);
         }
 
         // ioc 集合变了（或首次建池）：旧连接必须先关，再按 iocs 下标重建槽。
@@ -739,12 +740,13 @@ std::string init_orm_conn_pool(
         }
         catch (const std::exception &e)
         {
-            // 建连对象构造之类的意外抛出：原因并入 error_msg，随下方 fail-fast 一起带出
+            // 建连对象构造之类的意外抛出：原因并入 error_msg，下面统一打警告
             error_log.append(e.what());
             conn->error_msg.append(" unexpected: ");
             conn->error_msg.append(e.what());
+            conn->pool_down.store(true, std::memory_order_relaxed);
         }
-        // expected=0（min_pool=0 不初始化）不是失败，不写失败文本，否则健康指标误报
+        // expected=0（min_pool=0 不初始化）不是失败，不写失败文本
         if (n == 0 && expected > 0)
         {
             conn->error_msg.append(" int_pool.init_");
@@ -758,6 +760,7 @@ std::string init_orm_conn_pool(
         // "conn_pool not found" 上。min_pool=0 时 expected=0，本来就不预建。
         if (n < expected)
         {
+            conn->pool_down.store(true, std::memory_order_relaxed);
             std::string warn_msg = "[ORM-WARN] tag=" + item.tag +
                                    " role=" + (item.link_type == 0 ? "edit" : "select") +
                                    " prebuild=" + std::to_string(n) + "/" + std::to_string(expected) +
@@ -883,6 +886,15 @@ std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int 
 
 // ======================== MySQL connections ========================
 
+// 建连失败的唯一出口：先把池标成 down，再按原文本抛出，供健康指标反映运行期断库。
+// 门闩超时（配额打满）和归还时丢弃死连接都不走这里——那是拥塞或单条连接故障，
+// 不代表数据库不可达。
+void orm_conn_pool::conn_failed(const std::string &op, const std::string &reason)
+{
+    pool_down.store(true, std::memory_order_relaxed);
+    throw std::runtime_error(" " + op + " failed for tag " + reason);
+}
+
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_edit_connect(orm_slot &slot)
 {
     auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::MYSQL);
@@ -896,9 +908,10 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_mysql_edit_connect", conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_edit_connect()
@@ -921,9 +934,10 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect(orm_slot 
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_mysql_edit_connect", conn->error_msg);
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect()
@@ -1022,9 +1036,10 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect(orm_slo
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_mysql_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_mysql_select_connect", conn->error_msg);
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect()
@@ -1046,9 +1061,10 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_mysql_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_mysql_select_connect", conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_select_connect()
@@ -1447,9 +1463,10 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_pg_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_pg_edit_connect", conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_connect()
@@ -1472,9 +1489,10 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect(orm_slot &slot)
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_pg_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_pg_edit_connect", conn->error_msg);
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect()
@@ -1569,9 +1587,10 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect(orm_slot &slo
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_pg_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_pg_select_connect", conn->error_msg);
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect()
@@ -1593,9 +1612,10 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
         conn->conn_link->slot_index = slot.index;
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_pg_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_pg_select_connect", conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_select_connect()
@@ -1993,9 +2013,10 @@ asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqli
         {
             conn->isdebug = true;
         }
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_sqlite_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_sqlite_edit_connect", conn->error_msg);
 }
 
 std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_edit_connect()
@@ -2010,9 +2031,10 @@ std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_edit_connect()
         {
             conn->isdebug = true;
         }
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_sqlite_edit_connect failed for tag " + conn->error_msg);
+    conn_failed("add_sqlite_edit_connect", conn->error_msg);
 }
 
 void orm_conn_pool::back_sqlite_edit_conn(std::shared_ptr<sqlite_conn_base> conn)
@@ -2068,9 +2090,10 @@ std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_select_connect()
         {
             conn->isdebug = true;
         }
+        pool_down.store(false, std::memory_order_relaxed);
         return conn;
     }
-    throw std::runtime_error(" add_sqlite_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_sqlite_select_connect", conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqlite_select_connect()
@@ -2085,9 +2108,10 @@ asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqli
         {
             conn->isdebug = true;
         }
+        pool_down.store(false, std::memory_order_relaxed);
         co_return conn;
     }
-    throw std::runtime_error(" add_sqlite_select_connect failed for tag " + conn->error_msg);
+    conn_failed("add_sqlite_select_connect", conn->error_msg);
 }
 
 void orm_conn_pool::back_sqlite_select_conn(std::shared_ptr<sqlite_conn_base> conn)
