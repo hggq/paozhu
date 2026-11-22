@@ -293,10 +293,21 @@ int main(int argc, char *argv[])
         {
             if (!g_worker_exited)
             {
+                // 对端已退出时 send 只会返回 -1/EPIPE，不再触发 SIGPIPE 杀死 supervisor；
+                // 仅抑制该 fd 的信号，不改全局处置、不影响 worker 与业务代码。
                 const char stop_byte = 1;
-                while (::write(stop_sv[0], &stop_byte, 1) < 0 && errno == EINTR)
+#ifdef MSG_NOSIGNAL
+                while (::send(stop_sv[0], &stop_byte, 1, MSG_NOSIGNAL) < 0 && errno == EINTR)
                 {
                 }
+#else
+                // macOS/Darwin 无 MSG_NOSIGNAL，用套接字级 SO_NOSIGPIPE 替代。
+                int nosig = 1;
+                ::setsockopt(stop_sv[0], SOL_SOCKET, SO_NOSIGPIPE, &nosig, sizeof(nosig));
+                while (::send(stop_sv[0], &stop_byte, 1, 0) < 0 && errno == EINTR)
+                {
+                }
+#endif
                 // 屏蔽 SIGCHLD 后自己回收，避免 stop_worker 与 handler 抢同一个 pid。
                 sigemptyset(&block_chld);
                 sigaddset(&block_chld, SIGCHLD);
