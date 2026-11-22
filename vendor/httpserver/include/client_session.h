@@ -21,6 +21,7 @@
 #include <queue>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <thread>
 #include <memory>
 #include <string_view>
@@ -217,8 +218,20 @@ class client_session : public std::enable_shared_from_this<client_session>
     // http2_send_data_payload 注册、退出注销。消费者清死流标记时跳过仍有在途生产者的流——否则停等中的生产者醒来
     // 可能见不到标记，往已重置的流上重新预留窗口并推帧。
     std::set<unsigned int> http2_content_producers;
+    // 本 sid 在内容环中排队待写出的帧计数：入环 ++、出环（含死流丢弃）-- 归零 erase。
+    // 与 dead_streams / content_producers 同锁，精确判定"该流在消费侧是否还有引用"。
+    // 随帧出环归零 erase，集合自然有界 = 环容量上限。
+    // Frames-of-sid still sitting in the content ring (pending write).
+    // Incremented on push success, decremented on dequeue (incl. dead-stream drop).
+    // Same mutex as dead_streams/content_producers. Natural upper bound = ring capacity.
+    std::unordered_map<unsigned int, unsigned int> http2_inflight_frames;
     void http2_mark_stream_dead(unsigned int sid);
     bool http2_stream_is_dead(unsigned int sid);
+    // 精确回收死流标记：producers 无登记 && inflight_frames 归零 时安全 erase。
+    // 调用方保证已持有 http2_dead_streams_mutex（与 inflight_frames/producers 同锁）。
+    // Precise reclamation entry: erase dead_stream[sid] iff no in-flight producer AND
+    // no pending frame in content ring. Caller must hold http2_dead_streams_mutex.
+    void http2_try_reap_dead_mark_locked(unsigned int sid);
     // 流式发送失败的统一收尾（只在 strand 上调）：退额度、标死流、清窗口条目，
     // rst=true 再投 RST(CANCEL)（对端已 RST/连接将关时传 false，不对 closed 流发 RST）。
     // sync 生产者经 asio::post(strand_) 投递到这里，不跨线程碰 strand 专属的等待者容器。

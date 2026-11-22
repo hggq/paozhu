@@ -169,7 +169,7 @@ class httpserver
 #ifdef BENCHMARK
     static constexpr std::size_t PEER_POOL_MAX = 4096;
 #else
-    static constexpr std::size_t PEER_POOL_MAX = 512;
+    static constexpr std::size_t PEER_POOL_MAX = 1024;
 #endif
     static std::mutex peer_pool_mutex;
     // 存 shared_ptr 而不是 unique_ptr：HTTP/2 本连接池流转的是 shared_ptr，

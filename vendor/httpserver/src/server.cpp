@@ -3152,6 +3152,10 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     std::vector<asio::const_buffer> gather_bufs;
                     gather_bufs.reserve(slots_try);
                     unsigned char slots_consumed = 0;
+                    // 本批前移槽各自的 sid（死流 DATA 被跳过也占槽，同样要减 inflight）。
+                    // Sids of every slot we advance (dead-stream DATA also counts —
+                    // it occupies a ring slot regardless of whether we write it).
+                    unsigned int advance_sids[GATHER_MAX_SLOTS];
 
                     for (unsigned char i = 0; i < slots_try; i++)
                     {
@@ -3167,6 +3171,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                 (static_cast<unsigned int>(static_cast<unsigned char>(slot[6])) << 16) |
                                 (static_cast<unsigned int>(static_cast<unsigned char>(slot[7])) << 8) |
                                 static_cast<unsigned int>(static_cast<unsigned char>(slot[8]));
+                            advance_sids[i] = fsid;
                             if (peer_session->http2_stream_is_dead(fsid))
                             {
                                 const unsigned int flen =
@@ -3177,6 +3182,16 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                     get_server_app().http2_refund_send_window(peer_session.get(), fsid, flen);
                                 continue;  // skip, but still occupies a head_ slot
                             }
+                        }
+                        else
+                        {
+                            // HEADERS/CONTINUATION（ftype != 0）或 DATA（ftype == 0 且非死流）
+                            // 直接取 sid：都是有 payload 的帧（至少 9 字节头）。
+                            advance_sids[i] =
+                                (static_cast<unsigned int>(static_cast<unsigned char>(slot[5])) << 24) |
+                                (static_cast<unsigned int>(static_cast<unsigned char>(slot[6])) << 16) |
+                                (static_cast<unsigned int>(static_cast<unsigned char>(slot[7])) << 8) |
+                                static_cast<unsigned int>(static_cast<unsigned char>(slot[8]));
                         }
                         gather_bufs.emplace_back(slot.data(), slot.size());
                     }
@@ -3208,6 +3223,32 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         // 积压字节饱和减：只有 post_write 入口累加，http2 直 push 恒 0 自然跳过
                         if (q->bytes.load(std::memory_order_relaxed) >= sent_bytes)
                             q->bytes.fetch_sub(sent_bytes, std::memory_order_relaxed);
+                    }
+
+                    // inflight-- 必须先于 head_ 前移，且持 dead_streams_mutex：
+                    // 生产者的 inflight++ 也在这把锁内，串行化避免"head_ 已前移、inflight 还没减"
+                    // 窗口里生产者 push 同 sid 新帧被减错。reap 也在同锁内做。
+                    // inflight decrement must precede head_ advancement and must hold
+                    // dead_streams_mutex. Producer's inflight increment also takes this lock,
+                    // so updates are serialized and no off-by-one race exists around the
+                    // head_ release-store. reap happens in the same lock scope.
+                    {
+                        std::lock_guard<std::mutex> dl(peer_session->http2_dead_streams_mutex);
+                        for (unsigned char i = 0; i < advance_slots; ++i)
+                        {
+                            const unsigned int sid = advance_sids[i];
+                            auto it = peer_session->http2_inflight_frames.find(sid);
+                            if (it != peer_session->http2_inflight_frames.end())
+                            {
+                                if (--it->second == 0)
+                                {
+                                    peer_session->http2_inflight_frames.erase(it);
+                                    // 本 sid inflight 归零：若此刻也无在途生产者 → reap。
+                                    // inflight dropped to zero — try reap if no in-flight producer.
+                                    peer_session->http2_try_reap_dead_mark_locked(sid);
+                                }
+                            }
+                        }
                     }
 
                     // 写完成（或本批全是死流、无需写）后才释放这些槽给生产者复用。
@@ -3246,6 +3287,17 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         {
                             get_server_app().http2_refund_send_window(peer_session.get(), fsid, flen);
                         }
+                        // inflight-- + reap（同 gather 路径的锁序与时机）。
+                        std::lock_guard<std::mutex> dl(peer_session->http2_dead_streams_mutex);
+                        auto it = peer_session->http2_inflight_frames.find(fsid);
+                        if (it != peer_session->http2_inflight_frames.end())
+                        {
+                            if (--it->second == 0)
+                            {
+                                peer_session->http2_inflight_frames.erase(it);
+                                peer_session->http2_try_reap_dead_mark_locked(fsid);
+                            }
+                        }
                         q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
                         if (peer_session->has_pending_window_update())
                         {
@@ -3274,6 +3326,25 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 if (q->bytes.load(std::memory_order_relaxed) >= sent_bytes)
                 {
                     q->bytes.fetch_sub(sent_bytes, std::memory_order_relaxed);
+                }
+                // 内容帧：inflight-- + reap（同 gather/丢 DATA 的锁序与时机）。
+                if (is_content && slot.size() >= 9)
+                {
+                    const unsigned int fsid =
+                        (static_cast<unsigned int>(static_cast<unsigned char>(slot[5])) << 24) |
+                        (static_cast<unsigned int>(static_cast<unsigned char>(slot[6])) << 16) |
+                        (static_cast<unsigned int>(static_cast<unsigned char>(slot[7])) << 8) |
+                        static_cast<unsigned int>(static_cast<unsigned char>(slot[8]));
+                    std::lock_guard<std::mutex> dl(peer_session->http2_dead_streams_mutex);
+                    auto it = peer_session->http2_inflight_frames.find(fsid);
+                    if (it != peer_session->http2_inflight_frames.end())
+                    {
+                        if (--it->second == 0)
+                        {
+                            peer_session->http2_inflight_frames.erase(it);
+                            peer_session->http2_try_reap_dead_mark_locked(fsid);
+                        }
+                    }
                 }
                 q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
                 // 本槽已消费完，清掉兜底记录，防 catch 按陈旧记录回退 head_。

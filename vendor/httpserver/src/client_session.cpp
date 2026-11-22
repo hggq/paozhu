@@ -1164,6 +1164,28 @@ bool client_session::http2_stream_is_dead(unsigned int sid)
     return http2_dead_streams.find(sid) != http2_dead_streams.end();
 }
 
+// 精确回收：producers 无登记 && inflight_frames 归零 → erase。
+// 调用方已持 http2_dead_streams_mutex（这一把锁同时保护 dead_streams / producers / inflight_frames）。
+// Precise reclamation: erase iff no in-flight producer AND no pending content-ring frame.
+// Caller must already hold http2_dead_streams_mutex (guards all three maps).
+void client_session::http2_try_reap_dead_mark_locked(unsigned int sid)
+{
+    if (http2_dead_streams.find(sid) == http2_dead_streams.end())
+        return;
+    if (http2_content_producers.find(sid) != http2_content_producers.end())
+        return;
+    auto it = http2_inflight_frames.find(sid);
+    if (it != http2_inflight_frames.end() && it->second > 0)
+        return;
+    // inflight_frames 计数归零就顺手 erase 条目，保持 map 有界（容量上限 = 环槽数）。
+    // 但如果计数本来就没有记录（inflight_frames 里没这条目），也满足"无待写帧"语义，
+    // 一样可以 reap——这是为了覆盖"从未推过帧却被撤流"的边界（HEADERS 成功入环后消费者
+    // 还没写出就撤流）。
+    if (it != http2_inflight_frames.end())
+        http2_inflight_frames.erase(it);
+    http2_dead_streams.erase(sid);
+}
+
 void client_session::http2_content_stream_failed(unsigned int sid, unsigned long long refund_bytes, bool rst)
 {
     if (refund_bytes > 0)
@@ -1218,8 +1240,14 @@ struct h2_content_producer_guard
     }
     ~h2_content_producer_guard()
     {
+        // 先注销生产者登记，再尝试精确回收。如果此刻 inflight_frames 也归零，
+        // 死流标记就能在"最后引用者退出"时即刻被 erase，不必等整环排空。
+        // First drop producer registration, then attempt precise reclamation.
+        // When inflight_frames is also zero, the dead-stream mark is erased right
+        // here — at the "last referrer gone" moment, not waiting for whole ring drain.
         std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
         sess->http2_content_producers.erase(sid);
+        sess->http2_try_reap_dead_mark_locked(sid);
     }
 };
 
@@ -1238,6 +1266,16 @@ bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned i
         if (http2_stream_is_dead(sid))
             return false;
         pushed = http2_content_queue->push(std::move(frame));
+        if (pushed)
+        {
+            // push 成功即入环；inflight_frames 必须与 push 同临界区，否则消费者
+            // 刚好在 push 发布与 inflight++ 之间 dequeue 会让计数错位。
+            // inflight increment must be in the same critical section as push:
+            // otherwise a consumer dequeue between tail_ release and our ++ would
+            // cause off-by-one in the counter.
+            std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
+            ++http2_inflight_frames[sid];
+        }
     }
     if (pushed)
     {
@@ -1270,6 +1308,13 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
             if (http2_stream_is_dead(sid))
                 co_return false;
             pushed = http2_content_queue->push(std::move(frame));
+            if (pushed)
+            {
+                // push 成功即入环；inflight_frames 必须与 push 同临界区（同 sync 版）。
+                // inflight increment in the same critical section as push (aligned with sync version).
+                std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
+                ++http2_inflight_frames[sid];
+            }
         }
         if (pushed)
         {
@@ -1318,6 +1363,7 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
         }
         bool               done = false;
         unsigned long long pushed_bytes = 0;
+        unsigned char      pushed_count = 0;
         {
             std::unique_lock<std::mutex> feed(http2_feed_mutex);
             const unsigned char backlog   = http2_content_queue->has_size();
@@ -1342,6 +1388,15 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
                         break;
                     }
                     pushed_bytes += flen;
+                    ++pushed_count;
+                }
+                // 批次属同一 sid，整批 push 完后一次性加 inflight，避免每帧拿一次锁。
+                // All frames share one sid — bump inflight_frames once for the whole batch
+                // to avoid taking the lock per frame.
+                if (pushed_count > 0)
+                {
+                    std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
+                    http2_inflight_frames[sid] += pushed_count;
                 }
             }
         }
