@@ -3417,9 +3417,7 @@ bool pg_conn_base::try_reconnect()
 {
     if (!has_conn_config_)
         return false;
-    if (isclose)
-        return false;
-
+    // 写失败路径已置 isclose=true；connect() 会重置它，不能用它拒绝重连。
     hard_close();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -3431,9 +3429,7 @@ asio::awaitable<bool> pg_conn_base::async_try_reconnect()
 {
     if (!has_conn_config_)
         co_return false;
-    if (isclose)
-        co_return false;
-
+    // 同同步版：isclose 是断线的结果，不是拒绝重连的理由。
     hard_close();
 
     asio::steady_timer t(*conn_link->io_ctx, std::chrono::milliseconds(50));

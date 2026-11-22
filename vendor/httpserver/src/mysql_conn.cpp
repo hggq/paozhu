@@ -8366,8 +8366,8 @@ bool mysql_conn_base::try_reconnect()
 {
     if (!has_conn_config_)
         return false;
-    if (isclose)
-        return false;
+    // 不能用 isclose 拒绝重连：write_sql 失败时正是先置 isclose=true 再走到这里，
+    // 拦掉就永远无法恢复。connect() 会重置 isclose，hard_close() 负责收尸。
     // 事务在途不能重连：旧会话随断线被服务端回滚，新会话是 autocommit，
     // 重发即提交。拒绝时同样 hard_close()，让归还时被池丢弃、下次借出即新会话。
     if (in_transaction_.load())
@@ -8392,8 +8392,7 @@ asio::awaitable<bool> mysql_conn_base::async_try_reconnect()
     // 缓存在下面的 hard_close() 内部统一清理，不重复清
     if (!has_conn_config_)
         co_return false;
-    if (isclose)
-        co_return false;
+    // 同同步版：写失败会先置 isclose=true，不能据此拒绝重连。
     // 事务在途不能重连：同 try_reconnect()，旧会话已回滚、新会话是 autocommit
     if (in_transaction_.load())
     {

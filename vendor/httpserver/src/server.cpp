@@ -10915,38 +10915,15 @@ void httpserver::run(const std::string &sysconfpath)
         // 这几条线程谁先跑起来都不影响正确性，无需 sleep 做顺序兜底。
         std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
         std::thread ratelimiter(std::bind(&httpserver::ratelimiter, this));
-        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
-        std::thread https(std::bind(&httpserver::listeners, this));
-        std::thread http(std::bind(&httpserver::listener, this));
-#ifdef BENCHMARK
-        // 压测构建：HTTP/HTTPS 各两条 accept 线程，各自用 SO_REUSEPORT 绑同一端口，由内核分摊新连接。
-        // Benchmark builds run two accept threads per port; each acceptor binds with SO_REUSEPORT
-        // and the kernel spreads incoming connections across them.
-        std::thread https_second(std::bind(&httpserver::listeners, this));
-        std::thread http_second(std::bind(&httpserver::listener, this));
-#endif
-
-// set thread priority — 设置线程优先级
-// set thread priority.
-#ifdef _WIN32
-        set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
-#endif
-#else
-        set_thread_priority(https, 90);
-        set_thread_priority(http, 90);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, 90);
-        set_thread_priority(http_second, 90);
-#endif
-#ifndef BENCHMARK
+        // 优先级设置提前到 sleep 之前：httpwatch 从启动起就跑在高优先级，
+        // 而不是等这 100ms 过去才提优先级（那段窗口内它按默认优先级运行）。
+        // macOS 由各线程入口函数里的 QoS 负责，set_thread_priority 在该平台是空操作。
+#if !defined(_WIN32) && !defined(BENCHMARK)
         set_thread_priority(httpwatch, 50);
 #endif
-#endif
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         {
             client_context &client_context = get_client_context_obj();
@@ -10957,8 +10934,6 @@ void httpserver::run(const std::string &sysconfpath)
         {
             websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
         }
-
-        
 
 #ifdef ENABLE_REDIS_CLIENT
         http::_initredissubpubregto(pz::redis::get_redis_subpub_reg());
@@ -11038,6 +11013,34 @@ void httpserver::run(const std::string &sysconfpath)
                 this->mqtt_clients.push_back(client);
             }
         }
+#endif
+
+        std::thread https(std::bind(&httpserver::listeners, this));
+        std::thread http(std::bind(&httpserver::listener, this));
+#ifdef BENCHMARK
+        // 压测构建：HTTP/HTTPS 各两条 accept 线程，各自用 SO_REUSEPORT 绑同一端口，由内核分摊新连接。
+        // Benchmark builds run two accept threads per port; each acceptor binds with SO_REUSEPORT
+        // and the kernel spreads incoming connections across them.
+        std::thread https_second(std::bind(&httpserver::listeners, this));
+        std::thread http_second(std::bind(&httpserver::listener, this));
+#endif
+
+// set thread priority — 设置线程优先级
+// set thread priority.
+#ifdef _WIN32
+        set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
+#ifdef BENCHMARK
+        set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
+#endif
+#else
+        set_thread_priority(https, 90);
+        set_thread_priority(http, 90);
+#ifdef BENCHMARK
+        set_thread_priority(https_second, 90);
+        set_thread_priority(http_second, 90);
+#endif
 #endif
 
 

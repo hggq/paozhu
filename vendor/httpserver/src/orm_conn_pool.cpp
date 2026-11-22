@@ -619,17 +619,11 @@ std::string init_orm_conn_pool(
     std::vector<orm_conn_t> myconfig                                = get_orm_config_file(orm_config_file);
     std::string error_log;
     std::vector<std::string> cleared_tags;
-    std::vector<std::string> failed_tags;
 
     error_log.append("-- begin init_orm_conn_pool -- \n");
     for (auto &item : myconfig)
     {
         if (item.link_type > 1)
-        {
-            continue;
-        }
-        // 同 tag 前一个角色预建失败：整个 tag 跳过，不半注册。
-        if (std::find(failed_tags.begin(), failed_tags.end(), item.tag) != failed_tags.end())
         {
             continue;
         }
@@ -757,22 +751,19 @@ std::string init_orm_conn_pool(
             conn->error_msg.append(item.link_type == 0 ? "edit" : "select");
             conn->error_msg.append("_conn failed for tag " + item.tag);
         }
-        // 预建失败：跳过这个 tag，不注册池（已注册的摘掉），继续初始化别的 tag。
-        // 进程不带病退出；该 tag 的运行时查询会报 conn_pool not found。
-        // min_pool=0 时 expected=0，不预建也不触发（配置语义就是不初始化）。
+        // 预建失败不再注销整个 tag：配置与槽位已经落到 conn 上，保留它，
+        // 后续请求走到 get_*_conn 时会按需 add_*_connect 重新建连。
+        // 这样启动时数据库尚未就绪的场景下，数据库起来后下一条请求即可恢复；
+        // 若数据库仍不可用，每次请求仍会失败并重连，不会被永久锁死在
+        // "conn_pool not found" 上。min_pool=0 时 expected=0，本来就不预建。
         if (n < expected)
         {
-            std::string fail_msg = "[ORM-ERROR] tag=" + item.tag +
+            std::string warn_msg = "[ORM-WARN] tag=" + item.tag +
                                    " role=" + (item.link_type == 0 ? "edit" : "select") +
                                    " prebuild=" + std::to_string(n) + "/" + std::to_string(expected) +
-                                   " err=" + conn->error_msg;
-            error_log.append(fail_msg + " skip tag\n");
-            if (std::find(failed_tags.begin(), failed_tags.end(), item.tag) == failed_tags.end())
-            {
-                failed_tags.push_back(item.tag);
-            }
-            int_pool.erase(item.tag);
-            continue;
+                                   " err=" + conn->error_msg +
+                                   " pool kept for lazy reconnect\n";
+            error_log.append(warn_msg);
         }
         if (iter == int_pool.end())
         {

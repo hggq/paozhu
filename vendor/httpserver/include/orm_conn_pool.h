@@ -252,6 +252,8 @@ class orm_conn_pool
     // max_pool 是全局预算，init 时按槽数切分成每槽配额（见 slot_max_of）；
     // min_pool 是每槽独立预建数，不切分（见 slot_min_of）。槽只读，不持有副本。
     std::array<orm_conn_t, 2> conf_data;
+    // 最近一次启动预建失败的原因。预建失败不再注销 tag：池保留下来，
+    // 后续 get_*_conn 会按 conf_data 懒建连接，数据库起来后自动恢复。
     std::string error_msg;
     // 兼容成员：槽 0 的 ioc 裸指针。httpcli 代码生成器与旧调用点直接写它，
     // 新代码一律用 slots[s]->io_context。
