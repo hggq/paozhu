@@ -2965,6 +2965,16 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
         DEBUG_LOG("ring_client_send_loop std::exception %s", e.what());
         peer_session->iserror = true;
         peer_session->isclose = true;
+        // 消费者异常退出即进入关闭态：立即叫醒所有停等/等锁者，与 H2 消费者和
+        // async_stop() 的收尾保持一致。
+        // 注意：plain 会话（WS/MQTT/Socket）的生产者只有 post_write() 一条出站
+        // 路径，环满/积压过闸时立即返回 false、由调用方计入 dropped，不存在
+        // 「停等环空位、睡满预算」的生产者；http2_close_waiters() 唤醒的是 H2
+        // 流控窗口等待者，plain 会话这两类容器为空，这里置 closing 只是幂等
+        // 的关闭语义（isclose/iserror 才是 plain 生产者实际检查的退出标志）。
+        // 不使用 H2 版的 head_ 兜底前移——plain 环槽是固定 std::array，池回收时
+        // reset() 会清 head_/tail_/bytes，而前移会把没写成功的帧伪装成已发送。
+        peer_session->http2_close_waiters();
     }
     DEBUG_LOG("ring_client_send_loop exit ");
     co_return;
@@ -4268,7 +4278,20 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             co_return 0;
         }
 
-        websockets               = wsiter->second(peer_session->window_update_num, peer_session->has_send_update_num);
+        websockets = wsiter->second(peer_session->window_update_num, peer_session->has_send_update_num);
+        // 工厂是开放的 std::function 注册表：内置工厂全部 make_shared 无条件非空，
+        // 但业务自定义工厂可能按参数返回 nullptr。空指针解引用是 SIGSEGV，外层
+        // catch 抓不到，必须在解引用前挡住。此时 101 尚未发出，按未注册路由同
+        // 样回 404 再断。URL 路径段传入的两个 unsigned int 只是对象成员，不会
+        // 让内置工厂返回空——判空针对的是第三方工厂，不是远程可控参数。
+        if (!websockets)
+        {
+            DEBUG_LOG("websocket factory returned null for path %s", peer->pathinfos[0].c_str());
+            log_item = ws::make_error(404);
+            co_await peer_session->async_send_writer(log_item);
+            peer_session->stop();
+            co_return 0;
+        }
         websockets->session_sock = peer_session;
         websockets->url          = peer->url;
 

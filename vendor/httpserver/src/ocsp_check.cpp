@@ -4,9 +4,21 @@
 #include "crypto_ptr.h"
 #include <sstream>
 #include <ctime>
+#include <openssl/opensslv.h>
 
 namespace http
 {
+
+// 取 ASN1_STRING 字节长度：3.2 起提供 get_length（size_t），旧版本回退到 length（int）
+// Byte length of an ASN1_STRING: get_length (size_t) since 3.2, fall back to length (int) on older versions
+static inline std::size_t asn1_string_length(const ASN1_STRING *s)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30200000L
+    return ASN1_STRING_get_length(s);
+#else
+    return static_cast<std::size_t>(ASN1_STRING_length(s));
+#endif
+}
 
 // ============================================================
 //  构造 OCSP 请求（DER 编码）
@@ -324,17 +336,16 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
         }
     }
 
-    // 7. 提取时间字段（格式: YYYYMMDDHHMMSSZ）
-    // OpenSSL 3 隐藏了 ASN1_GENERALIZEDTIME 结构体，不能直接 .data/.length；
-    // 用 ASN1_STRING 族的 accessor（1.1 引入、3.0 继续保留）。
+    // 7. 提取时间字段（格式: YYYYMMDDHHMMSSZ），通过 accessor 取数据与长度
+    // Extract time fields (YYYYMMDDHHMMSSZ) via accessors for data and length
     if (this_update)
         result.this_update.assign(
             reinterpret_cast<const char *>(ASN1_STRING_get0_data(this_update)),
-            static_cast<std::size_t>(ASN1_STRING_length(this_update)));
+            asn1_string_length(this_update));
     if (next_update)
         result.next_update.assign(
             reinterpret_cast<const char *>(ASN1_STRING_get0_data(next_update)),
-            static_cast<std::size_t>(ASN1_STRING_length(next_update)));
+            asn1_string_length(next_update));
 
     oss << "[OCSP_PARSE] SUCCESS, this_update=" << result.this_update
         << " next_update=" << result.next_update << "\n";
