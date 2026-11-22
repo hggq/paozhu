@@ -1454,8 +1454,10 @@ bool httpserver::check_php_dispatch(std::shared_ptr<httppeer> peer)
         if (!hostinfo.php_root_document.empty() &&
             stat_is_regfile(hostinfo.php_root_document + "index.php"))
         {
+            // 命中根路径 index.php 回退：fastcgi 侧 linktype==12 已硬编码 index.php，直接走 fastcgi
             peer->compress = 10;
             peer->linktype = 12;
+            return true;
         }
         return false;
     }
