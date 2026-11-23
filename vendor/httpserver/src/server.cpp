@@ -1073,6 +1073,9 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     peer->cors_method();
     peer->status(200);
     peer->length(0);
+    // OPTIONS 响应需要带 Allow，列出服务端支持的方法，与 405 响应保持同一份清单。
+    // OPTIONS responses must advertise the supported methods in Allow, same list as 405.
+    peer->set_header("Allow", std::string(http_supported_methods_text));
 
     // Strip headers that cors_origin_process() may have set during parsing; preflight
     // must emit its own set according to the spec:
