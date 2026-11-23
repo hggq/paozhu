@@ -31,4 +31,28 @@ asio::awaitable<std::string> arena_echo(std::shared_ptr<httppeer> peer)
     co_return "";
 }
 
+//@urlpath(null,spec)
+asio::awaitable<std::string> arena_spec(std::shared_ptr<httppeer> peer)
+{
+    peer->status(200);
+    if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD) ||
+        peer->method == static_cast<unsigned char>(HEAD_METHOD::GET))
+    {
+        peer->type("text/plain");
+        peer->output = "spec ok";
+    }
+    else if (peer->method == static_cast<unsigned char>(HEAD_METHOD::POST))
+    {
+        peer->type("application/octet-stream");
+        peer->output = std::move(peer->rawcontent);
+    }
+    else if (peer->method == static_cast<unsigned char>(HEAD_METHOD::OPTIONS))
+    {
+        peer->set_header("Allow", "GET, HEAD, POST, OPTIONS");
+        peer->type("text/plain");
+        peer->output.clear();
+    }
+    co_return "";
+}
+
 }// namespace http

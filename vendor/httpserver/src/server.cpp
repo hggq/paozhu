@@ -3471,14 +3471,14 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
     try
     {
         std::shared_ptr<httppeer> peer = acquire_peer();
+        // 提前绑定连接：CORS 预检在 http1loop 之前就会用它回包，池化 peer 复用后该成员为 nullptr。
+        // Bind early: the CORS preflight writes before http1loop, and a pooled peer resets it to nullptr.
+        if (peer->socket_session == nullptr)
+        {
+            peer->socket_session = peer_session;
+        }
 #ifndef BENCHMARK
         peer_session->time_limit.store(timeid());
-        // 提前绑定 socket_session：CORS 预检分支（send_cors_domain）在 http1loop 之前
-        // 就会用 peer->socket_session 写回响应，而该成员原先只在 http1loop 内部赋值，
-        // 连接上第一条请求就是 OPTIONS 时会空指针解引用崩溃。
-        // http1loop 内的赋值条件是「== nullptr 才赋值」，提前绑定不会被覆盖；
-        // httppeer::clear() 也不重置该成员，所以绑定一次即可。
-        peer->socket_session = peer_session->get_ptr();
         peer->client_ip      = peer_session->getremoteip();
         // 四个端点字段在连接入口绑一次。getlocalip()/getlocalport() 要查 socket，
         // 不能放进每请求的分支；池化复用后也不能靠「server_port 还是 0」来判断该不该绑。

@@ -580,6 +580,7 @@ namespace http
         reg_raw("", "/deepseek_sse", nullptr, nullptr, nullptr, test_deepseek_sse, 0, 0, 0, ""); // controller/src/test_deepseekapi.cpp:193
         reg_raw("", "/deepseek_chunk", nullptr, nullptr, nullptr, test_deepseek_chunk, 0, 0, 0, ""); // controller/src/test_deepseekapi.cpp:298
         reg_raw("", "/echoraw", nullptr, nullptr, nullptr, arena_echo, 0, 0, 0, ""); // controller/src/test_echoraw.cpp:8
+        reg_raw("", "/spec", nullptr, nullptr, nullptr, arena_spec, 0, 0, 0, ""); // controller/src/test_echoraw.cpp:34
         reg_raw("", "/test_httppeersend_async", nullptr, nullptr, nullptr, test_httppeersend_async, 0, 0, 0, ""); // controller/src/test_httppeersend.cpp:98
         reg_raw("", "/test_leftjoinlimit", nullptr, nullptr, nullptr, test_leftjoinlimit, 0, 0, 0, ""); // controller/src/test_leftjoin.cpp:25
         reg_raw("", "/test_leftjoinfull", nullptr, nullptr, nullptr, test_leftjoinfull, 0, 0, 0, ""); // controller/src/test_leftjoin.cpp:56
