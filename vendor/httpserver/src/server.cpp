@@ -3471,12 +3471,9 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
     try
     {
         std::shared_ptr<httppeer> peer = acquire_peer();
-        // 提前绑定连接：CORS 预检在 http1loop 之前就会用它回包，池化 peer 复用后该成员为 nullptr。
-        // Bind early: the CORS preflight writes before http1loop, and a pooled peer resets it to nullptr.
-        if (peer->socket_session == nullptr)
-        {
-            peer->socket_session = peer_session;
-        }
+        // 提前绑定当前连接：CORS 预检在 http1loop 之前就会用它回包，无条件覆盖池化 peer 可能残留的旧连接。
+        // Bind the current session early: the CORS preflight writes before http1loop, and this overwrites any stale one.
+        peer->socket_session = peer_session;
 #ifndef BENCHMARK
         peer_session->time_limit.store(timeid());
         peer->client_ip      = peer_session->getremoteip();
