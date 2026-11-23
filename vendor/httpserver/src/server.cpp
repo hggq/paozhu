@@ -11129,6 +11129,9 @@ void httpserver::run(const std::string &sysconfpath)
         // and the kernel spreads incoming connections across them.
         std::thread https_second(std::bind(&httpserver::listeners, this));
         std::thread http_second(std::bind(&httpserver::listener, this));
+
+        std::thread https_three(std::bind(&httpserver::listeners, this));
+        std::thread http_three(std::bind(&httpserver::listener, this));
 #endif
 
 // set thread priority — 设置线程优先级
@@ -11139,6 +11142,8 @@ void httpserver::run(const std::string &sysconfpath)
 #ifdef BENCHMARK
         set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
         set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(https_three, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http_three, THREAD_PRIORITY_HIGHEST);
 #endif
 #else
         set_thread_priority(https, 90);
@@ -11146,6 +11151,8 @@ void httpserver::run(const std::string &sysconfpath)
 #ifdef BENCHMARK
         set_thread_priority(https_second, 90);
         set_thread_priority(http_second, 90);
+        set_thread_priority(https_three, 90);
+        set_thread_priority(http_three, 90);
 #endif
 #endif
 
@@ -11166,6 +11173,15 @@ void httpserver::run(const std::string &sysconfpath)
         if (http_second.joinable())
         {
             http_second.join();
+        }
+        
+        if (https_three.joinable())
+        {
+            https_three.join();
+        }
+        if (http_three.joinable())
+        {
+            http_three.join();
         }
 #endif
 
