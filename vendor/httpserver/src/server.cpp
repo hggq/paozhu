@@ -11132,6 +11132,8 @@ void httpserver::run(const std::string &sysconfpath)
 
         std::thread https_three(std::bind(&httpserver::listeners, this));
         std::thread http_three(std::bind(&httpserver::listener, this));
+        std::thread https_four(std::bind(&httpserver::listeners, this));
+        std::thread http_four(std::bind(&httpserver::listener, this));
 #endif
 
 // set thread priority — 设置线程优先级
@@ -11144,6 +11146,8 @@ void httpserver::run(const std::string &sysconfpath)
         set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
         set_thread_priority(https_three, THREAD_PRIORITY_HIGHEST);
         set_thread_priority(http_three, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(https_four, THREAD_PRIORITY_HIGHEST);
+        set_thread_priority(http_four, THREAD_PRIORITY_HIGHEST);
 #endif
 #else
         set_thread_priority(https, 90);
@@ -11153,6 +11157,8 @@ void httpserver::run(const std::string &sysconfpath)
         set_thread_priority(http_second, 90);
         set_thread_priority(https_three, 90);
         set_thread_priority(http_three, 90);
+        set_thread_priority(https_four, 90);
+        set_thread_priority(http_four, 90);
 #endif
 #endif
 
@@ -11182,6 +11188,14 @@ void httpserver::run(const std::string &sysconfpath)
         if (http_three.joinable())
         {
             http_three.join();
+        }
+        if (https_four.joinable())
+        {
+            https_four.join();
+        }
+        if (http_four.joinable())
+        {
+            http_four.join();
         }
 #endif
 
