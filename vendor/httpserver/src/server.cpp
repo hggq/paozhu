@@ -11121,83 +11121,77 @@ void httpserver::run(const std::string &sysconfpath)
         }
 #endif
 
-        std::thread https(std::bind(&httpserver::listeners, this));
-        std::thread http(std::bind(&httpserver::listener, this));
-#ifdef BENCHMARK
-        // 压测构建：HTTP/HTTPS 各两条 accept 线程，各自用 SO_REUSEPORT 绑同一端口，由内核分摊新连接。
-        // Benchmark builds run two accept threads per port; each acceptor binds with SO_REUSEPORT
-        // and the kernel spreads incoming connections across them.
-        std::thread https_second(std::bind(&httpserver::listeners, this));
-        std::thread http_second(std::bind(&httpserver::listener, this));
+        // accept 线程数取自 server.conf 的 socket_accept_num，HTTP 与 HTTPS 各起相同数量。
+        // The accept thread count comes from socket_accept_num in server.conf; HTTP and HTTPS each start that many.
+        unsigned int accept_thread_num = sysconfigpath.socket_accept_num;
+        if (accept_thread_num < 1)
+        {
+            accept_thread_num = 1;
+        }
 
-        std::thread https_three(std::bind(&httpserver::listeners, this));
-        std::thread http_three(std::bind(&httpserver::listener, this));
-        std::thread https_four(std::bind(&httpserver::listeners, this));
-        std::thread http_four(std::bind(&httpserver::listener, this));
-#endif
+        // 8 核以下 1 个 accept 线程就够；8 核以上按配置放开，16 核以上再按每 16 核 1 个封顶。
+        // Below 8 cores one accept thread is enough; from 8 cores the config applies, capped at one thread per 16 cores.
+        unsigned int core_num = std::thread::hardware_concurrency();
+        if (core_num < 9)
+        {
+            accept_thread_num = 1;
+        }
+        else
+        {
+            unsigned int auto_accept_num = core_num / 16;
+            if (auto_accept_num > 0 && accept_thread_num > auto_accept_num)
+            {
+                accept_thread_num = auto_accept_num;
+            }
+        }
 
-// set thread priority — 设置线程优先级
-// set thread priority.
+        // 每个线程各自用 SO_REUSEPORT 绑同一端口，新连接由内核分摊到各 acceptor。
+        // Each thread binds the same port with SO_REUSEPORT, and the kernel spreads new connections across acceptors.
+        std::vector<std::thread> https_accept_threads;
+        std::vector<std::thread> http_accept_threads;
+        https_accept_threads.reserve(accept_thread_num);
+        http_accept_threads.reserve(accept_thread_num);
+        for (unsigned int i = 0; i < accept_thread_num; ++i)
+        {
+            https_accept_threads.emplace_back(std::bind(&httpserver::listeners, this));
+            http_accept_threads.emplace_back(std::bind(&httpserver::listener, this));
+        }
+
+        // 设置线程优先级 — set thread priority
 #ifdef _WIN32
-        set_thread_priority(https, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http, THREAD_PRIORITY_HIGHEST);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http_second, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(https_three, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http_three, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(https_four, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http_four, THREAD_PRIORITY_HIGHEST);
-#endif
+        for (auto &thread : https_accept_threads)
+        {
+            set_thread_priority(thread, THREAD_PRIORITY_HIGHEST);
+        }
+        for (auto &thread : http_accept_threads)
+        {
+            set_thread_priority(thread, THREAD_PRIORITY_HIGHEST);
+        }
 #else
-        set_thread_priority(https, 90);
-        set_thread_priority(http, 90);
-#ifdef BENCHMARK
-        set_thread_priority(https_second, 90);
-        set_thread_priority(http_second, 90);
-        set_thread_priority(https_three, 90);
-        set_thread_priority(http_three, 90);
-        set_thread_priority(https_four, 90);
-        set_thread_priority(http_four, 90);
-#endif
+        for (auto &thread : https_accept_threads)
+        {
+            set_thread_priority(thread, 90);
+        }
+        for (auto &thread : http_accept_threads)
+        {
+            set_thread_priority(thread, 90);
+        }
 #endif
 
-
-        if (https.joinable())
+        for (auto &thread : https_accept_threads)
         {
-            https.join();
+            if (thread.joinable())
+            {
+                thread.join();
+            }
         }
-        if (http.joinable())
+        for (auto &thread : http_accept_threads)
         {
-            http.join();
+            if (thread.joinable())
+            {
+                thread.join();
+            }
         }
-#ifdef BENCHMARK
-        if (https_second.joinable())
-        {
-            https_second.join();
-        }
-        if (http_second.joinable())
-        {
-            http_second.join();
-        }
-        
-        if (https_three.joinable())
-        {
-            https_three.join();
-        }
-        if (http_three.joinable())
-        {
-            http_three.join();
-        }
-        if (https_four.joinable())
-        {
-            https_four.join();
-        }
-        if (http_four.joinable())
-        {
-            http_four.join();
-        }
-#endif
 
         for (int i = 0; i < 1; ++i)
         {

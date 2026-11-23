@@ -111,6 +111,9 @@ class httpparse
     bool isfinish_url    = false;
     // H1 修复：是否已出现过 Content-Length（重复头是 CL.CL 走私的典型载体）
     bool has_content_length = false;
+    // HTTP/1.1 要求恰好一个 Host；重复出现直接拒绝
+    // HTTP/1.1 requires exactly one Host field; duplicates are rejected
+    bool has_host = false;
     // H3 补齐：命中有意不支持的方法（PUT/DELETE/TRACE/CONNECT），由 server 回 405 并关闭连接
     bool method_not_allowed = false;
     // 方法名不在框架认得的表里（例如 PATCH），由 server 回 501 并关闭连接

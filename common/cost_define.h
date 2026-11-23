@@ -173,6 +173,11 @@
 #define CONST_HTTP1_KEEPALIVE_MAX_REQUESTS 1000
 
 // ---- HTTP/2 单连接资源上限（http2_parse.cpp）----
+// 对外承诺的单连接并发流上限（SETTINGS_MAX_CONCURRENT_STREAMS）。
+// 超限时对触发上限的那条流回 RST_STREAM(REFUSED_STREAM)，连接保留。
+// Advertised per-connection concurrent stream limit. Exceeding it resets only the offending stream with REFUSED_STREAM.
+#define CONST_HTTP2_MAX_CONCURRENT_STREAMS 100
+
 // 单连接上「未完成头部块」+「已建流但 body 未结束」的流数量上限。
 // server.cpp 的 steam_count 只统计「已派发」的流，客户端只发 HEADERS 不开 END_STREAM
 // 时永远不会触发，因此这里必须再卡一道，否则 http_data/http_post_data 可被撑爆。
@@ -202,8 +207,16 @@
 // grow per-connection encoder memory without bound. Separate from the decoder ceiling above.
 #define CONST_HTTP2_ENCODER_TABLE_CAP 4096
 
-// HPACK encoder dynamic table switch for response headers. Define to enable Indexed representation;
-// comment out to fall back to Literal without Indexing (0000xxxx).
+// HPACK encoder dynamic table switch for response headers. Define to enable Indexed
+// representation; comment out to fall back to Literal without Indexing (0000xxxx) — that
+// is still conformant HPACK (RFC 7541 §6.2.2), just larger header blocks, and it needs no
+// dynamic table size update signal. The status line and the legacy item/item2 builders
+// stay table-neutral in both modes (fixed 2026-11-23), so commenting this out is a full
+// fallback.
+// 响应头方向的 HPACK 编码器动态表开关。定义后可用 Indexed 表示；注释掉即整体回退到
+// Literal without Indexing（0000xxxx）——那仍是合规编码，只是头块更大，且不再需要 Size Update
+// 信号。状态行与旧 item/item2 在两种档位下都不碰动态表（2026-11-23 修复），所以注释掉本宏
+// 就是完整回退。
 #define PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE 1
 
 // Connection-level error COMPRESSION_ERROR (RFC 9113 §7 / RFC 7541). GOAWAY with this code

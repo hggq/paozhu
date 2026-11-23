@@ -343,6 +343,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool h2_scheme_dup   = false;// :scheme 重复出现过（h2spec 8.1.2.3 #6）
     bool h2_path_seen    = false;// :path 至少出现过一次
     bool h2_path_dup     = false;// :path 重复出现过（h2spec 8.1.2.3 #7）
+    bool h2_authority_seen = false;// :authority 至少出现过一次（RFC 9113 §8.3.1）
+    bool h2_host_seen      = false;// 普通 host 头至少出现过一次
     bool h2_regular_seen = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
 };
 // — v6 router —

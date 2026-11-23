@@ -2410,14 +2410,16 @@ void httppeer::reset_for_reuse()
         rawcontent.shrink_to_fit();
     }
 
-    // 这七个标记在头解析里只被写 true，原先靠每条流新建对象的值初始化拿到 false。
-    h2_method_seen  = false;
-    h2_method_dup   = false;
-    h2_scheme_seen  = false;
-    h2_scheme_dup   = false;
-    h2_path_seen    = false;
-    h2_path_dup     = false;
-    h2_regular_seen = false;
+    // 这些标记在头解析里只被写 true，原先靠每条流新建对象的值初始化拿到 false。
+    h2_method_seen    = false;
+    h2_method_dup     = false;
+    h2_scheme_seen    = false;
+    h2_scheme_dup     = false;
+    h2_path_seen      = false;
+    h2_path_dup       = false;
+    h2_authority_seen = false;
+    h2_host_seen      = false;
+    h2_regular_seen   = false;
 
     state.h2c               = false;
     state.accept_json       = false;

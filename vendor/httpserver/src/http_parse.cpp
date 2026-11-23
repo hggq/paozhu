@@ -1267,6 +1267,14 @@ void httpparse::process_header_line(std::string_view line_str)
     case 4:
         if (str_casecmp(header_key, "Host"))
         {
+            // 一个请求只能有一个 Host（RFC 9112 §3.2），重复出现直接 400
+            // A request carries exactly one Host (RFC 9112 §3.2); duplicates get 400
+            if (has_host)
+            {
+                error = 40102;
+                return;
+            }
+            has_host = true;
             getheaderhost(header_value);
         }
         break;
@@ -1692,6 +1700,13 @@ void httpparse::getheaderhost(std::string_view header_value)
     port                    = 0;
     // check hostport 检查有没有定制端口
     peer->host.clear();
+    // Host 不能为空（RFC 9110 §7.2）：空值既不是主机名也不是 IP
+    // Host must not be empty (RFC 9110 §7.2): an empty value is neither host nor IP
+    if (header_value.empty())
+    {
+        error = 40101;
+        return;
+    }
     for (; ioffset < linesize; ioffset++)
     {
         if (header_value[ioffset] == 0x3A)
@@ -1748,11 +1763,20 @@ void httpparse::getheaderhost(std::string_view header_value)
                 {
                     ipv6closed = true;
                     ioffset++;
-                    if (ioffset < linesize && header_value[ioffset] == 0x3A)
+                    // ']' 之后只能是结尾或 ":端口"，不能再跟其他字符
+                    // After ']' only end-of-value or ":port" is allowed
+                    if (ioffset < linesize)
                     {
-                        ishasport = 1;
-                        ioffset++;
-                        break;
+                        if (header_value[ioffset] == 0x3A)
+                        {
+                            ishasport = 1;
+                            ioffset++;
+                        }
+                        else
+                        {
+                            error = 40077;
+                            return;
+                        }
                     }
                     break;
                 }
@@ -1767,12 +1791,24 @@ void httpparse::getheaderhost(std::string_view header_value)
                 error = 40077;// IPv6 字面量未闭合 ']'
                 return;
             }
+            // 内层循环退出时 ioffset 已经越过 ']' 和它的 ":"，指向首位端口数字或结尾。
+            // 外层循环不能再自增一步，否则端口数字会被拼进 peer->host（"[::1]:8080"
+            // 解成 "::1080"、端口丢成 0，请求落到默认站点），末尾的端口判据也会误报。
+            // 与 h2 侧 header_host_process() 同一个口径。
+            break;
         }
         else
         {
             error = 40078;
             return;
         }
+    }
+    // 只有端口没有主机（":80"）、或 IPv6 括号内为空，都不是合法 authority
+    // A port without a host (":80") or empty IPv6 brackets are not a valid authority
+    if (peer->host.empty())
+    {
+        error = 40101;
+        return;
     }
     if (peer->host.size() > 72)
     {
@@ -1794,13 +1830,25 @@ void httpparse::getheaderhost(std::string_view header_value)
     }
     if (ishasport == 1)
     {
+        // 端口只能是 1~5 位十进制数字，冒号后为空或混入其他字符都按非法 Host 处理
+        // The port must be 1-5 decimal digits; empty or trailing junk makes the Host invalid
+        if (ioffset >= linesize)
+        {
+            error = 40080;
+            return;
+        }
         for (; ioffset < linesize; ioffset++)
         {
-            if (header_value[ioffset] < 0x3A && header_value[ioffset] > 0x2F)
+            if (header_value[ioffset] >= '0' && header_value[ioffset] <= '9')
             {
-                port = port * 10 + (header_value[ioffset] - 0x30);
+                port = port * 10 + (header_value[ioffset] - '0');
+                if (port > 65535)
+                {
+                    error = 40080;
+                    return;
+                }
             }
-            if (port > 65535)
+            else
             {
                 error = 40080;
                 return;
@@ -4262,6 +4310,20 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
             if (isfinish_header)
             {
+                // RFC 9112 §3.2：HTTP/1.1 请求必须带且只带一个 Host，缺失是畸形请求 → 400。
+                // 只判重复是不够的：没有 Host 时 peer->host 为空，find_host_index() 会把请求
+                // 落到 0 号站点（默认站点），多站点部署下等于把流量送进错误的虚拟主机。
+                // HTTP/1.0 的 Host 是可选的，未识别的版本 token 保持原行为，两者都不拦。
+                // RFC 9112 §3.2 requires exactly one Host field line in every HTTP/1.1 request.
+                // Duplicates alone are not enough: with Host absent peer->host stays empty and
+                // find_host_index() falls back to site 0, i.e. the request is served by the
+                // default vhost. HTTP/1.0 keeps Host optional, and an unrecognised version
+                // token (state.version == 0) keeps the previous behaviour.
+                if (peer->state.version == 0x11 && !has_host)
+                {
+                    error = 40235;
+                    return;
+                }
                 // CORS：OPTIONS 预检的 ACAO 由 send_cors_domain() 按白名单判定输出；
                 // 普通请求的 ACAO 在解析到 origin 头时就判定了（process_header_line 的头名长度 6 分支），
                 // Origin 早于 Host 时由 getheaderhost() 补判，这里不再需要任何 CORS 处理
@@ -4330,6 +4392,7 @@ void httpparse::clear()
     isfinish_url    = false;
 
     has_content_length = false;
+    has_host           = false;
     method_not_allowed = false;
     method_unknown     = false;
 

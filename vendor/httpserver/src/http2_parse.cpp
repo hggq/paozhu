@@ -467,6 +467,9 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
 }
 void http2parse::hpack_block_process(std::string_view header_data, std::shared_ptr<httppeer> steam_httppeer)
 {
+    // 本块里第一个落定的流级错误码，0 表示还没出现。进入本函数时 error 必为 0：
+    // process() 的帧循环见错即停，错误已经由 server 侧分流并 clear_error()。
+    unsigned int stream_error_in_block = 0;
     for (unsigned int h_begin = 0; h_begin < (unsigned int)header_data.size(); h_begin++)
     {
         unsigned char c = header_data[h_begin];
@@ -495,13 +498,42 @@ void http2parse::hpack_block_process(std::string_view header_data, std::shared_p
         }
         else
         {
-            error = 40205;
+            // 未知首字节前缀是 HPACK 成帧违例，连接级。这里显式定级而不只写 error：
+            // 本块前面可能已经落着一条流级错误（error_is_conn 已经是 false），裸赋值
+            // 会把连接级伪装成流级，只 RST 一条流，连接带着解不动的动态表继续收后续块。
+            set_conn_error(40205, h2_error_code);
             return;
         }
 
+        // 连接级错误（HPACK 压缩失败、成帧违例）必须立刻弃块；流级错误只打死本流，
+        // 本块剩下的字节还要继续解：动态表由对端编码器同步推进，此处一 return 就等于
+        // 本端表落后 N 条（含 Dynamic Table Size Update 一起丢），同连接后续每个头块
+        // 都会按错位的名/值解出来——那条连接上明明合法的请求会被解坏，比 GOAWAY 严重得多。
+        // 流级站点由 header_process 顶部的守卫跳过存储，解字节的部分照常走完。
+        // Only a connection-level error may abandon the rest of the block. A stream-level
+        // error must keep decoding: the dynamic table advances in lockstep with the peer's
+        // encoder, so bailing out here leaves this end behind by every entry (and the
+        // Dynamic Table Size Update) still in the block, and each later header block on the
+        // connection then decodes misaligned names and values.
         if (error > 0)
         {
-            return;
+            if (error_is_conn)
+            {
+                return;
+            }
+            if (stream_error_in_block == 0)
+            {
+                stream_error_in_block = error;
+            }
+            else if (error != stream_error_in_block)
+            {
+                // 块里换了一个错误码：header_process 已经短路，剩下能报错的只有
+                // hpack_int_decode 和 Dynamic Table Size Update 这些 HPACK 站点，它们
+                // 一律是连接级压缩错误。不显式定级就会沿用先前的流级标记，GOAWAY 变成
+                // RST，连接在错位动态表上继续解后面每个流的头块。
+                set_conn_error(error, h2_error_code);
+                return;
+            }
         }
     }
 }
@@ -520,13 +552,13 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
 
     // ---- RFC 7540/9113 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
     // 必须在 method 分派之前：POST/QUERY + END_STREAM 分支要在这里 return，
-    // 放在分派之后那条分支就绕过了整块校验，非法请求会先派进业务再断连接。
+    // 放在分派之后那条分支就绕过了整块校验，非法请求会先进业务再被重置。
     // 重复伪头 → PROTOCOL_ERROR（h2spec 8.1.2.3 #5/#6/#7）
     if (steam_httppeer->h2_method_dup ||
         steam_httppeer->h2_scheme_dup ||
         steam_httppeer->h2_path_dup)
     {
-        set_conn_error(40025, 0x1);
+        set_stream_error(40025, header_stream_id, 0x1);
         return;
     }
     // :method / :scheme / :path 缺失 → PROTOCOL_ERROR（h2spec 8.1.2.3 #2/#3/#4）
@@ -536,14 +568,32 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         !steam_httppeer->h2_scheme_seen ||
         !steam_httppeer->h2_path_seen)
     {
-        set_conn_error(40025, 0x1);
+        set_stream_error(40025, header_stream_id, 0x1);
         return;
     }
     // :path 空值 → PROTOCOL_ERROR（h2spec 8.1.2.3 #1）
     // :path 不能是空串（CONNECT 除外，但我们不处理 CONNECT）
     if (steam_httppeer->urlpath.empty())
     {
-        set_conn_error(40025, 0x1);
+        set_stream_error(40025, header_stream_id, 0x1);
+        return;
+    }
+    // RFC 9113 §8.3.1：:authority 与 host 一个都没有 → 畸形请求。
+    // 与 h1 侧 40235 同口径：缺归属信息时 peer->host 为空，find_host_index() 把这条流落到
+    // 0 号站点（默认站点），多站点部署下等于把请求送进错误的虚拟主机。
+    // CONNECT 可以不带这两者（RFC 9113 §8.5），但本框架不处理 CONNECT，与上面三个伪头一样一律要求。
+    // 空值不在这里管：host_header_set() 在置 seen 位之前就把它按 40171 拦下了。
+    // 畸形请求按 §8.1.1 是流级错误：只重置这一条流，同连接其它在途流不受影响，
+    // 否则一条畸形请求就能用 GOAWAY 打掉整条连接上的全部请求。
+    // A request with neither :authority nor Host is malformed (RFC 9113 §8.3.1): peer->host
+    // stays empty and find_host_index() dispatches it to site 0, the default vhost. CONNECT
+    // may omit both (§8.5), but CONNECT is not served here, so the rule stays unconditional.
+    // Empty values are not handled here — host_header_set() rejects them with 40171 before
+    // it sets the seen flags. Stream-scoped per §8.1.1: one malformed request must not take
+    // down every other in-flight stream on the connection with a GOAWAY.
+    if (!steam_httppeer->h2_authority_seen && !steam_httppeer->h2_host_seen)
+    {
+        set_stream_error(40181, header_stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
         return;
     }
 
@@ -558,6 +608,33 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
     {
         set_stream_error(40227, header_stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
         return;
+    }
+
+    // 超过对外承诺的并发流上限（SETTINGS_MAX_CONCURRENT_STREAMS）：
+    // 只重置触发上限的这一条流，连接和同连接其它在途流保留（RFC 9113 §5.1.2）。
+    // 头块已经解完，HPACK 动态表与对端保持同步，可以安全地只 RST_STREAM。
+    // Over the advertised concurrent stream limit: reset only this stream and keep the
+    // connection (RFC 9113 §5.1.2). The header block is fully decoded here, so the HPACK
+    // dynamic table stays in sync and a stream-level reset is safe.
+    {
+        // 表项数没到上限时一定没超（存活流数不会多于表项数），省掉逐条 lock 的开销。
+        // No entry can be live beyond the map size, so skip the scan until the map is full.
+        if (http_data_weak.size() >= CONST_HTTP2_MAX_CONCURRENT_STREAMS)
+        {
+            unsigned int live_streams = 0;
+            for (auto &weak_peer : http_data_weak)
+            {
+                if (weak_peer.second.lock())
+                {
+                    live_streams++;
+                }
+            }
+            if (live_streams > CONST_HTTP2_MAX_CONCURRENT_STREAMS)
+            {
+                set_stream_error(40236, header_stream_id, 0x7);// 0x7 = REFUSED_STREAM
+                return;
+            }
+        }
     }
 
     if (is_body_method(steam_httppeer->method))
@@ -1218,6 +1295,13 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
 {
     bool ishasport = false;
     steam_httppeer->host.clear();
+    // 空值既不是主机名也不是 IP（RFC 9110 §7.2）
+    // An empty value is neither a host name nor an IP literal (RFC 9110 §7.2)
+    if (header_value.empty())
+    {
+        set_conn_error(40171, 0x1);
+        return false;
+    }
     // 注意：这里必须是 unsigned int。用 unsigned char 做下标时，header_value 长度超过 255
     // 后会从 255 回绕到 0，循环永远不结束，host 字符串被无上限 push_back（远程死循环 + 内存耗尽）。
     unsigned int i = 0;
@@ -1249,11 +1333,12 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
         {
             if (steam_httppeer->host.size() > 0)
             {
-                error = 40160;
+                set_conn_error(40160, 0x1);
                 return false;
             }
 
             i++;
+            bool ipv6closed = false;
             for (; i < header_value.size(); i++)
             {
                 if (header_value[i] >= '0' && header_value[i] <= '9')
@@ -1274,46 +1359,140 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
                 }
                 else if (header_value[i] == ']')
                 {
+                    ipv6closed = true;
                     i++;
-                    if (i < header_value.size() && header_value[i] == 0x3A)
+                    // ']' 之后只能是结尾或 ":端口"，不能再跟其他字符
+                    // After ']' only end-of-value or ":port" is allowed
+                    if (i < header_value.size())
                     {
-                        ishasport = true;
-                        i++;
-                        break;
+                        if (header_value[i] == 0x3A)
+                        {
+                            ishasport = true;
+                            i++;
+                        }
+                        else
+                        {
+                            set_conn_error(40161, 0x1);
+                            return false;
+                        }
                     }
                     break;
                 }
                 else
                 {
-                    error = 40161;
+                    set_conn_error(40161, 0x1);
                     return false;
                 }
             }
+            if (!ipv6closed)
+            {
+                set_conn_error(40161, 0x1);// IPv6 字面量缺少 ']'
+                return false;
+            }
+            // 内层循环退出时 i 已经越过 ']' 和它的 ":": 要么指向结尾，要么指向首位端口数字。
+            // 外层循环不能再自增一步，否则端口数字会被当成主机名字节拼进 host（"[::1]:8080"
+            // 解成 "::1080"、端口丢成 0，请求落到默认站点），末尾那段端口判据也会看到空尾巴
+            // 而把合法 authority 拒掉。
+            break;
         }
         else
         {
-            error = 40162;
+            set_conn_error(40162, 0x1);
             return false;
         }
+    }
+
+    // 只有端口没有主机（":80"）、或 IPv6 括号内为空，都不是合法 authority
+    // A port without a host (":80") or empty IPv6 brackets are not a valid authority
+    if (steam_httppeer->host.empty())
+    {
+        set_conn_error(40171, 0x1);
+        return false;
     }
 
     unsigned int port_temp = 0;
     if (ishasport)
     {
+        // 端口只能是十进制数字，冒号后为空或混入其他字符都按非法 authority 处理
+        // The port must be decimal digits; empty or trailing junk makes the authority invalid
+        if (i >= header_value.size())
+        {
+            set_conn_error(40172, 0x1);
+            return false;
+        }
         for (; i < header_value.size(); i++)
         {
-            if (header_value[i] < 0x3A && header_value[i] > 0x2F)
+            if (header_value[i] >= '0' && header_value[i] <= '9')
             {
-                port_temp = port_temp * 10 + (header_value[i] - 0x30);
+                port_temp = port_temp * 10 + (header_value[i] - '0');
                 if (port_temp > 65535)
                 {
-                    break;
+                    set_conn_error(40172, 0x1);
+                    return false;
                 }
+            }
+            else
+            {
+                set_conn_error(40172, 0x1);
+                return false;
             }
         }
     }
     // state.port = port;
     steam_httppeer->state.port = port_temp;
+    return true;
+}
+
+bool http2parse::host_header_set(std::string &header_value, std::shared_ptr<httppeer> steam_httppeer, bool is_authority)
+{
+    if (header_value.size() > CONST_HTTP2_HOST_MAX_SIZE)
+    {
+        set_conn_error(40163, 0x1);
+        return false;
+    }
+    if (!header_host_process(header_value, steam_httppeer))
+    {
+        return false;
+    }
+
+    if (is_authority)
+    {
+        // 同一请求只能有一个 :authority（RFC 9113 §8.3.1）
+        // A request carries at most one :authority (RFC 9113 §8.3.1)
+        if (steam_httppeer->h2_authority_seen)
+        {
+            set_conn_error(40173, 0x1);
+            return false;
+        }
+        steam_httppeer->h2_authority_seen = true;
+        auto host_iter = steam_httppeer->header.find("host");
+        if (host_iter != steam_httppeer->header.end() && host_iter->second != header_value)
+        {
+            // :authority 与 Host 指向不同主机属于 malformed
+            // :authority and Host identifying different hosts is malformed
+            set_conn_error(40173, 0x1);
+            return false;
+        }
+        steam_httppeer->header["host"]       = header_value;
+        steam_httppeer->header[":authority"] = header_value;
+    }
+    else
+    {
+        if (steam_httppeer->h2_host_seen)
+        {
+            set_conn_error(40173, 0x1);
+            return false;
+        }
+        steam_httppeer->h2_host_seen = true;
+        auto auth_iter = steam_httppeer->header.find(":authority");
+        if (auth_iter != steam_httppeer->header.end() && auth_iter->second != header_value)
+        {
+            set_conn_error(40173, 0x1);
+            return false;
+        }
+        steam_httppeer->header["host"] = header_value;
+    }
+    steam_httppeer->find_host_index();
     return true;
 }
 
@@ -1362,13 +1541,23 @@ static unsigned char h2_method_from_text(std::string_view method_text)
 
 void http2parse::header_process(std::string header_name, std::string header_value, int table_num, std::shared_ptr<httppeer> steam_httppeer)
 {
+    // 本块已有一条错误在等分发（流级）：剩下的字段照常解码以推进动态表，但不再校验、
+    // 不再往这条流上写任何东西，也不让后面的站点覆盖第一条错误码。
+    // An error is already latched for this block: keep letting the callers decode (the
+    // dynamic table must advance) but validate and store nothing further, and never let a
+    // later field overwrite the first diagnostic code.
+    if (error > 0)
+    {
+        return;
+    }
+
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
 
     // ⓪ 空头名 → PROTOCOL_ERROR。h1 侧空 field-name 直接 400（http_parse.cpp 的 40003），
     // h2 若不判，同一条畸形报文在两端就不是一个结果；空名还会以 "" 为键落进 header 表。
     if (header_name.empty())
     {
-        set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+        set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
         return;
     }
 
@@ -1383,7 +1572,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (c >= 'A' && c <= 'Z')
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1394,7 +1583,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (c < 0x20 || c == 0x7F)
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1402,7 +1591,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if ((c < 0x20 && c != 0x09) || c == 0x7F)
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1415,7 +1604,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (!http::is_valid_field_name(header_name))
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1428,7 +1617,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         return;
     }
     // ①e trailers 块里不得出现任何伪头字段（RFC 9113 §8.1）。放在 ② 之前：
-    // ② 只认得「请求伪头」白名单，让 :method 混过去、却把 :status 报成连接级 40025，
+    // ② 只认得「请求伪头」白名单，让 :method 混过去、却把 :status 报成 40025，
     // 同一个违例（trailer 带伪头）会因名字选没选进白名单而分成两档错误。
     if (h2_trailer_block && header_name[0] == ':')
     {
@@ -1456,7 +1645,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         }
         if (!known)
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR — 未知伪头 / 响应伪头 :status
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR — 未知伪头 / 响应伪头 :status
             return;
         }
     }
@@ -1479,7 +1668,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 break;
             }
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1501,7 +1690,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (steam_httppeer->h2_regular_seen)
         {
-            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            set_stream_error(40025, steam_httppeer->stream_id, 0x1);// PROTOCOL_ERROR
             return;
         }
         if (header_name == ":method")
@@ -1537,23 +1726,9 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         switch (table_num)
         {
         case 1:
-            if (header_value.size() > CONST_HTTP2_HOST_MAX_SIZE)
+            if (!host_header_set(header_value, steam_httppeer, true))
             {
-                error = 40163;
                 return;
-            }
-            if (header_host_process(header_value, steam_httppeer))
-            {
-                steam_httppeer->header["host"]       = header_value;
-                steam_httppeer->header[":authority"] = std::move(header_value);
-                steam_httppeer->find_host_index();
-            }
-            else
-            {
-                if (error > 0)
-                {
-                    return;
-                }
             }
             //block_steam_httppeer->host                 = header_value;
             break;
@@ -1566,6 +1741,17 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             break;
         case 4:
         case 5:
+            // 空 :path 属于 malformed request（RFC 9113 §8.1.2.3），按 §8.1.1 只作废本流。
+            // 动态表不会因此错位：本函数 return 之后 hpack_block_process 仍把本块剩下的字节
+            // 解完，动态表照旧跟对端编码器同步推进，只有存储与校验被 header_process 顶部守卫短路。
+            // An empty :path is a malformed request (§8.1.2.3); §8.1.1 scopes it to this stream.
+            // The dynamic table stays aligned because hpack_block_process keeps decoding the rest
+            // of the block — only storing and validating are short-circuited.
+            if (header_value.empty())
+            {
+                set_stream_error(40186, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+                return;
+            }
             path_process(header_name, header_value, steam_httppeer);
             // 与字面量路径同一个形状：path_process 写 urlpath/url/header["urlpath"]，
             // 原始 :path 值本身也要留在 header 里给业务读
@@ -1622,24 +1808,10 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             cookie_process(header_name, header_value, steam_httppeer);
             break;
         case 38:
-            // 静态表 38 = "host"。host 值和 :authority 一样限 72 字节：
-            // 超长值会进入 header_host_process（见该函数的死循环注释）。
-            if (header_value.size() > CONST_HTTP2_HOST_MAX_SIZE)
+            // 静态表 38 = "host"
+            if (!host_header_set(header_value, steam_httppeer, false))
             {
-                error = 40163;
                 return;
-            }
-            if (header_host_process(header_value, steam_httppeer))
-            {
-                steam_httppeer->header["host"] = std::move(header_value);
-                steam_httppeer->find_host_index();
-            }
-            else
-            {
-                if (error > 0)
-                {
-                    return;
-                }
             }
             break;
         case 41:
@@ -1670,9 +1842,31 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         std::string lower_name = str_tolower(header_name);
         switch (header_name.size())
         {
+        case 4:
+            // 普通头形式的 host 与静态表 38 走同一套校验，不能直接当普通头存原值
+            // A literal "host" field follows the same checks as static-table entry 38
+            if (header_name == "host")
+            {
+                if (!host_header_set(header_value, steam_httppeer, false))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                steam_httppeer->header[lower_name] = std::move(header_value);
+            }
+            break;
         case 5:
             if (str_casecmp(header_name, ":path"))
             {
+                // 空 :path：与静态表索引 4/5 同一规则（RFC 9113 §8.1.2.3，按 §8.1.1 流级）
+                // Empty :path — same rule as static-table index 4/5, stream-scoped per §8.1.1.
+                if (header_value.empty())
+                {
+                    set_stream_error(40186, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+                    return;
+                }
                 path_process(header_name, header_value, steam_httppeer);
             }
             else if (str_casecmp(header_name, "range"))
@@ -1743,26 +1937,16 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
             break;
         case 10:
+            // 字面量形式的 :authority 与静态表 1 走同一套校验：重复的 authority、
+            // 与 host 不一致，都必须在写入 peer->host 之前被拦下
+            // A literal ":authority" follows the same checks as static-table entry 1:
+            // a repeated authority, or one that disagrees with host, must be caught
+            // before it overwrites peer->host
             if (str_casecmp(header_name, ":authority"))
             {
-                if (header_value.size() > CONST_HTTP2_HOST_MAX_SIZE)
+                if (!host_header_set(header_value, steam_httppeer, true))
                 {
-                    error = 40165;
                     return;
-                }
-
-                if (header_host_process(header_value, steam_httppeer))
-                {
-                    steam_httppeer->header["host"]       = header_value;
-                    steam_httppeer->header[":authority"] = std::move(header_value);
-                    steam_httppeer->find_host_index();
-                }
-                else
-                {
-                    if (error > 0)
-                    {
-                        return;
-                    }
                 }
             }
             else if (str_casecmp(header_name, "User-Agent"))
@@ -3241,14 +3425,10 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 //
 void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
-    // RFC 9113 §6.7：PING 的 ACK 标志表示对端对我们 PING 请求的回应。本实现从不主动
-    // 发 PING 请求，因此对端任何带 ACK 的 PING 都属于「未 solicited」的协议违规：
-    // §6.7 明文 "MUST NOT send a PING frame with the ACK flag set unless it has received
-    // a PING frame from the peer with the ACK flag not set"。收到即按连接级 PROTOCOL_ERROR
-    // 断连（h2spec 6.7.1），不能像之前那样静默 return 留着连接。
+    // 带 ACK 的 PING 是对端对我们 PING 的响应，不需要再回包（RFC 9113 §6.7）
+    // An ACK PING answers a PING we sent and does not require a response (RFC 9113 §6.7)
     if ((temp_pack_data.flags & 0x01) > 0)
     {
-        set_conn_error(40052, 0x1);
         return;
     }
 

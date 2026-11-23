@@ -348,6 +348,13 @@ bool make_http2_headers(std::string &hh_data);
 bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code);
 bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code);
 
+// ---- 旧编码件：本仓库无调用点，保留作演变参考，勿删 ----
+// 2026-11-23 起它们发 Literal without Indexing（4-bit 前缀 0000），两端动态表都不碰。改前发的是
+// Incremental Indexing（6-bit 前缀 0x40）而签名里没有 hpack_enc_table，本端编码表不插、对端却插
+// 一条，之后每个 Indexed 引用错位一格，整个 HEADERS 块被对端判废。
+// 新代码请用下面带 hpack_enc_table *enc 的 item3（只有它能安全地拿动态表做压缩）；item4 是
+// never-indexed。另注：下面 (unsigned int) 与 (const std::string &) 两条声明在 http2_frame.cpp
+// 里没有对应定义，调用只会链接失败。
 bool make_http2_headers_item(std::string &hh_data, unsigned int num);
 bool make_http2_headers_item(std::string &hh_data, const std::string &value);
 bool make_http2_headers_item(std::string &hh_data, unsigned char, const std::string &value);

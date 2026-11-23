@@ -752,6 +752,115 @@ int main()
         CHECK(ok, "T20 1000-step random mirror");
     }
 
+    // ---- T21: :status 状态行在两档位下都不碰动态表（302/403/429/503 回归）----
+    // 线上事故形状：同一条 h2 连接先用几个 200 把动态表填热，再来一个 403。状态行若用
+    // 0x48（Literal with Incremental Indexing），对端插一条而本端 hpack_enc 不插，两端表长
+    // 从此错开一格，同一块里后面的 Indexed 引用解到别的字段（多一个 :status、少一个
+    // content-type），Firefox 报 NS_ERROR_CORRUPTED_CONTENT、curl 报 CURLE_HTTP2。
+    for (unsigned int code : {302u, 403u, 429u, 503u})
+    {
+        const std::string sval = std::to_string(code);
+        // 档位甲：PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE 开着，响应头字段走 enc
+        {
+            hpack_enc_table enc;
+            MiniDec dec;
+            for (int i = 0; i < 3; ++i)
+            {
+                std::string warm;
+                make_http2_headers_static(warm, 200);
+                make_http2_headers_item3(warm, HTTP2_CODE_content_length, std::string("84"), &enc);
+                make_http2_headers_item3(warm, HTTP2_CODE_content_type, std::string("text/html; charset=utf-8"), &enc);
+                make_http2_headers_item3(warm, std::string("server"), std::string("Paozhu"), &enc);
+                CHECK(dec.block(warm), "T21a warm decode");
+            }
+            CHECK(enc.entries.size() == 3 && dec.dyn.size() == 3, "T21a warm tables in step");
+            std::string b;
+            make_http2_headers_static(b, code);
+            CHECK((unsigned char)b[0] == 0x08 && b.size() == 5, ("T21a status bytes " + hex(b)).c_str());
+            make_http2_headers_item3(b, HTTP2_CODE_content_length, std::string("84"), &enc);
+            make_http2_headers_item3(b, HTTP2_CODE_content_type, std::string("text/html; charset=utf-8"), &enc);
+            make_http2_headers_item3(b, std::string("server"), std::string("Paozhu"), &enc);
+            // 三个字段此时全走 Indexed——正是被错位毁掉的那条路
+            CHECK(dec.block(b), "T21a decode after warm table");
+            CHECK(dec_eq(dec, {
+                      {":status", sval},
+                      {"content-length", "84"},
+                      {"content-type", "text/html; charset=utf-8"},
+                      {"server", "Paozhu"},
+                  }),
+                  ("T21a " + sval + " field set").c_str());
+            CHECK(enc.entries == dec.dyn, "T21a tables still in step");
+        }
+        // 档位乙：宏关掉或流式路径（enc == nullptr），整块两端都不许插表
+        {
+            hpack_enc_table enc;
+            MiniDec dec;
+            std::string b;
+            make_http2_headers_static(b, code);
+            make_http2_headers_item3(b, HTTP2_CODE_content_length, std::string("84"), nullptr);
+            make_http2_headers_item3(b, HTTP2_CODE_content_type, std::string("text/html; charset=utf-8"), nullptr);
+            make_http2_headers_item3(b, std::string("server"), std::string("Paozhu"), nullptr);
+            CHECK(dec.block(b), "T21b decode");
+            CHECK(dec_eq(dec, {
+                      {":status", sval},
+                      {"content-length", "84"},
+                      {"content-type", "text/html; charset=utf-8"},
+                      {"server", "Paozhu"},
+                  }),
+                  ("T21b " + sval + " field set").c_str());
+            CHECK(dec.dyn.empty() && enc.entries.empty(), "T21b neither side touches the table");
+        }
+    }
+
+    // ---- T22: 旧编码件 item/item2 只发 without-indexing，不碰两端动态表 ----
+    // 这两个重载的签名里没有 hpack_enc_table，改前却发 0x40（Incremental Indexing），错位成因
+    // 与 T21 同一条。实现按用户要求保留作演变参考，故用本用例把表示形式钉住。
+    {
+        MiniDec dec;
+        std::string b;
+        make_http2_headers_item(b, (unsigned char)HTTP2_CODE_content_type, std::string("text/html"));
+        // 槽号 31 > 4-bit 前缀 cap 15 → 两字节 varint 0x0F 0x10，随后 Huffman 值
+        CHECK((unsigned char)b[0] == 0x0F && (unsigned char)b[1] == 0x10, ("T22 item bytes " + hex(b)).c_str());
+        CHECK(dec.block(b), "T22 item decode");
+        CHECK(dec_eq(dec, {{"content-type", "text/html"}}), "T22 item field");
+        CHECK(dec.dyn.empty(), "T22 item inserts nothing");
+    }
+    {
+        MiniDec dec;
+        std::string b;
+        make_http2_headers_item2(b, std::string("x-legacy"), std::string("1"));
+        CHECK((unsigned char)b[0] == 0x00, ("T22 item2 name-literal byte " + hex(b)).c_str());
+        CHECK(dec.block(b) && dec_eq(dec, {{"x-legacy", "1"}}), "T22 item2 name-literal field");
+        CHECK(dec.dyn.empty(), "T22 item2 inserts nothing");
+    }
+    {
+        MiniDec dec;
+        std::string b;
+        make_http2_headers_item2(b, (unsigned char)HTTP2_CODE_content_length, (unsigned long long)84);
+        CHECK((unsigned char)b[0] == 0x0F && (unsigned char)b[1] == 0x0D, ("T22 item2 num bytes " + hex(b)).c_str());
+        CHECK(dec.block(b) && dec_eq(dec, {{"content-length", "84"}}), "T22 item2 num field");
+        CHECK(dec.dyn.empty(), "T22 item2 num inserts nothing");
+    }
+    {
+        // 与热表交错：旧件插在两个 Indexed 引用之间，紧随其后的引用仍必须解对
+        hpack_enc_table enc;
+        MiniDec dec;
+        for (int i = 0; i < 2; ++i)
+        {
+            std::string warm;
+            make_http2_headers_item3(warm, std::string("server"), std::string("Paozhu"), &enc);
+            CHECK(dec.block(warm), "T22 warm decode");
+        }
+        std::string leg;
+        make_http2_headers_item2(leg, (unsigned char)HTTP2_CODE_content_type, std::string("text/html"));
+        CHECK(dec.block(leg), "T22 legacy decode");
+        CHECK(enc.entries == dec.dyn, "T22 legacy left tables in step");
+        std::string next;
+        make_http2_headers_item3(next, std::string("server"), std::string("Paozhu"), &enc);
+        CHECK(dec.block(next) && dec_eq(dec, {{"server", "Paozhu"}}), "T22 indexed ref after legacy");
+        CHECK(next.size() == 1 && (unsigned char)next[0] == (0x80 | 62), "T22 server still index 62");
+    }
+
     std::printf("PASS %d  FAIL %d\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

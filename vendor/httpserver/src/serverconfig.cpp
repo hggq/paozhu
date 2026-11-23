@@ -1478,6 +1478,35 @@ bool serverconfig::loadserverglobalconfig()
         orm_ioc_num = 4;
     }
 
+    if (map_value["default"]["socket_accept_num"].size() > 0)
+    {
+        socket_accept_num = 0;
+        for (size_t i = 0; i < map_value["default"]["socket_accept_num"].size(); i++)
+        {
+            if (map_value["default"]["socket_accept_num"][i] >= '0' && map_value["default"]["socket_accept_num"][i] <= '9')
+            {
+                socket_accept_num = socket_accept_num * 10 + (map_value["default"]["socket_accept_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
+        
+        if (socket_accept_num < 1)
+        {
+            socket_accept_num = 1;
+        }
+
+        if (socket_accept_num > 8)
+        {
+            socket_accept_num = 8;
+        }
+    }
+    else
+    {
+        socket_accept_num = 1;
+    }
+
+
     if (map_value["default"]["orm_thread_pool_num"].size() > 0)
     {
         orm_thread_pool_num = 0;

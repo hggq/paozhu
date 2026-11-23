@@ -214,7 +214,10 @@ bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code)
 }
 bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
 {
-
+    // 本函数拿不到 hpack_enc_table，所以每个状态码都只能用两端都不碰动态表的表示：
+    // 静态表里有的（200/204/206/304/400/404/500）发 Indexed，其余发 0x08 Literal without
+    // Indexing。发 0x48（with Incremental Indexing）会让对端插一条而本端 hpack_enc 不插，
+    // 同一块里后续任何 Indexed 引用从此错位一格，Firefox 报 NS_ERROR_CORRUPTED_CONTENT。
     switch (hh_code)
     {
     case 200:
@@ -227,7 +230,7 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         hh_data.push_back((char)0x8A);
         break;
     case 302:
-        hh_data.push_back(0x48);
+        hh_data.push_back(0x08);
         hh_data.push_back(0x03);
         hh_data.push_back(0x33);
         hh_data.push_back(0x30);
@@ -240,7 +243,7 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         hh_data.push_back((char)0x8C);
         break;
     case 403:
-        hh_data.push_back(0x48);
+        hh_data.push_back(0x08);
         hh_data.push_back(0x03);
         hh_data.push_back(0x34);
         hh_data.push_back(0x30);
@@ -259,7 +262,7 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         if (hh_code >= 100 && hh_code <= 999)
         {
             std::string code_str = std::to_string(hh_code);
-            hh_data.push_back(0x48);
+            hh_data.push_back(0x08);
             hh_data.push_back(static_cast<char>(code_str.size()));
             hh_data.append(code_str);
             return true;
@@ -270,6 +273,20 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
 
     return true;
 }
+// ---- 旧编码件（item / item2）：本仓库已无调用点，响应头一律走下面的 item3 ----
+// 保留实现是为了留下"改前形状"的参考，不要当死代码删掉。
+// 2026-11-23 修复：这几个函数原先把首字节写成 `hh_code | 0x40`（Literal with Incremental
+// Indexing，RFC 7541 §6.2.1），但签名里没有 hpack_enc_table，本端编码表不插而对端插一条——
+// 之后每一个 Indexed 引用都错位一格，整个 HEADERS 块被对端判废。成因与
+// make_http2_headers_static() 的 0x48 完全相同（那个只改状态行，这里改字段行）。
+// 现在统一发 `0000xxxx` Literal without Indexing（§6.2.2）：拿不到 enc 就不许动动态表，
+// 于是 PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE 开与关两种档位都安全。
+// 单参的 make_http2_headers_item(hh_data, hh_code) 是例外：它发 Indexed（静态表槽引用），
+// 本来两端都不碰动态表，原样保留。
+// hh_code 是静态表槽号 1..61；≥16 的名字索引要两字节 varint，交给 hpack_put_uint 的 4-bit
+// 前缀分支——原来手写的 `hh_code > 63` 判的是 6-bit 前缀的 cap，换成 without-indexing 后是错的。
+static void hpack_put_uint(std::string &out, unsigned int prefix_bits, unsigned char first, unsigned int value);
+
 bool make_http2_headers_item(std::string &hh_data, unsigned char hh_code)
 {
     hh_data.push_back(hh_code | 0x80);
@@ -280,7 +297,7 @@ bool make_http2_headers_item(std::string &hh_data, unsigned char hh_code, const 
 {
     std::string en_value;
     http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
-    hh_data.push_back(hh_code | 0x40);
+    hpack_put_uint(hh_data, 4, 0x00, hh_code);
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = static_cast<unsigned int>(en_value.size() - 0x7F);
@@ -308,7 +325,7 @@ bool make_http2_headers_item(std::string &hh_data, unsigned char hh_code, const 
 bool make_http2_headers_item2(std::string &hh_data, const std::string &key, const std::string &value)
 {
 
-    hh_data.push_back(0x40);
+    hpack_put_uint(hh_data, 4, 0x00, 0);// 索引 0 = 名字随字面量给出
 
     std::string en_value;
     http_huffman_encode((unsigned char *)&key[0], key.size(), en_value);
@@ -368,15 +385,7 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, const
     std::string en_value;
     http_huffman_encode((unsigned char *)&value[0], value.size(), en_value);
 
-    if (hh_code > 63)
-    {
-        hh_data.push_back(0x7F);
-        hh_data.push_back(hh_code - 63);
-    }
-    else
-    {
-        hh_data.push_back(hh_code | 0x40);
-    }
+    hpack_put_uint(hh_data, 4, 0x00, hh_code);
 
     if (en_value.size() > 0x7F)
     {
@@ -405,15 +414,7 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, const
 bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, unsigned long long num)
 {
 
-    if (hh_code > 63)
-    {
-        hh_data.push_back(0x7F);
-        hh_data.push_back(hh_code - 63);
-    }
-    else
-    {
-        hh_data.push_back(hh_code | 0x40);
-    }
+    hpack_put_uint(hh_data, 4, 0x00, hh_code);
 
     std::string value, en_value;
     value = std::to_string(num);

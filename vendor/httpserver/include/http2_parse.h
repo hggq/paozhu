@@ -319,6 +319,9 @@ class http2parse
     void clear_error();
     void data_process();
     bool header_host_process(const std::string &header_value, std::shared_ptr<httppeer>);
+    // 校验并落地 Host/:authority：长度、语法、重复与两侧一致性
+    // Validate and store Host/:authority: length, syntax, duplicates, and cross-check
+    bool host_header_set(std::string &header_value, std::shared_ptr<httppeer>, bool is_authority);
     void getacceptencoding(const std::string &, const std::string &, std::shared_ptr<httppeer>);
     void header_process(std::string header_name, std::string header_value, int, std::shared_ptr<httppeer>);
     void cookie_process(const std::string &, const std::string &, std::shared_ptr<httppeer>);
