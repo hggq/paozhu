@@ -222,7 +222,17 @@ int main(int argc, char *argv[])
         }
         filename.append(plist[i]);
         filename.append(".cpp");
-        auto method_item = lp.pickfile(filename);
+        std::vector<http::reg_autoitem> method_item;
+        if (!lp.pickfile(filename, method_item))
+        {
+            // 注解错误已经由 pickfile 打印，这里补一句总览并让进程非零退出，
+            // 由构建系统（CMake 的 paozhu_codegen）把失败传出来
+            // pickfile already printed the annotation error; abort codegen so the build fails
+            std::fprintf(stderr,
+                         "\033[1m\033[31m[ROUTE-ERROR] codegen aborted, fix the annotation error above and "
+                         "rebuild\033[0m\n");
+            return 1;
+        }
 
         if (method_item.size() > 0)
         {

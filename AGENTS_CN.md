@@ -250,7 +250,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 - 第一个参数: 前置过滤器函数名（`null` 表示无过滤器）
 - 第二个参数: URL 路径
-- 括号后面可选的 `:maskcode(数字)` / `:ratelimit(秒,次数)` 后缀，请用这个写法，不要写成裸 `:数字`。掩码非 0 就是把这条路由交给 RBAC；路由同时把它写进 `client.mask_code`，位置在这条注册的 pre 之前（见 §4.8）
+- 括号后面可选的 `:maskcode(数字)` / `:ratelimit(秒,次数)` 后缀，请用这个写法，不要写成裸 `:数字`。掩码非 0 就是把这条路由交给 RBAC；路由同时把它写进 `client.mask_code`，位置在这条注册的 pre 之前（见 §4.8）。后缀拼错或参数缺失/非数字会让生成器报错退出，构建失败
 - 括号后面可选的 `:title(名称)` 后缀：这条路由的显示名，`:title(测试名称)` 和 `:title("测试名称")` 两种写法都认。它不进请求，只落到 `reg_methold_mid_t::title`，登记权限项时写进 `sysperms.name`（见 §4.8）
 
 ### 4.3 前置过滤器
@@ -671,19 +671,21 @@ asio::awaitable<std::string> test_comaskprehas(std::shared_ptr<httppeer> peer)
 }
 ```
 
-**解析规则** —— 由 `vendor/httpcli/autopickcontrolmethod.hpp` 提取，后缀不合理时它会在控制台喊一声：
+**解析规则** —— 由 `vendor/httpcli/autopickcontrolmethod.hpp` 提取。未知后缀、`maskcode` / `ratelimit` 参数缺失或非法都是**致命错误**：生成器打印 `[ROUTE-ERROR]` 后以非零状态退出，构建失败；只有 `title` 引号不配对仍是警告。
 
-| 注解尾部 | 条目上存的掩码 |
-|----------|----------------|
-| 没有冒号 —— `//@urlpath(null,foo)` | `0` |
-| `//@urlpath(null,foo):maskcode(1234)` | `1234` |
+| 注解尾部 | 结果 |
+|----------|------|
+| 没有冒号 —— `//@urlpath(null,foo)` | 掩码 `0` |
+| `//@urlpath(null,foo):maskcode(1234)` | 掩码 `1234` |
 | `//@urlpath(null,foo):maskcode(1234):ratelimit(20,5)` | `1234`，另外 `rate_time=20`、`rate_num=5` |
 | `//@urlpath(null,foo):123456`（旧写法，纯数字） | `123456` —— 仍然解析，但本仓已经没有路由用它了，请改写 `:maskcode(123456)` |
 | 每个 `:` 前面有空格或制表符（后缀之间也可以） | 当作没有，照常解析 |
-| `:maskcode()` / `:maskcode` | `0`，不告警 |
+| `:maskcode()` / `:maskcode` | **构建失败**，`[ROUTE-ERROR] invalid maskcode` |
 | `:maskcode(99999999999)`（超过 `UINT_MAX`） | `UINT_MAX`，钳位 |
-| `:maskcode(12abc)` | `0`，并打印 `[ROUTE-WARN] invalid maskcode ...` |
-| `:unknown(...)` | 忽略，并打印 `[ROUTE-WARN] unknown route suffix` |
+| `:maskcode(12abc)` | **构建失败**，`[ROUTE-ERROR] invalid maskcode` |
+| `:ratelimit(20)` / `:ratelimit(20,x)` | **构建失败**，`[ROUTE-ERROR] invalid ratelimit` |
+| `:unknown(...)` | **构建失败**，`[ROUTE-ERROR] unknown route suffix` |
+| `:maskode(...)` 等 `ma` 开头的拼写错误 | **构建失败**，并提示 `did you mean ':maskcode(...)'` |
 
 **`:title(...)`** —— 同一条后缀链，但里面的文本原样保留：
 

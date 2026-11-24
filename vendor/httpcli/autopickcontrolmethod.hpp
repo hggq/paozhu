@@ -418,7 +418,12 @@ class pickcontrol
 
         return temp;
     }
-    std::vector<struct reg_autoitem> pickfile(const std::string &methodpathfile)
+    // 解析一个 controller 源文件里的 //@urlpath 注解。
+    // 返回 false 表示注解里有无法安全降级的错误，调用方必须停止生成并以非零状态退出；
+    // 返回 false 时不会填充 methods。
+    // parse //@urlpath annotations in one controller source file. Returns false when an
+    // annotation cannot be safely downgraded; the caller must abort codegen and exit non-zero.
+    bool pickfile(const std::string &methodpathfile, std::vector<struct reg_autoitem> &methods)
     {
 
         std::vector<struct reg_autoitem> temp;
@@ -427,7 +432,9 @@ class pickcontrol
 
         if (!fp.get())
         {
-            return temp;
+            // 打不开的文件按“没有注解”处理，保持原有行为，不当成注解错误
+            // an unreadable file is treated as having no annotations, as before
+            return true;
         }
 
         std::string filecontent;
@@ -684,54 +691,45 @@ class pickcontrol
 
                         if (suffix_name == "maskcode")
                         {
-                            // maskcode(n)：n 写进 mask_code；缺参数或非数字保持 0
+                            // maskcode(n)：n 写进 mask_code；缺参数或非数字都是致命错误，
+                            // 因为按 0 降级会让路由静默退出 RBAC
+                            // a missing or non-numeric maskcode is fatal: falling back to 0
+                            // would silently drop the route out of RBAC
                             if (!suffix_args.empty() && is_digits(suffix_args[0]))
                             {
                                 mask_code = (unsigned int)parse_dec(suffix_args[0],
                                                                     (unsigned long long)std::numeric_limits<unsigned int>::max());
                             }
-                            else if (suffix_args.empty() || suffix_args[0].empty())
-                            {
-                                // maskcode 没带参数：按 0 处理，不喊
-                            }
                             else
                             {
+                                std::string shown_arg = suffix_args.empty() ? "" : suffix_args[0];
                                 std::fprintf(stderr,
-                                             "\033[1m\033[31m[ROUTE-WARN] %s:%u: invalid maskcode '%s', expected digits; "
-                                             "mask_code stays 0\033[0m\n",
-                                             methodpathfile.c_str(), suffix_line_no(), suffix_args[0].c_str());
+                                             "\033[1m\033[31m[ROUTE-ERROR] %s:%u: invalid maskcode '%s', expected "
+                                             "maskcode(n) with a decimal n; build aborted\033[0m\n",
+                                             methodpathfile.c_str(), suffix_line_no(), shown_arg.c_str());
+                                return false;
                             }
                         }
                         else if (suffix_name == "ratelimit")
                         {
-                            // ratelimit(time,num)：第一个参数 -> rate_time，第二个 -> rate_num
-                            // 参数不足两个时缺的那个保持 0，不报错也不改变路由
-                            // fewer than two args keep the missing one at 0; never fails the route
-                            bool rt_ok = true;
-                            if (suffix_args.size() > 0 && is_digits(suffix_args[0]))
+                            // ratelimit(time,num)：两个参数都必须是十进制数字，缺一个就终止生成，
+                            // 因为保持 0 会静默取消限流
+                            // both args must be decimal; a missing one is fatal because
+                            // keeping 0 would silently remove the rate limit
+                            if (suffix_args.size() > 1 && is_digits(suffix_args[0]) && is_digits(suffix_args[1]))
                             {
                                 rate_time = (unsigned char)parse_dec(suffix_args[0],
                                                                      (unsigned long long)std::numeric_limits<unsigned char>::max());
-                            }
-                            else
-                            {
-                                rt_ok = false;
-                            }
-                            if (suffix_args.size() > 1 && is_digits(suffix_args[1]))
-                            {
                                 rate_num = (unsigned char)parse_dec(suffix_args[1],
                                                                     (unsigned long long)std::numeric_limits<unsigned char>::max());
                             }
                             else
                             {
-                                rt_ok = false;
-                            }
-                            if (!rt_ok)
-                            {
                                 std::fprintf(stderr,
-                                             "\033[1m\033[31m[ROUTE-WARN] %s:%u: invalid ratelimit, expected "
-                                             "ratelimit(time,num); missing/invalid args stay 0\033[0m\n",
+                                             "\033[1m\033[31m[ROUTE-ERROR] %s:%u: invalid ratelimit, expected "
+                                             "ratelimit(time,num) with two decimal args; build aborted\033[0m\n",
                                              methodpathfile.c_str(), suffix_line_no());
+                                return false;
                             }
                         }
                         else if (suffix_name == "title")
@@ -773,9 +771,20 @@ class pickcontrol
                         }
                         else
                         {
+                            // 未知后缀一律终止生成；以 ma 开头的基本都是 maskcode 的拼写错误，额外给出提示
+                            // any unknown suffix aborts codegen; a leading "ma" usually means a
+                            // misspelled maskcode, so add a hint
+                            std::string hint;
+                            if (suffix_name.size() >= 2 && suffix_name[0] == 'm' && suffix_name[1] == 'a')
+                            {
+                                hint = ", did you mean ':maskcode(...)'";
+                            }
                             std::fprintf(stderr,
-                                         "\033[1m\033[31m[ROUTE-WARN] %s:%u: unknown route suffix ':%s', ignored\033[0m\n",
-                                         methodpathfile.c_str(), suffix_line_no(), suffix_name.c_str());
+                                         "\033[1m\033[31m[ROUTE-ERROR] %s:%u: unknown route suffix ':%s'%s; "
+                                         "build aborted\033[0m\n",
+                                         methodpathfile.c_str(), suffix_line_no(), suffix_name.c_str(),
+                                         hint.c_str());
+                            return false;
                         }
                     }
                 }
@@ -1082,7 +1091,8 @@ class pickcontrol
             }
         }
 
-        return temp;
+        methods.swap(temp);
+        return true;
     }
     void createhfile(const std::string &filename, const std::vector<struct reg_autoitem> &methodpathfile, const std::string &domain_value, bool isdomain)
     {

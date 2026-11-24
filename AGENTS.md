@@ -252,7 +252,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 - First argument: pre‑filter function name (`null` means no filter)
 - Second argument: URL path
-- Optional `:maskcode(n)` / `:ratelimit(seconds,count)` suffixes after the closing parenthesis; use that spelling, not the bare `:digits` form. A non-zero `maskcode` is what puts this route under RBAC; the router also copies it to `client.mask_code` before the pre filter runs (see §4.8)
+- Optional `:maskcode(n)` / `:ratelimit(seconds,count)` suffixes after the closing parenthesis; use that spelling, not the bare `:digits` form. A non-zero `maskcode` is what puts this route under RBAC; the router also copies it to `client.mask_code` before the pre filter runs (see §4.8). A misspelled suffix or a missing/non-numeric argument fails the build
 - Optional `:title(name)` suffix: a display name for the route, accepted both quoted (`:title("test name")`) and bare (`:title(test name)`). It never reaches the request — it lands in `reg_methold_mid_t::title` and is what the register page writes into `sysperms.name` (see §4.8)
 
 ### 4.3 Pre‑filters
@@ -675,20 +675,24 @@ asio::awaitable<std::string> test_comaskprehas(std::shared_ptr<httppeer> peer)
 }
 ```
 
-**Parsing rules** — extracted by `vendor/httpcli/autopickcontrolmethod.hpp`, which also prints a
-warning when a suffix makes no sense:
+**Parsing rules** — extracted by `vendor/httpcli/autopickcontrolmethod.hpp`. An unknown suffix and
+a missing or invalid `maskcode` / `ratelimit` argument are **fatal**: the generator prints
+`[ROUTE-ERROR]` and exits non-zero, so the build fails. Only an unpaired quote in `title` is still
+a warning.
 
-| Annotation tail | mask stored on the entry |
-|-----------------|--------------------------|
-| no colon — `//@urlpath(null,foo)` | `0` |
+| Annotation tail | Result |
+|-----------------|--------|
+| no colon — `//@urlpath(null,foo)` | mask `0` |
 | `//@urlpath(null,foo):maskcode(1234)` | `1234` |
 | `//@urlpath(null,foo):maskcode(1234):ratelimit(20,5)` | `1234`, plus `rate_time=20`, `rate_num=5` |
 | `//@urlpath(null,foo):123456` (legacy digits only) | `123456` — still parsed, but no route in this repo uses it any more; write `:maskcode(123456)` |
 | spaces or tabs before each `:` (including between suffixes) | parsed as if they were absent |
-| `:maskcode()` / `:maskcode` | `0`, no warning |
+| `:maskcode()` / `:maskcode` | **build fails**, `[ROUTE-ERROR] invalid maskcode` |
 | `:maskcode(99999999999)` (past `UINT_MAX`) | `UINT_MAX`, clamped |
-| `:maskcode(12abc)` | `0`, plus `[ROUTE-WARN] invalid maskcode ...` |
-| `:unknown(...)` | ignored, plus `[ROUTE-WARN] unknown route suffix` |
+| `:maskcode(12abc)` | **build fails**, `[ROUTE-ERROR] invalid maskcode` |
+| `:ratelimit(20)` / `:ratelimit(20,x)` | **build fails**, `[ROUTE-ERROR] invalid ratelimit` |
+| `:unknown(...)` | **build fails**, `[ROUTE-ERROR] unknown route suffix` |
+| `:maskode(...)` and other `ma`-prefixed typos | **build fails**, with `did you mean ':maskcode(...)'` |
 
 **`:title(...)`** — the same chain, but the text is kept verbatim:
 
