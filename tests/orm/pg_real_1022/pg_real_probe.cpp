@@ -345,7 +345,8 @@ int main(int argc, char **argv)
         reading("type_warm_num_hex", warm.texts.size() > 5 ? hex_of(warm.texts[5]) : std::string());
         bool ok_cold = cr == 1 && cold.texts.size() == 11 && cold.texts[0] == "2024-02-29" &&
                        cold.texts[1] == "2024-02-29 12:34:56.789" && cold.texts[5] == "12345.6789" &&
-                       cold.texts[6] == "42" && cold.texts[7] == "-7" && cold.texts[10] == "t";
+                       cold.texts[6] == "42" && cold.texts[7] == "-7" && cold.texts[10] == "1";
+        // 冷轮 bool 文本 "t" 已按 OID 归一化为 int64 1（与暖轮一致），不再是原始 "t"
         bool ok_warm = wr == 1 && warm.texts.size() == 11 && warm.texts[0] == "2024-02-29" &&
                        warm.texts[1] == "2024-02-29 12:34:56.789000" &&
                        warm.texts[3] == "12:34:56.789000" && warm.texts[5] == "12345.6789" &&

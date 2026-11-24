@@ -20,6 +20,7 @@
 #include <functional>
 #include <tuple>
 #include <cstdint>
+#include <string_view>
 #include <unordered_map>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
@@ -113,6 +114,29 @@ struct pg_notice
     std::string severity;   // 'S' - DEBUG / INFO / NOTICE / WARNING
     std::string code;       // 'C' - SQLSTATE，如 00000 / 42P01
     std::string message;    // 'M' - 正文
+};
+
+// PG 二进制结果集：整轮 DataRow 原样收进自有缓冲，查询结束、连接归还之后仍可逐行解码。
+// 与流式接口的区别：流式 handler 里的 string_view 只在当行有效；这里解出的视图指向
+// data，生命周期跟随本对象。行载荷保持 DataRow 原始格式（2 字节列数 + 定长列），
+// 解码复用驱动内部同一个函数，调用方不需要懂协议。
+struct pg_result_set
+{
+    std::vector<std::string> col_names;
+    std::vector<uint32_t> col_oids;
+    std::vector<uint16_t> col_formats;
+    std::string data;                   // 连续存放的 DataRow 载荷
+    std::vector<uint32_t> row_offsets;  // 每行在 data 中的起点
+    unsigned int effect_num = 0;
+
+    std::size_t row_count() const { return row_offsets.size(); }
+    // clear 保留容量，便于同一对象跨请求复用（结果集本身可放在业务对象里）。
+    void clear();
+    std::string_view row_payload(std::size_t i) const;
+    // 只读：out_variants / date_backing 是调用方的临时缓冲，逐行复用时先 clear。
+    bool decode_row(std::size_t i,
+                    std::vector<col_value_variant> &out_variants,
+                    std::vector<std::string> &date_backing) const;
 };
 
 class pg_conn_base
@@ -231,6 +255,15 @@ class pg_conn_base
                                                               H handler);
 
     /**
+     * @brief 预编译查询（异步, binary 协议，整取）— 全部行读进 out 后立即返回，
+     *        调用方拿到连接已归还的结果集，再逐行 decode_row 处理。
+     *        失败时 out 内容不可用，error_msg 置位。
+     */
+    asio::awaitable<unsigned int> async_fetch_prepared_collect(const std::string &sql,
+                                                               const std::vector<http::obj_val> &params,
+                                                               pg_result_set &out);
+
+    /**
      * @brief 预编译 DML（异步）
      */
     asio::awaitable<unsigned int> async_exec_dml_prepared(const std::string &sql,
@@ -323,6 +356,12 @@ class pg_conn_base
         const std::string &sql,
         const std::vector<http::obj_val> &params,
         std::function<bool(int, char **, std::function<orm::col_value_variant(int)>)> handler);
+
+    // 整取专用实现：同一套冷/暖/重连状态机，行只入集不解码，省掉流式分支的全部准备。
+    asio::awaitable<unsigned int> async_fetch_prepared_collect_impl(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params,
+        pg_result_set &out);
 
     // ===== 连接级 SQL→结果列元数据 + 命名 statement 缓存 =====
     // 终版：完全对齐 MySQL COM_STMT 架构 —— 命名 Parse 持久化 + 热路径跳过 Parse + 跳过 Describe
@@ -420,8 +459,9 @@ class pg_conn_base
     // 否则主循环已读进缓冲、尚未处理的部分会被裸读越过，导致协议乱序
     void drain_until_ready_sync(std::vector<uint8_t> &accum_buf, unsigned int &consumed);
 
-    // 读掉 Extended Query 收尾 Close+Sync 的响应直到 ReadyForQuery,复用调用方已有的累积缓冲
-    asio::awaitable<void> async_drain_until_ready(std::vector<uint8_t> &accum_buf, unsigned int &consumed);
+    // 读掉 Extended Query 收尾 Close+Sync 的响应直到 ReadyForQuery,复用调用方已有的累积缓冲；
+    // 仅在收到完整的 ReadyForQuery 帧时返回 true。
+    asio::awaitable<bool> async_drain_until_ready(std::vector<uint8_t> &accum_buf, unsigned int &consumed);
 
     // E/N 消息载荷解析：提取 'M' 字段写入 error_msg 并置 error_code
     void parse_error_from_payload(const unsigned char *data, unsigned int len);

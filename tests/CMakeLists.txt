@@ -111,6 +111,20 @@ foreach(test_src IN LISTS test_cpp_files)
 
   add_executable(${test_name} ${test_src})
   target_link_libraries(${test_name} PRIVATE ${paozhu_test_common_libs})
+
+  # test_post_form_probe 的 main 只接受单个用例参数（v1..v12），无参运行返回 2；
+  # 按用例逐个注册，让 ctest 真正执行断言而不是撞 usage。
+  if(test_name MATCHES "post_form")
+    foreach(_case v1 v2 v3 v4 v5 v8 v10 v11 v12)
+      add_test(NAME ${test_name}_${_case} COMMAND ${test_name} ${_case})
+      set_tests_properties(${test_name}_${_case} PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        TIMEOUT 120
+        LABELS "unit;post")
+    endforeach()
+    continue()
+  endif()
+
   add_test(NAME ${test_name} COMMAND ${test_name})
 
   # —— 工作目录统一为项目根（stress 依赖 conf/ 和 docx/ 相对路径） ——

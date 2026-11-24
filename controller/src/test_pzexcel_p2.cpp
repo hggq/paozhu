@@ -503,18 +503,12 @@ std::string test_pzexcel_p2(std::shared_ptr<httppeer> peer)
                 if (r.shared_strings.size() > 0) s0 = r.shared_strings[0];
                 if (r.shared_strings.size() > 1) s1 = r.shared_strings[1];
             }
-            // A1 期望得到 "BoldPartNormalPart"，当前实现已知 gap：后一个 run 覆盖前一个 → 得到 "NormalPart"
             report_case(client, "Case7 A2 simple text ok", a2 == "second", "second", a2);
             report_case(client, "Case7 sharedStrings[1] == \"second\"", s1 == "second", "second", s1);
 
-            // s0 / A1：gap 判定
-            client << "<p>A1 (rich-text) expected=\"BoldPartNormalPart\" got=\"" << a1 << "\"</p>";
-            client << "<p>sharedStrings[0] expected=\"BoldPartNormalPart\" got=\"" << s0 << "\"</p>";
-            // 已知 gap：temp_s_str.clear() 在每个 <t> inner 循环里，后 run 覆盖前 run
-            bool gap_reproduced = (s0 == "NormalPart" || a1 == "NormalPart");
-            report_case(client, "Case7 known gap reproduced (last run wins)", gap_reproduced);
-            client << "<p><i>  (Known gap: process_shared_strings clears temp_s_str on every inner "
-                      "&lt;t&gt; tag, so the last run's text overwrites earlier runs.)</i></p>";
+            // 富文本修复后：<si> 内多个 <t> run 按顺序拼接，不再"后 run 覆盖前 run"
+            report_case(client, "Case7 rich-text runs joined",
+                        s0 == "BoldPartNormalPart" && a1 == "BoldPartNormalPart", "BoldPartNormalPart", s0);
         }
     }
 

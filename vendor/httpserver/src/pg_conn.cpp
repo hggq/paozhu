@@ -3631,13 +3631,20 @@ static void _append_describe_portal(std::string &out)
     _write_pg_msg(out, 'D', p);
 }
 
-static void _append_execute_sync(std::string &out)
+static void _append_execute_sync(std::string &out, bool close_portal_before_sync = false)
 {
     {
         std::string p;
         _append_str(p, "");
         _append_i32(p, 0);
         _write_pg_msg(out, 'E', p);
+    }
+    if (close_portal_before_sync)
+    {
+        std::string p;
+        p.push_back('P');
+        _append_str(p, "");
+        _write_pg_msg(out, 'C', p);
     }
     {
         std::string p;
@@ -3650,7 +3657,8 @@ static void _build_cold_exec(std::string &out,
                              const std::string &sql,
                              const std::vector<http::obj_val> &params,
                              const std::vector<uint16_t> &req_fmts,
-                             const std::vector<std::string> *close_old_stmts)
+                             const std::vector<std::string> *close_old_stmts,
+                             bool close_portal_before_sync = false)
 {
     if (close_old_stmts)
     {
@@ -3673,16 +3681,17 @@ static void _build_cold_exec(std::string &out,
     }
     _append_bind_named(out, stmt_name, params, req_fmts);
     _append_describe_portal(out);
-    _append_execute_sync(out);
+    _append_execute_sync(out, close_portal_before_sync);
 }
 
 static void _build_warm_exec(std::string &out,
                              const std::string &stmt_name,
                              const std::vector<http::obj_val> &params,
-                             const std::vector<uint16_t> &req_fmts)
+                             const std::vector<uint16_t> &req_fmts,
+                             bool close_portal_before_sync = false)
 {
     _append_bind_named(out, stmt_name, params, req_fmts);
-    _append_execute_sync(out);
+    _append_execute_sync(out, close_portal_before_sync);
 }
 
 static std::string _extract_sqlstate(const unsigned char *data, size_t len)
@@ -3754,19 +3763,19 @@ static bool _pg_binary_decodable(uint32_t oid)
 // 每字段 = name(NUL 结尾) + 定长 18 字节。以列名的 NUL 位置为基准：
 //   tableOid(+1..+4) attnum(+5..+6) typeOid(+7..+10) typlen(+11..+12)
 //   atttypmod(+13..+16) format(+17..+18)
-// 三个出参始终等长成组 push，字段不完整即整体停止，调用方按下标取用时必一致。
+// 三个出参始终等长成组 push；只有字段数和全部字段完整消费时才返回 true。
 // 前提：format 字段只在 RowDescription 来自 Describe Portal('P') 时可信；
 // Describe Statement('S') 服务端恒填 0。
-static void _parse_row_description(const unsigned char *d, size_t n, std::vector<std::string> &names, std::vector<uint32_t> &oids, std::vector<uint16_t> &formats)
+static bool _parse_row_description(const unsigned char *d, size_t n, std::vector<std::string> &names, std::vector<uint32_t> &oids, std::vector<uint16_t> &formats)
 {
     names.clear();
     oids.clear();
     formats.clear();
     if (n < 2)
-        return;
+        return false;
     int16_t nf = (int16_t)(((uint32_t)d[0] << 8) | d[1]);
     if (nf < 0)
-        return;
+        return false;
     size_t pos = 2;
     for (int16_t i = 0; i < nf; ++i)
     {
@@ -3774,15 +3783,16 @@ static void _parse_row_description(const unsigned char *d, size_t n, std::vector
         while (name_end < n && d[name_end] != 0)
             ++name_end;
         if (name_end >= n)
-            return;// 列名未 NUL 终止 → 载荷损坏
+            return false;// 列名未 NUL 终止 → 载荷损坏
         if (name_end + 1 + 18 > n)
-            return;// 定长字段不完整
+            return false;// 定长字段不完整
         names.push_back(std::string((const char *)(d + pos), name_end - pos));
         // name_end 指向列名的 NUL 本身，18 字节定长块从 name_end+1 起算
         oids.push_back((uint32_t)(((uint32_t)d[name_end + 7] << 24) | ((uint32_t)d[name_end + 8] << 16) | ((uint32_t)d[name_end + 9] << 8) | d[name_end + 10]));
         formats.push_back((uint16_t)(((uint32_t)d[name_end + 17] << 8) | d[name_end + 18]));
         pos = name_end + 1 + 18;
     }
+    return pos == n;
 }
 
 // ---- 整数日历（替掉解码热路径上的 gmtime_r / strftime）----
@@ -3860,6 +3870,12 @@ static bool _decode_pg_binary_row(
             u = (u << 8) | d[p + i];
         return u;
     };
+
+    // date_backing 必须预留容量：emplace_back 一旦扩容，短字符串的 string_view 指向
+    // string 对象本体（SSO 存储），对象随旧缓冲区移动后先前发出的视图全部悬空
+    // （ASan: heap-use-after-free，"postgres" 这类 ≤22 字节的文本列必现）。
+    // reserve 只增不减，调用方行间 clear() 后容量照常复用。
+    date_backing.reserve((size_t)cc);
 
     for (int16_t i = 0; i < cc; ++i)
     {
@@ -3945,8 +3961,10 @@ static bool _decode_pg_binary_row(
             }
             if (!typed)
             {
-                date_backing.emplace_back((const char *)p, (size_t)vlen);
-                out_variants.push_back(orm::col_value_variant{std::string_view{date_backing.back()}});
+                // 文本列直接指向行载荷本体，不拷进 date_backing：整取场景载荷常驻
+                // rs.data，视图与结果集同寿命（"值不随行回调失效"的契约）；拷进
+                // backing 反而让逐行 clear 后先前发出的视图悬空（/fortunes 排序即踩此坑）
+                out_variants.push_back(orm::col_value_variant{std::string_view{(const char *)p, (size_t)vlen}});
             }
             pos += (size_t)vlen;
             continue;
@@ -4751,7 +4769,9 @@ RETRY_RECONNECT:
             case 'n': break;// NoData（Describe DML 的响应）
             case 'C':
             {
-                // "UPDATE 123" / "DELETE 456" / "INSERT 0 789"
+                // "UPDATE 123" / "DELETE 456" / "INSERT 0 789"；DDL tag（"CREATE TABLE"、
+                // "DROP TABLE" 等）没有行数后缀——语句已成功，affected 必须落回 0，
+                // 否则调用方按 -1 判失败（且 error_msg 为空，形成"静默失败"）
                 size_t last_space = payload.find_last_of(' ');
                 if (last_space != std::string::npos)
                 {
@@ -4762,7 +4782,12 @@ RETRY_RECONNECT:
                     }
                     catch (...)
                     {
+                        affected = 0;
                     }
+                }
+                else
+                {
+                    affected = 0;
                 }
                 break;
             }
@@ -4973,6 +4998,7 @@ RETRY_RECONNECT:
             case 'n': break;// NoData
             case 'C':
             {
+                // 同同步版：DDL tag 无行数后缀，成功即 affected=0，不得留 -1
                 size_t last_space = payload.find_last_of(' ');
                 if (last_space != std::string::npos)
                 {
@@ -4983,7 +5009,12 @@ RETRY_RECONNECT:
                     }
                     catch (...)
                     {
+                        affected = 0;
                     }
+                }
+                else
+                {
+                    affected = 0;
                 }
                 break;
             }
@@ -5102,8 +5133,8 @@ void pg_conn_base::drain_until_ready_sync(std::vector<uint8_t> &accum_buf, unsig
     return;
 }
 
-// async 孪生：同上，先消费缓冲里的残帧再 co_await async_read_loop
-asio::awaitable<void> pg_conn_base::async_drain_until_ready(std::vector<uint8_t> &accum_buf, unsigned int &consumed)
+// async 孪生：同上，先消费缓冲里的残帧再 co_await async_read_loop；仅在收到完整 Z 帧时返回 true。
+asio::awaitable<bool> pg_conn_base::async_drain_until_ready(std::vector<uint8_t> &accum_buf, unsigned int &consumed)
 {
     for (unsigned int round = 0; round < 64; ++round)
     {
@@ -5122,15 +5153,15 @@ asio::awaitable<void> pg_conn_base::async_drain_until_ready(std::vector<uint8_t>
             // peek_pg_message 内部已按整包推进 consumed
 
             if (msg_type == 'Z')
-                co_return;
+                co_return payload_len == 1;
         }
 
         unsigned int n = co_await async_read_loop();
         if (n == 0)
-            co_return;
+            co_return false;
         accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
     }
-    co_return;
+    co_return false;
 }
 
 // ===== PG Extended Query 异步版 =====
@@ -6154,6 +6185,307 @@ RETRY_RECONNECT:
         prepared_meta_.erase(sql, &dropped);
     }
     co_return rows;
+}
+
+void pg_result_set::clear()
+{
+    col_names.clear();
+    col_oids.clear();
+    col_formats.clear();
+    data.clear();
+    row_offsets.clear();
+    effect_num = 0;
+}
+
+std::string_view pg_result_set::row_payload(std::size_t i) const
+{
+    if (i >= row_offsets.size())
+        return {};
+    const std::size_t begin = row_offsets[i];
+    const std::size_t end   = (i + 1 < row_offsets.size()) ? row_offsets[i + 1] : data.size();
+    return std::string_view(data.data() + begin, end - begin);
+}
+
+bool pg_result_set::decode_row(std::size_t i,
+                               std::vector<col_value_variant> &out_variants,
+                               std::vector<std::string> &date_backing) const
+{
+    const std::string_view payload = row_payload(i);
+    if (payload.empty())
+        return false;
+    return _decode_pg_binary_row(payload, col_oids, col_formats, out_variants, date_backing);
+}
+
+asio::awaitable<unsigned int> pg_conn_base::async_fetch_prepared_collect_impl(
+    const std::string &sql,
+    const std::vector<http::obj_val> &params,
+    pg_result_set &out)
+{
+    unsigned int reconnect_attempt      = 0;
+    unsigned int rows                   = 0;
+    bool result_clean                   = false;
+    constexpr size_t k_max_result_bytes = 16u * 1024u * 1024u;
+
+    out.clear();
+    pg_stmt_meta_t dropped;// PG-5: warm 轮摘掉的旧语句名，随下一轮冷包一起 DEALLOCATE
+
+RETRY_RECONNECT:
+    out.clear();
+    rows = 0;
+
+    for (unsigned int warm_attempt = 0; warm_attempt < 2; ++warm_attempt)
+    {
+        error_msg.clear();
+        error_code          = 0;
+        bool cold_wont_help = false;
+        notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
+
+        const pg_stmt_meta_t *m = (warm_attempt == 0) ? prepared_meta_.find(sql) : nullptr;
+        const bool warm         = (m != nullptr && !m->needs_reparse);
+        std::string send_buf;
+
+        if (warm)
+        {
+            // 列元数据直接落进结果集：解码要按同一组 OID/格式进行。
+            out.col_names = m->col_names;
+            out.col_oids  = m->col_oids;
+            out.col_formats.clear();
+            out.col_formats.reserve(m->col_oids.size());
+            for (uint32_t oid : m->col_oids)
+                out.col_formats.push_back(_pg_binary_decodable(oid) ? 1 : 0);
+            _build_warm_exec(send_buf, m->stmt_name, params, out.col_formats, true);
+        }
+        else
+        {
+            pg_stmt_meta_t needs_close;
+            const pg_stmt_meta_t *old = (warm_attempt == 0) ? m : nullptr;
+            if (old && old->needs_reparse)
+            {
+                prepared_meta_.erase(sql, &needs_close);
+            }
+
+            pg_stmt_meta_t evicted;
+            std::string stmt_name = prepared_meta_.next_stmt_name();
+            auto &slot            = prepared_meta_.upsert(sql, &evicted);
+            slot.stmt_name        = stmt_name;
+            slot.needs_reparse    = false;
+
+            std::vector<std::string> close_targets;
+            if (!needs_close.stmt_name.empty())
+                close_targets.push_back(needs_close.stmt_name);
+            if (!evicted.stmt_name.empty())
+                close_targets.push_back(evicted.stmt_name);
+            if (!dropped.stmt_name.empty())
+            {
+                close_targets.push_back(std::move(dropped.stmt_name));
+                dropped.stmt_name.clear();
+            }
+
+            // Close 与 Execute 同包发送，首个 ReadyForQuery 即代表结果和清理都已完成。
+            _build_cold_exec(send_buf, stmt_name, sql, params, {}, close_targets.empty() ? nullptr : &close_targets, true);
+        }
+
+        if (!co_await _pg_async_write_buf(this, send_buf))
+        {
+            error_msg  = "Extended Query async write failed";
+            error_code = 20;
+            prepared_meta_.erase(sql);// 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
+            {
+                reconnect_attempt++;
+                goto RETRY_RECONNECT;
+            }
+            isclose = true;
+            co_return rows;
+        }
+
+        bool got_ready    = false;
+        bool abandon      = false;
+        bool got_row_desc = false;// 本轮是否拿到结果形状（'T' 或 'n'）：冷轮失败时据此决定槽位要不要重解析
+        if (!warm)
+        {
+            out.col_names.clear();
+            out.col_oids.clear();
+            out.col_formats.clear();
+        }
+        _pg_frame_state fs;
+        pooled_accum_buf accum_holder;
+        auto &accum_buf = accum_holder.buf;
+
+        while (!got_ready)
+        {
+            unsigned int n = co_await async_read_loop();
+            if (n == 0)
+            {
+                error_msg  = "async read failed";
+                error_code = 21;
+                // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
+                isclose = true;
+                break;
+            }
+            if (!_pg_feed(accum_buf, fs, reinterpret_cast<const char *>(_cache_data), static_cast<size_t>(n), k_max_result_bytes, 0))
+            {
+                error_msg  = "async_fetch_prepared_collect: result set exceeds 16MB limit";
+                error_code = 8;
+                isclose    = true;
+                break;
+            }
+
+            while (true)
+            {
+                const unsigned char *payload_start = nullptr;
+                unsigned int payload_len           = 0;
+                unsigned char type                 = _pg_next_frame(accum_buf, fs, payload_start, payload_len);
+                if (type == 0)
+                    break;
+                std::string_view payload(reinterpret_cast<const char *>(payload_start), payload_len);
+
+                if (abandon)
+                {
+                    if (type == 'Z')
+                        got_ready = true;
+                    continue;
+                }
+                switch (type)
+                {
+                case '1': break;
+                case '3': break;
+                case 'n': got_row_desc = true; break;// NoData：结果形状已知（无列）
+
+                case 'T':
+                {
+                    std::vector<std::string> names;
+                    std::vector<uint32_t> oids;
+                    std::vector<uint16_t> formats;
+                    if (!_parse_row_description(reinterpret_cast<const unsigned char *>(payload.data()),
+                                                payload.size(),
+                                                names,
+                                                oids,
+                                                formats))
+                    {
+                        error_msg  = "async_fetch_prepared_collect: malformed RowDescription payload";
+                        error_code = 26;
+                        isclose    = true;
+                        abandon    = true;
+                        got_ready  = true;
+                        break;
+                    }
+                    out.col_names   = std::move(names);
+                    out.col_oids    = std::move(oids);
+                    out.col_formats = std::move(formats);
+                    auto &slot         = prepared_meta_.upsert(sql);
+                    slot.col_oids      = out.col_oids;
+                    slot.col_fmt       = out.col_formats;
+                    slot.col_names     = out.col_names;
+                    slot.needs_reparse = false;
+                    got_row_desc       = true;
+                    break;
+                }
+
+                case 'D':
+                {
+                    if (out.col_names.empty())
+                    {
+                        // 热轮不带 Describe ⇒ 没有本轮 'T'。槽里若没有列信息（冷轮在 Describe 前失败过），
+                        // 这一行无从解释；置错让 need_cold 摘槽并用冷包重发一次。
+                        if (warm)
+                        {
+                            error_msg  = "async_fetch_prepared_collect: DataRow without row description";
+                            error_code = 24;
+                            abandon    = true;
+                        }
+                        break;
+                    }
+                    if (payload.size() < 2)
+                    {
+                        // 载荷连 int16 字段数都放不下：响应已损坏。必须显式置协议错误，
+                        // 只置 abandon 会让调用方把截断结果当成"查询成功、0 行"。
+                        error_msg  = "async_fetch_prepared_collect: malformed DataRow payload";
+                        error_code = 25;
+                        abandon    = true;
+                        break;
+                    }
+                    // 只搬运，不解码：解码推迟到连接归还之后。
+                    out.row_offsets.push_back((uint32_t)out.data.size());
+                    out.data.append(payload.data(), payload.size());
+                    ++rows;
+                    break;
+                }
+
+                case 'C': break;
+                case 'Z':
+                {
+                    if (payload.size() >= 1)
+                        in_transaction_.store(payload[0] == 'T' || payload[0] == 'E');
+                    got_ready = true;
+                    break;
+                }
+                case 'E':
+                {
+                    parse_error_from_payload((const unsigned char *)payload.data(),
+                                             static_cast<unsigned int>(payload.size()));
+                    error_code           = 22;// 与 sync 预编译 / exec_dml 统一错误码口径
+                    std::string sqlstate = _extract_sqlstate(
+                        (const unsigned char *)payload.data(),
+                        payload.size());
+                    if (_pg_sqlstate_needs_reparse(sqlstate))
+                        prepared_meta_.mark_needs_reparse(sql);
+                    else if (_pg_sqlstate_is_transient(sqlstate))
+                        prepared_meta_.erase(sql, &dropped);
+                    else if (!sqlstate.empty())
+                        cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
+                    break;
+                }
+                case 'G':
+                case 'H':
+                case 'd':
+                case 'c':
+                {
+                    error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
+                    error_code = 8;
+                    isclose    = true;
+                    got_ready  = true;
+                    break;
+                }
+                case 'N':
+                case 'S':
+                case 'A':
+                case 't': break;
+                default: break;
+                }
+            }
+        }
+
+        result_clean = got_ready && !abandon && !isclose && error_code == 0;
+
+        const bool need_cold =
+            warm && rows == 0 && !cold_wont_help && !isclose && error_code != 21 &&
+            error_code != 0;
+        if (!need_cold)
+        {
+            // 冷轮在拿到结果形状之前就失败（Bind 参数转换错等）：语句已 Parse 成功，槽位里却
+            // 只有语句名、没有列信息。标成待重解析：下一次调用重新走冷路径。
+            if (!warm && !isclose && error_code != 0 && !got_row_desc)
+                prepared_meta_.mark_needs_reparse(sql);
+            break;
+        }
+        prepared_meta_.erase(sql, &dropped);
+    }
+
+    // 失败时结果集内容不可用，调用方只看 error_msg。
+    if (result_clean)
+        out.effect_num = rows;
+    else
+        out.clear();
+    co_return rows;
+}
+
+asio::awaitable<unsigned int> pg_conn_base::async_fetch_prepared_collect(
+    const std::string &sql,
+    const std::vector<http::obj_val> &params,
+    pg_result_set &out)
+{
+    co_return co_await async_fetch_prepared_collect_impl(sql, params, out);
 }
 
 }// namespace orm

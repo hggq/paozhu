@@ -41,14 +41,15 @@ class db_conn : std::enable_shared_from_this<db_conn>
     {
         // 事务未 commit/rollback 就析构：先回滚，否则会把"还开着事务"的连接
         // 归还给连接池，下一个借用者继承这个事务（悬挂事务）
-        const bool was_locked = islock_conn;
         if (iscommit && conn_obj)
         {
             rollback();
         }
-        if (was_locked)
+        // 残留连接一律走归还口，不再只在 lock_conn 模式下归还：异常/提前返回的路径
+        // 以前直接销毁连接，既不复用也不唤醒本槽等待者。
+        islock_conn = false;
+        if (conn_obj)
         {
-            islock_conn = false;
             if (db_type == DB_TYPE::MYSQL)
             {
                 if (mysql_select_conn)
@@ -104,6 +105,70 @@ class db_conn : std::enable_shared_from_this<db_conn>
         conn.reset();
         return;
     }
+
+    // PG 专用：SQL 出错后协议已排空到 ReadyForQuery，连接仍可用。交回归还口，由池
+    // 按 isclose 决定复用还是丢弃，丢弃时统一唤醒等待者；不能像模板那样直接 reset。
+    void mark_select_failed(std::shared_ptr<pg_conn_base> &conn)
+    {
+        if (conn && !conn->error_msg.empty())
+        {
+            error_msg = conn->error_msg;
+        }
+        iserror = true;
+        if (!conn)
+        {
+            return;
+        }
+        if (islock_conn || !conn_obj)
+        {
+            return;// 锁模式：留给 unlock_conn()/析构统一归还
+        }
+        conn_obj->back_pg_select_conn(std::move(conn));
+    }
+
+    // 异常中断（分配失败等）：协议状态未知，按断开处理；仍走归还口，保证等待者被唤醒。
+    void drop_select_after_exception()
+    {
+        iserror = true;
+        if (!pg_select_conn)
+        {
+            return;
+        }
+        if (islock_conn || !conn_obj)
+        {
+            return;
+        }
+        pg_select_conn->isclose = true;
+        conn_obj->back_pg_select_conn(std::move(pg_select_conn));
+    }
+
+    //// 协程帧被直接销毁（取消不会进 catch）时的兜底：查询可能仍在途，服务端还有
+    //// 没读完的响应，协议状态未知。必须先 isclose 再交还池，否则下一个借用者会把
+    //// 旧响应当成当前查询结果（串数据）。正常/错误/异常路径都已把 pg_select_conn
+    //// 移出成员，能命中这里的只有帧销毁一种情况。
+    void release_select_on_frame_destroy()
+    {
+        if (!pg_select_conn || islock_conn || !conn_obj)
+        {
+            return;
+        }
+        pg_select_conn->isclose = true;
+        conn_obj->back_pg_select_conn(std::move(pg_select_conn));
+    }
+
+    // 声明在协程帧作用域（try 之前）：帧正常走完时成员已被移走，析构是空操作；
+    // 帧被取消销毁时析构执行 release_select_on_frame_destroy()。
+    class select_frame_guard
+    {
+      public:
+        explicit select_frame_guard(db_conn *self) : self_(self) {}
+        ~select_frame_guard() { self_->release_select_on_frame_destroy(); }
+        select_frame_guard(const select_frame_guard &)            = delete;
+        select_frame_guard &operator=(const select_frame_guard &) = delete;
+
+      private:
+        db_conn *self_;
+    };
 
     template <typename ConnPtr>
     void mark_select_failed(ConnPtr &conn)
@@ -2957,6 +3022,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
             co_return 0;
         }
         error_msg.clear();
+        select_frame_guard frame_guard{this};
 
         try
         {
@@ -3018,6 +3084,104 @@ class db_conn : std::enable_shared_from_this<db_conn>
         catch (const std::exception &e)
         {
             error_msg = std::string(e.what());
+            drop_select_after_exception();// 异常退出也要归还，否则连接随对象析构被扔掉且不唤醒等待者
+        }
+
+        co_return 0;
+    }
+
+    // PG 二进制结果整取：所有行先读进 out，连接在 co_await 返回前已归还，之后再用
+    // out.decode_row() 逐行取。与 async_query_prepared_binary 的差别是值不再随行回调失效，
+    // 适合"先整取、再排序/渲染"；代价是行载荷多一次拷贝。失败时 out 不可用，返回 0。
+    asio::awaitable<unsigned int> async_query_prepared_all(const std::string &rawsql,
+                                                           const std::vector<http::obj_val> &params,
+                                                           pg_result_set &out)
+    {
+        out.clear();
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+        error_msg.clear();
+        select_frame_guard frame_guard{this};
+
+        try
+        {
+            if (db_type != DB_TYPE::POSTGRESQL)
+            {
+                error_msg = "async_query_prepared_all: only PostgreSQL has binary row values";
+                co_return 0;
+            }
+            if (!exec_bind_params_guard(params, error_msg))
+            {
+                co_return 0;
+            }
+
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!pg_select_conn)
+                {
+                    pg_select_conn = co_await conn_obj->async_get_pg_select_conn();
+                }
+            }
+            else
+            {
+                pg_select_conn = co_await conn_obj->async_get_pg_select_conn();
+            }
+
+            if (pg_select_conn->isdebug)
+            {
+                pg_select_conn->begin_time();
+            }
+
+            effect_num = co_await pg_select_conn->async_fetch_prepared_collect(rawsql, params, out);
+
+            const bool query_failed = !pg_select_conn->error_msg.empty();
+            std::string query_error;
+            if (query_failed)
+            {
+                query_error = std::move(pg_select_conn->error_msg);
+            }
+            const bool debug = pg_select_conn->isdebug;
+            long long query_time = 0;
+            if (!query_failed && debug)
+            {
+                pg_select_conn->finish_time();
+                query_time = pg_select_conn->count_time();
+            }
+
+            // 结果已归 out，后续错误清理和调试日志都不能继续占用 select 连接。
+            if (!islock_conn)
+            {
+                conn_obj->back_pg_select_conn(std::move(pg_select_conn));
+            }
+
+            if (query_failed)
+            {
+                error_msg = std::move(query_error);
+                iserror = true;
+                effect_num = 0;
+                out.clear();
+                co_return 0;
+            }
+            if (debug)
+            {
+                auto &conn_mar = get_orm_connect_mar();
+                conn_mar.push_log(rawsql, std::to_string(query_time));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+            drop_select_after_exception();// 异常退出也要归还，否则连接随对象析构被扔掉且不唤醒等待者
         }
 
         co_return 0;

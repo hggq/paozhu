@@ -479,16 +479,9 @@ int main()
             report_case("Case7 A2 simple text ok", a2 == "second", "second", a2);
             report_case("Case7 sharedStrings[1] == \"second\"", s1 == "second", "second", s1);
 
-            std::cout << "A1 (rich-text) expected=\"BoldPartNormalPart\" got=\"" << a1 << "\""
-                      << std::endl;
-            std::cout << "sharedStrings[0] expected=\"BoldPartNormalPart\" got=\"" << s0 << "\""
-                      << std::endl;
-
-            bool gap_reproduced = (s0 == "NormalPart" || a1 == "NormalPart");
-            report_case("Case7 known gap reproduced (last run wins)", gap_reproduced);
-            std::cout << "  (Known gap: process_shared_strings clears temp_s_str on every inner "
-                         "<t> tag, so the last run's text overwrites earlier runs.)"
-                      << std::endl;
+            // 富文本修复后：<si> 内多个 <t> run 按顺序拼接，不再"后 run 覆盖前 run"
+            report_case("Case7 rich-text runs joined", s0 == "BoldPartNormalPart" && a1 == "BoldPartNormalPart",
+                        "BoldPartNormalPart", s0);
         }
     }
 

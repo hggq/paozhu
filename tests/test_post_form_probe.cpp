@@ -142,24 +142,26 @@ static int case_v5()
     return g_fail == 0 ? 0 : 1;
 }
 
-// V8: 持有引用后继续插入, 写回旧引用必须安全.
-// 定稿方案 B 是 vector + 引用契约, 这是故意违约的用法, 预期 ASan UAF, 不算缺陷.
+// V8: 跨插入持有引用是契约禁止的 UB（旧版故意违约触发 ASan UAF，Release 下直接段错误）;
+// 本用例改为验证契约内的正确用法: 插入后重新取引用, 数据不丢、写入可见.
 static int case_v8()
 {
+    // 契约（request.h）：obj_t 底层是 vector，插入可能搬动元素、旧引用随之失效。
+    // 因此跨插入持有引用是 UB，正确用法是插入后重新取引用再写。
     obj_val post;
     post["cc"]["22"].set_array();
     post["cc"]["22"].push(std::string("A"));
 
-    obj_val &cc = post["cc"];
-    const void *addr_before = &cc;
     for (int i = 0; i < 64; i++)
         post["k" + std::to_string(i)] = i;
 
+    // 重新取引用（旧 &cc 此时可能已悬空，不得再触碰）
+    obj_val &cc = post["cc"];
     cc["aabbcc"].set_array();
     cc["aabbcc"].push(std::string("B"));
 
-    check(&post["cc"] == addr_before, "post[\"cc\"] address stable");
-    check(post["cc"]["aabbcc"][0].to_string() == "B", "write through old reference visible");
+    check(post["cc"]["22"][0].to_string() == "A", "old member survives 64 insertions");
+    check(post["cc"]["aabbcc"][0].to_string() == "B", "write through re-fetched reference visible");
     return g_fail == 0 ? 0 : 1;
 }
 
