@@ -4,6 +4,7 @@
  */
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <charconv>
 #include <iostream>
@@ -3878,13 +3879,75 @@ static bool _decode_pg_binary_row(
         const unsigned char *p = d + pos;
         uint32_t oid           = (i < (int16_t)col_oids.size()) ? col_oids[(size_t)i] : 0;
 
-        // format==0 ⇒ 该列服务端发的是文本输出（typout），与文本协议逐字节一致，
-        // 原样返回即为权威值；binary 解码器只服务 format==1 的列。
+        // format==0 ⇒ 该列服务端发的是文本输出（typout）。冷路径首包（Parse+Bind 尚未
+        // 带结果格式码）整行都是 text，暖路径按 _pg_binary_decodable 要 binary：同一列
+        // 的 variant 类型不能随"第几次请求"变化，否则调用方按 int64_t 取 cold 行的 int4
+        // 只会拿到 string_view（db.cpp 里就表现为整列为 0）。这里把可解码类型的文本归一
+        // 成暖路径的类型；numeric/date/time/text/json 两条路径本来就都是 string_view。
         uint16_t fmt = (i < (int16_t)col_formats.size()) ? col_formats[(size_t)i] : 1;
         if (fmt == 0)
         {
-            date_backing.emplace_back((const char *)p, (size_t)vlen);
-            out_variants.push_back(orm::col_value_variant{std::string_view{date_backing.back()}});
+            bool typed = true;
+            switch (oid)
+            {
+            case 16:// bool: boolout 只输出 "t"/"f"
+            {
+                if (vlen == 1)
+                    out_variants.push_back(orm::col_value_variant{(int64_t)(p[0] == 't' ? 1 : 0)});
+                else
+                    typed = false;
+                break;
+            }
+            case 20:
+            case 21:
+            case 23:// int8 / int2 / int4
+            {
+                int64_t v = 0;
+                auto r    = std::from_chars((const char *)p, (const char *)p + vlen, v);
+                if (r.ec == std::errc{} && r.ptr == (const char *)p + vlen)
+                    out_variants.push_back(orm::col_value_variant{v});
+                else
+                    typed = false;
+                break;
+            }
+            case 26:// oid
+            {
+                uint64_t v = 0;
+                auto r     = std::from_chars((const char *)p, (const char *)p + vlen, v);
+                if (r.ec == std::errc{} && r.ptr == (const char *)p + vlen)
+                    out_variants.push_back(orm::col_value_variant{v});
+                else
+                    typed = false;
+                break;
+            }
+            case 700:
+            case 701:// float4 / float8：用 strtod 而不是浮点 from_chars（libc++ 缺失），可处理 NaN/Infinity
+            {
+                char buf[64];
+                if (vlen > 0 && (size_t)vlen < sizeof(buf))
+                {
+                    memcpy(buf, p, (size_t)vlen);
+                    buf[vlen]    = 0;
+                    char *parse_end = nullptr;
+                    double v        = std::strtod(buf, &parse_end);
+                    if (parse_end == buf + vlen)
+                        out_variants.push_back(orm::col_value_variant{v});
+                    else
+                        typed = false;
+                }
+                else
+                    typed = false;
+                break;
+            }
+            default:
+                typed = false;
+                break;
+            }
+            if (!typed)
+            {
+                date_backing.emplace_back((const char *)p, (size_t)vlen);
+                out_variants.push_back(orm::col_value_variant{std::string_view{date_backing.back()}});
+            }
             pos += (size_t)vlen;
             continue;
         }
