@@ -294,7 +294,7 @@ bool ThreadPool::addthread(size_t threads)
 ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
-    cpu_threads = std::thread::hardware_concurrency();
+    cpu_threads = available_cpu_count();
     cpu_threads = cpu_threads + 2;
     mixthreads.store(cpu_threads);
     cpu_threads = cpu_threads * 2;

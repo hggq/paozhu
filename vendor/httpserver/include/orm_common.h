@@ -1180,8 +1180,10 @@ inline unsigned int count_qmark(std::string_view sql)
     return detail::qmark_scan(sql, nullptr, false);
 }
 
-// rawsql writes `?` for all three backends; the PG extended protocol needs `$n`, so only the PG
-// branch calls this. ph_count_out carries the placeholder count to avoid a second scan.
+// Opt-in utility only: db_conn's PG paths no longer call this. PG callers write `$1..$n` in their
+// SQL directly, so no per-request string is built. Kept for external callers that still hand in
+// `?` SQL and want the rewrite (inline, zero cost when unused). ph_count_out carries the
+// placeholder count to avoid a second scan.
 inline std::string pg_qmark_to_dollar(std::string_view sql, unsigned int &ph_count_out)
 {
     std::string out;
@@ -1244,18 +1246,13 @@ inline bool sql_is_select(std::string_view sql)
     return sql_word_at(sql, sql_skip_leading_noise(sql), "select");
 }
 
-// Entry guard for exec_*. ph comes from the caller (PG: pg_qmark_to_dollar's out param, others:
-// count_qmark) so no extra scan is needed for the check.
+// Rejects obj_val kinds the bind encoder cannot serialize. PG paths call this directly: their
+// SQL already carries $1..$n and params.size() is the bind count, so no placeholder scan is
+// needed — a mismatch is reported by the server at Parse/Bind.
 // WARNING: only sets error_msg, not the sticky iserror — iserror is reserved for pool-level or
 // structural misuse; one bad argument must not poison the whole db_conn.
-inline bool exec_bind_guard(unsigned int ph, const std::vector<http::obj_val> &params, std::string &error_msg)
+inline bool exec_bind_params_guard(const std::vector<http::obj_val> &params, std::string &error_msg)
 {
-    if (ph != params.size())
-    {
-        error_msg = "placeholder/param count mismatch: sql=" + std::to_string(ph) +
-                    " params=" + std::to_string(params.size());
-        return false;
-    }
     for (const auto &p : params)
     {
         const http::obj_type t = p.get_type();
@@ -1266,6 +1263,18 @@ inline bool exec_bind_guard(unsigned int ph, const std::vector<http::obj_val> &p
         }
     }
     return true;
+}
+
+// Entry guard for MySQL / SQLite exec_*: ph comes from count_qmark(), so no extra scan is needed.
+inline bool exec_bind_guard(unsigned int ph, const std::vector<http::obj_val> &params, std::string &error_msg)
+{
+    if (ph != params.size())
+    {
+        error_msg = "placeholder/param count mismatch: sql=" + std::to_string(ph) +
+                    " params=" + std::to_string(params.size());
+        return false;
+    }
+    return exec_bind_params_guard(params, error_msg);
 }
 
 // exec_* 结果缓存的 key：dbtag + SQL 文本 + 逐个绑定参数。

@@ -18,6 +18,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <cctype>
+#include <cstdlib>
+#include <fstream>
+#if defined(__linux__)
+#include <sched.h>
+#endif
 #include "datetime.h"
 
 #ifdef WIN32
@@ -30,6 +35,97 @@
 namespace http
 {
 namespace fs = std::filesystem;
+
+#if defined(__linux__)
+namespace
+{
+// 读取文件首行；文件不存在或读失败返回 false。cgroup 配额文件都只有一行。
+bool read_first_line(const char *path, std::string &line)
+{
+    std::ifstream in(path);
+    if (!in)
+    {
+        return false;
+    }
+    return static_cast<bool>(std::getline(in, line));
+}
+
+// cgroup CPU 配额折算成核数；未设置配额（v2 的 "max"、v1 的 -1）返回 0。
+// v2: /sys/fs/cgroup/cpu.max = "<quota> <period>" | "max <period>"
+// v1: /sys/fs/cgroup/cpu/cpu.cfs_quota_us + cpu.cfs_period_us
+unsigned int cgroup_cpu_limit()
+{
+    std::string line;
+    if (read_first_line("/sys/fs/cgroup/cpu.max", line))
+    {
+        std::istringstream iss(line);
+        std::string quota;
+        std::string period;
+        if (!(iss >> quota >> period))
+        {
+            return 0;
+        }
+        if (quota == "max")
+        {
+            return 0;
+        }
+        const long long q = std::strtoll(quota.c_str(), nullptr, 10);
+        const long long p = std::strtoll(period.c_str(), nullptr, 10);
+        if (q > 0 && p > 0)
+        {
+            return static_cast<unsigned int>((q + p - 1) / p);
+        }
+        return 0;
+    }
+
+    std::string quota;
+    std::string period;
+    if (read_first_line("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", quota) &&
+        read_first_line("/sys/fs/cgroup/cpu/cpu.cfs_period_us", period))
+    {
+        const long long q = std::strtoll(quota.c_str(), nullptr, 10);
+        const long long p = std::strtoll(period.c_str(), nullptr, 10);
+        if (q > 0 && p > 0)
+        {
+            return static_cast<unsigned int>((q + p - 1) / p);
+        }
+    }
+    return 0;
+}
+}// namespace
+#endif
+
+unsigned int available_cpu_count()
+{
+    // 进程内不变，只算一次；affinity 与 cgroup 配额都不会在运行期变化。
+    static const unsigned int cached = []() -> unsigned int {
+        unsigned int n = std::thread::hardware_concurrency();
+        if (n == 0)
+        {
+            n = 1;
+        }
+#if defined(__linux__)
+        cpu_set_t set;
+        CPU_ZERO(&set);
+        if (sched_getaffinity(0, sizeof(set), &set) == 0)
+        {
+            const int affinity = CPU_COUNT(&set);
+            if (affinity > 0)
+            {
+                n = static_cast<unsigned int>(affinity);
+            }
+        }
+        const unsigned int quota = cgroup_cpu_limit();
+        if (quota > 0 && quota < n)
+        {
+            n = quota;
+        }
+#endif
+        return n;
+    }();
+    return cached;
+}
+
 bool str_cmp(std::string_view str1, std::string_view str2)
 {
     if (str1.size() != str2.size())

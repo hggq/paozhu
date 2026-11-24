@@ -54,6 +54,12 @@ unsigned int mb_strlen(std::string_view);
 std::map<std::string, std::string> filepath(std::string &);
 struct stat filestat(std::string &);
 
+// 本进程可用的 CPU 数，语义对齐 Rust std::thread::available_parallelism()：
+// 先取 sched_getaffinity（容器 --cpuset-cpus 会反映在这里），再按 cgroup v2/v1
+// 的 CPU 配额收紧，取较小值。hardware_concurrency() 只看宿主在线核数，cpuset
+// 容器里会返回宿主核数，按它起线程会成倍超配。结果在进程内缓存一次。
+unsigned int available_cpu_count();
+
 unsigned long long str2uint(std::string_view);
 unsigned long long str2uint(const char *source, unsigned int str_length);
 long long str2int(std::string_view);

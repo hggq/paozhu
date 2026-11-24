@@ -1711,9 +1711,7 @@ unsigned int db_conn::pg_exec_edit_query_impl(const std::string &rawsql, const s
 
     try
     {
-        unsigned int ph_count = 0;
-        const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-        if (!exec_bind_guard(ph_count, params, error_msg))
+        if (!exec_bind_params_guard(params, error_msg))
         {
             return 0;
         }
@@ -1741,7 +1739,7 @@ unsigned int db_conn::pg_exec_edit_query_impl(const std::string &rawsql, const s
             pg_edit_conn->begin_time();
         }
 
-        unsigned int affected = pg_edit_conn->exec_dml_prepared(sql, params);
+        unsigned int affected = pg_edit_conn->exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
             mark_edit_failed(pg_edit_conn);
@@ -1933,9 +1931,7 @@ asio::awaitable<unsigned int> db_conn::pg_async_exec_edit_query_impl(const std::
 
     try
     {
-        unsigned int ph_count = 0;
-        const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-        if (!exec_bind_guard(ph_count, params, error_msg))
+        if (!exec_bind_params_guard(params, error_msg))
         {
             co_return 0;
         }
@@ -1963,7 +1959,7 @@ asio::awaitable<unsigned int> db_conn::pg_async_exec_edit_query_impl(const std::
             pg_edit_conn->begin_time();
         }
 
-        unsigned int affected = co_await pg_edit_conn->async_exec_dml_prepared(sql, params);
+        unsigned int affected = co_await pg_edit_conn->async_exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
             mark_edit_failed(pg_edit_conn);

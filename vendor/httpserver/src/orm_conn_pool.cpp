@@ -534,10 +534,28 @@ orm_slot &orm_conn_pool::slot_ref(unsigned int slot_index)
     return slot;
 }
 
-// 选槽：轮转给候选 a，半环外给候选 b，取空闲连接多的一个；相等（含全 0）
-// 回退 a，保持轮转分布。idle_count 无锁读，过期值只影响偏好，不影响正确性。
-unsigned int orm_conn_pool::pick_slot(unsigned int role)
+// 命中注入 ioc 时固定对应槽；自托管或独立调用方不在表里，保留原轮转选槽。
+unsigned int orm_conn_pool::pick_slot(unsigned int role,
+                                      const asio::execution_context *context,
+                                      bool *same_ioc)
 {
+    if (same_ioc != nullptr)
+    {
+        *same_ioc = false;
+    }
+    if (context != nullptr && ioc_index)
+    {
+        auto iter = ioc_index->find(context);
+        if (iter != ioc_index->end() && iter->second < slots.size())
+        {
+            if (same_ioc != nullptr)
+            {
+                *same_ioc = true;
+            }
+            return iter->second;
+        }
+    }
+
     const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
     if (n <= 1)
     {
@@ -814,6 +832,7 @@ std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int 
     if (!host.started)
     {
         // 线程池总数：0 表示用 hardware_concurrency()，保底 1
+        // 独立 ORM 模式下本文件也参与 paozhu_cli 链接，不依赖 func.cpp 的可用核数实现。
         unsigned int total_threads = orm_thread_pool_num;
         if (total_threads == 0)
         {
@@ -1147,8 +1166,10 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_edit_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
-    const unsigned int slot_index = pick_slot(LINK_EDIT);
+    auto ex                       = co_await asio::this_coro::executor;
+    auto &context                 = asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
+    bool same_ioc                 = false;
+    const unsigned int slot_index = pick_slot(LINK_EDIT, &context, &same_ioc);
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
@@ -1173,8 +1194,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                 // 空闲连接已断开：丢弃这条对象，名额随它的析构归还
             }
 
-            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
-            if (!probed && slot.edit_waiters.empty())
+            // 共用 ioc 的请求不跨槽借，socket I/O 才能留在调用方执行域。
+            if (!same_ioc && !probed && slot.edit_waiters.empty())
             {
                 probed = true;
                 lock.unlock();
@@ -1300,8 +1321,10 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_select_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
-    const unsigned int slot_index = pick_slot(LINK_SELECT);
+    auto ex                       = co_await asio::this_coro::executor;
+    auto &context                 = asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
+    bool same_ioc                 = false;
+    const unsigned int slot_index = pick_slot(LINK_SELECT, &context, &same_ioc);
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
@@ -1325,8 +1348,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                 }
             }
 
-            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
-            if (!probed && slot.select_waiters.empty())
+            // 共用 ioc 的请求不跨槽借，socket I/O 才能留在调用方执行域。
+            if (!same_ioc && !probed && slot.select_waiters.empty())
             {
                 probed = true;
                 lock.unlock();
@@ -1698,8 +1721,10 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
-    const unsigned int slot_index = pick_slot(LINK_EDIT);
+    auto ex                       = co_await asio::this_coro::executor;
+    auto &context                 = asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
+    bool same_ioc                 = false;
+    const unsigned int slot_index = pick_slot(LINK_EDIT, &context, &same_ioc);
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
@@ -1723,8 +1748,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
                 }
             }
 
-            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
-            if (!probed && slot.edit_waiters.empty())
+            // 共用 ioc 的请求不跨槽借，socket I/O 才能留在调用方执行域。
+            if (!same_ioc && !probed && slot.edit_waiters.empty())
             {
                 probed = true;
                 lock.unlock();
@@ -1848,8 +1873,10 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_select_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
-    const unsigned int slot_index = pick_slot(LINK_SELECT);
+    auto ex                       = co_await asio::this_coro::executor;
+    auto &context                 = asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
+    bool same_ioc                 = false;
+    const unsigned int slot_index = pick_slot(LINK_SELECT, &context, &same_ioc);
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
@@ -1873,8 +1900,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
                 }
             }
 
-            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
-            if (!probed && slot.select_waiters.empty())
+            // 共用 ioc 的请求不跨槽借，socket I/O 才能留在调用方执行域。
+            if (!same_ioc && !probed && slot.select_waiters.empty())
             {
                 probed = true;
                 lock.unlock();

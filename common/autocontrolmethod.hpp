@@ -648,7 +648,7 @@ namespace http
         reg_raw("", "/fx/lane/a", nullptr, nullptr, nullptr, testfxlanea, 0, 0, 0, ""); // controller/src/testflowstack.cpp:573
         reg_raw("", "/fx/lane/rejectonce", nullptr, nullptr, nullptr, testfxlanerejectonce, 0, 0, 0, ""); // controller/src/testflowstack.cpp:621
         reg_raw("", "/hello", nullptr, nullptr, nullptr, testhello, 0, 0, 0, ""); // controller/src/testhello.cpp:5
-        reg_raw("", "/testiocaffinity", nullptr, nullptr, nullptr, test_ioc_affinity, 0, 0, 0, ""); // controller/src/testiocaffinity.cpp:13
+        reg_raw("", "/testiocaffinity", nullptr, nullptr, nullptr, test_ioc_affinity, 0, 0, 0, ""); // controller/src/testiocaffinity.cpp:12
         reg_raw("", "/testcosendmaildo", nullptr, nullptr, nullptr, test_co_sendmaildo, 0, 0, 0, ""); // controller/src/testsendmail.cpp:84
         reg_raw("saas.com", "/testcohandle", nullptr, nullptr, nullptr, saas::test_co_handle, 0, 0, 0, ""); // controller/src/saas.com/test_co_handle.cpp:10
 

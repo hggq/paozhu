@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     {
         orm::db_conn link("pg");
         const std::string text_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN 1 AND 10 ORDER BY id";
-        const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN ? AND ? ORDER BY id";
+        const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN $1 AND $2 ORDER BY id";
         std::vector<http::obj_val> params;
         params.emplace_back(1);
         params.emplace_back(10);
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
             [&]() -> asio::awaitable<void> {
                 orm::db_conn link("pg");
                 const std::string text_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN 3 AND 7 ORDER BY id";
-                const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN ? AND ? ORDER BY id";
+                const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id BETWEEN $1 AND $2 ORDER BY id";
                 std::vector<http::obj_val> params;
                 params.emplace_back(3);
                 params.emplace_back(7);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     }
     {
         orm::db_conn link("pg");
-        const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id = ?";
+        const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id = $1";
         std::vector<http::obj_val> params;
         params.emplace_back(500);
         std::vector<world_row> rows;
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
             ioc,
             [&]() -> asio::awaitable<void> {
                 orm::db_conn link("pg");
-                const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id = ?";
+                const std::string prep_sql = "SELECT id,randomnumber FROM world WHERE id = $1";
                 std::vector<http::obj_val> params;
                 params.emplace_back(500);
                 std::vector<world_row> rows;

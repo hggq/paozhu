@@ -75,6 +75,7 @@
 #include "mqtt_subpub_reg.h"
 #endif
 #include "http2_parse.h"
+#include "func.h"
 #include "threadpool.h"
 #include "httppeer.h"
 #include "http2_flow.h"
@@ -326,7 +327,8 @@ class httpserver
     // httpwatch sub-methods
     // 启动期关键路径：必须先建 ORM 连接池，再安装 RBAC guard 并预热，最后才允许 accept。
     // Throws std::runtime_error on DB / warmup failure so the process exits non-zero.
-    void startup_orm_init(std::string &orm_log_file);
+    void startup_orm_init(const std::vector<std::shared_ptr<asio::io_context>> &http_iocs,
+                          std::string &orm_log_file);
     void httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file);
     void httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day, unsigned char &cron_hour);
     void httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);
@@ -407,7 +409,7 @@ class httpserver
     std::shared_ptr<asio::io_context> io_context = std::make_shared<asio::io_context>(0);
     // io_contexts 个数 = run 线程组数（一个 ioc 一组线程），个数取 min(cothreadnum, 核数)。
     // io_contexts[0] 就是上面的兼容成员 io_context：框架自身的定时循环、同步取连接、
-    // client_context 都留在它上面。ORM 池自带执行域，不用这里的 ioc。
+    // client_context 都留在它上面。ORM 启动时注入并共用这一组 ioc。
     std::vector<std::shared_ptr<asio::io_context>> io_contexts;
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
@@ -506,7 +508,9 @@ class httpserver
     std::list<std::string> error_loglist;
     std::mutex log_mutex;
 
-    ThreadPool clientrunpool{std::thread::hardware_concurrency() + 2};
+    // 初始线程数按本进程可用 CPU（亲和性 + cgroup 配额）取，和 ioc 数同源；
+    // 池会按队列积压 addthread() 扩容，不会因为初始值小而卡住。
+    ThreadPool clientrunpool{available_cpu_count() + 2};
 
     // std::mutex http2_task_mutex;
     // std::list<struct http2sendblock_t> http2send_tasks;

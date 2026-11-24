@@ -8676,7 +8676,8 @@ void httpserver::add_runsocketthread()
 // 失败直接抛出，由 run() 重新抛给 main，进程以非零码退出，不带病进入 accept。
 // RBAC 判定钩子不在这里装：vendor 不引用应用侧的 libs/rbac，
 // 装钩子是业务入口的活（startup/main_dev.cpp、startup/main_daemon.cpp）。
-void httpserver::startup_orm_init(std::string &orm_log_file)
+void httpserver::startup_orm_init(const std::vector<std::shared_ptr<asio::io_context>> &http_iocs,
+                                  std::string &orm_log_file)
 {
     serverconfig &sysconfigpath = getserversysconfig();
     std::string ormconf         = sysconfigpath.configpath;
@@ -8697,7 +8698,14 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
 
     try
     {
-        orm_log_file = orm::init_orm_conn_pool(ormconf, sysconfigpath.orm_ioc_num, sysconfigpath.orm_thread_pool_num);
+        auto ioc_index = std::make_shared<std::unordered_map<const asio::execution_context *, unsigned int>>();
+        ioc_index->reserve(http_iocs.size());
+        for (unsigned int i = 0; i < http_iocs.size(); ++i)
+        {
+            ioc_index->emplace(static_cast<const asio::execution_context *>(http_iocs[i].get()), i);
+        }
+        orm_log_file = orm::init_orm_conn_pool(http_iocs, ioc_index, ormconf);
+        orm_log_file.append("-- orm shares http ioc=" + std::to_string(http_iocs.size()) + "\n");
     }
     catch (const char *e)
     {
@@ -10938,7 +10946,10 @@ void httpserver::run(const std::string &sysconfpath)
             hsock_iter = hsock.erase(hsock_iter);
         }
 
-        total_count = std::thread::hardware_concurrency();
+        // 本进程可用的 CPU 数：亲和性 + cgroup 配额，语义对齐 Rust 的
+        // available_parallelism()。hardware_concurrency() 在 cpuset 容器里返回
+        // 宿主核数，按它起 ioc 会成倍超配。
+        total_count = available_cpu_count();
 
         // cothreadnum 是核数以下的可选上限（配低可降 p99）；0 = 不限制
         const unsigned int co_cap = sysconfigpath.get_co_thread_num();
@@ -10955,7 +10966,7 @@ void httpserver::run(const std::string &sysconfpath)
         // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
         //
         // HTTP 侧一个 ioc 一组 run 线程，个数由上面的公式定。
-        // ORM 池自带执行域（ioc 与线程都由它自己建），不再按这里的下标建槽。
+        // ORM 在起线程前注入这组 ioc，连接、waiter 与业务续体共用执行域。
         io_contexts.clear();
         io_contexts.emplace_back(io_context);
 
@@ -10966,7 +10977,7 @@ void httpserver::run(const std::string &sysconfpath)
 
         {
             std::string startup_orm_log;
-            startup_orm_init(startup_orm_log);
+            startup_orm_init(io_contexts, startup_orm_log);
         }
         startup_ready = true;
 
@@ -11129,21 +11140,10 @@ void httpserver::run(const std::string &sysconfpath)
             accept_thread_num = 1;
         }
 
-        // 8 核以下 1 个 accept 线程就够；8 核以上按配置放开，16 核以上再按每 16 核 1 个封顶。
-        // Below 8 cores one accept thread is enough; from 8 cores the config applies, capped at one thread per 16 cores.
-        unsigned int core_num = std::thread::hardware_concurrency();
-        if (core_num < 9)
-        {
-            accept_thread_num = 1;
-        }
-        else
-        {
-            unsigned int auto_accept_num = core_num / 16;
-            if (auto_accept_num > 0 && accept_thread_num > auto_accept_num)
-            {
-                accept_thread_num = auto_accept_num;
-            }
-        }
+        // accept 线程绝大多数时间阻塞在 accept() 上，配置值直接生效，解析时已限制在 1~8。
+        // 不再按核数二次封顶：cpuset 32 核下 core/16 会把配置的 4 压成 2。
+        // The configured value is authoritative (clamped to 1..8 when parsing); acceptors
+        // block in accept() and cost nothing when idle, so no second cap by core count.
 
         // 每个线程各自用 SO_REUSEPORT 绑同一端口，新连接由内核分摊到各 acceptor。
         // Each thread binds the same port with SO_REUSEPORT, and the kernel spreads new connections across acceptors.
@@ -11236,7 +11236,7 @@ asio::io_context &httpserver::get_ctx()
 }
 void httpserver::stop()
 {
-    // ORM 先收：关连接、停 ORM ioc、join ORM 线程，然后才动 HTTP 侧
+    // ORM 先收：关空闲连接，再停 HTTP ioc。共用模式下 orm_io_host().stop() 是空操作。
     std::string orm_stop_log = orm::init_orm_conn_pool_release();
     if (!orm_stop_log.empty())
     {

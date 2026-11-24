@@ -205,7 +205,7 @@ class orm_conn_pool
   public:
     // 按 io_context 下标对齐的槽数组；init 时定长创建，之后不再 resize。
     std::vector<std::unique_ptr<orm_slot>> slots;
-    // 取连接的轮转游标：自托管后调用方 ioc 不在池的执行域里，按 executor 定位会全落槽 0。
+    // 未命中注入 ioc 的调用方使用轮转游标；同步调用与独立 ioc 保留原选槽行为。
     std::atomic<unsigned int> rr_counter{0};
 
     // slot_max_of：全局 max_pool 按槽数切分（余数给小槽，每槽保底 1）。
@@ -243,8 +243,7 @@ class orm_conn_pool
     slot0_list_view<std::vector<std::shared_ptr<pg_conn_base>>> pg_edit_pool{this, &orm_slot::pg_edit_pool};
     slot0_list_view<std::vector<std::shared_ptr<pg_conn_base>>> pg_select_pool{this, &orm_slot::pg_select_pool};
     // execution_context -> 槽下标 的只读反查表，由 init 传入并持有。
-    // 选槽改轮转、归还改 conn_link->slot_index 之后不再有人读它，保留是因为它是
-    // init(vector, index, conf) 签名的一部分，外部 ioc 模式的调用点在传。
+    // 共用 HTTP ioc 时，异步取连接按调用方 executor 命中本槽，避免跨 ioc 借用。
     std::shared_ptr<const std::unordered_map<const asio::execution_context *, unsigned int>> ioc_index;
 
     // tag 级配置：host/port/dbname/user/password/ssl/charset/pretable/db_type，
@@ -271,8 +270,10 @@ class orm_conn_pool
   private:
     // ---- 槽定位与门闩 ----
     orm_slot &slot_ref(unsigned int slot_index);
-    // 选槽：轮转候选与半环外候选里取空闲多的一个，相等回退轮转候选。
-    unsigned int pick_slot(unsigned int role);
+    // 命中注入 ioc 时固定对应槽；未命中时在轮转与半环外候选里取空闲多的一个。
+    unsigned int pick_slot(unsigned int role,
+                           const asio::execution_context *context = nullptr,
+                           bool *same_ioc                       = nullptr);
     // 每槽上限：max_pool 未配置（0）按 1；link_type 0=edit，1=select。
     unsigned int max_pool_of(unsigned int link_type) const;
 

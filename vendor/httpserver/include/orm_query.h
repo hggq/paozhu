@@ -408,7 +408,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
         return pg_query_vec_impl(rawsql, result_record);
     }
 
-    // 预处理查询同步版，与 async_query_prepared 对称；委托 exec_query（? 占位符，PG 侧转 $n）。
+    // 预处理查询同步版，与 async_query_prepared 对称；委托 exec_query（MySQL/SQLite 用 ?，PG 直接用 $1..$n）。
     template <ResultHasSetVal T>
     unsigned int query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, std::vector<T> &result_record)
     {
@@ -2513,9 +2513,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -2545,7 +2543,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_rows(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -2770,9 +2768,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -2802,7 +2798,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_rows(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -2938,12 +2934,93 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     // prepared 协议专用入口，与 async_query 对称；由调用点显式选用，async_query 的 simple 默认路径不变。
-    // 等价于 async_exec_query：只允许 SELECT，? 占位符数量必须与 params 一致。PG 侧把 ? 转成 $n 绑定，
+    // 等价于 async_exec_query：只允许 SELECT（MySQL/SQLite 用 ?，PG 直接用 $1..$n），
     // 命名语句缓存按 SQL 文本做 key（pg_conn_base::prepared_meta_），不同参数值复用同一条语句。
     template <ResultHasSetVal T>
     asio::awaitable<unsigned int> async_query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, std::vector<T> &result_record)
     {
         co_return co_await async_exec_query(rawsql, params, result_record);
+    }
+
+    // PG 二进制结果预编译查询：handler 直接按列拿值，跳过 set_val 与行对象，列值只在
+    // handler 返回前有效（文本列指向本行 backing，不能保存指针）。handler 返回 true
+    // 继续、false 中止；返回处理的行数，失败时 iserror / error_msg 置位。
+    // 只有 PG 有二进制结果格式，其他 db_type 直接报错。
+    template <BinaryRowHandler H>
+    asio::awaitable<unsigned int> async_query_prepared_binary(const std::string &rawsql,
+                                                              const std::vector<http::obj_val> &params,
+                                                              H handler)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+        error_msg.clear();
+
+        try
+        {
+            if (db_type != DB_TYPE::POSTGRESQL)
+            {
+                error_msg = "async_query_prepared_binary: only PostgreSQL has binary row values";
+                co_return 0;
+            }
+            if (!exec_bind_params_guard(params, error_msg))
+            {
+                co_return 0;
+            }
+
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!pg_select_conn)
+                {
+                    pg_select_conn = co_await conn_obj->async_get_pg_select_conn();
+                }
+            }
+            else
+            {
+                pg_select_conn = co_await conn_obj->async_get_pg_select_conn();
+            }
+
+            if (pg_select_conn->isdebug)
+            {
+                pg_select_conn->begin_time();
+            }
+
+            effect_num = co_await pg_select_conn->async_fetch_prepared_binary(rawsql, params, std::move(handler));
+
+            if (!pg_select_conn->error_msg.empty())
+            {
+                mark_select_failed(pg_select_conn);
+                effect_num = 0;
+                co_return 0;
+            }
+
+            if (pg_select_conn->isdebug)
+            {
+                pg_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = pg_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_pg_select_conn(std::move(pg_select_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
     }
 
     template <ResultHasSetVal T>
@@ -3036,9 +3113,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -3068,7 +3143,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_single(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -3293,9 +3368,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -3325,7 +3398,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_single(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -3557,9 +3630,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -3589,7 +3660,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_rows(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -3814,9 +3885,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -3846,7 +3915,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_rows(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -4078,9 +4147,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -4110,7 +4177,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_single(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -4335,9 +4402,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -4367,7 +4432,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_single(
                 *pg_select_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -4601,9 +4666,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -4633,7 +4696,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_rows(
                 *pg_edit_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -4851,9 +4914,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -4883,7 +4944,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_rows(
                 *pg_edit_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -5101,9 +5162,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 return 0;
             }
@@ -5133,7 +5192,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = exec_fetch_single(
                 *pg_edit_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,
@@ -5351,9 +5410,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
         try
         {
-            unsigned int ph_count = 0;
-            const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
-            if (!exec_bind_guard(ph_count, params, error_msg))
+            if (!exec_bind_params_guard(params, error_msg))
             {
                 co_return 0;
             }
@@ -5383,7 +5440,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             [[maybe_unused]] unsigned int fetch_count = co_await async_exec_fetch_single(
                 *pg_edit_conn,
-                sql,
+                rawsql,
                 params,
                 result_record,
                 effect_num,

@@ -6,10 +6,9 @@
 
 namespace http
 {
-// 验证 ORM 执行域归属：会话 strand 与协程 executor 仍落在同一个 HTTP io_context，
-// 而连接落在 ORM 自托管的 ioc 上——连接的 io_ctx 必须能在池的槽数组里找到，
-// 且找到的下标 == 建连时记在 conn_link 上的 slot_index。
-// ORM ioc 有多条 run 线程，await 前后线程号不再保证相同，只作读数不作判据。
+// 验证 HTTP/ORM 共用执行域：会话、协程与连接都落在同一个 HTTP io_context，
+// 且连接槽下标同时等于会话 ioc 下标与 conn_link 上记录的建连槽下标。
+// 同一 ioc 配多条 run 线程时 await 前后线程号不保证相同，只作读数不作判据。
 //@urlpath(null,testiocaffinity)
 asio::awaitable<std::string> test_ioc_affinity(std::shared_ptr<httppeer> peer)
 {
@@ -50,8 +49,9 @@ asio::awaitable<std::string> test_ioc_affinity(std::shared_ptr<httppeer> peer)
         }
     }
 
-    bool ok = (&ctx == &sess_ctx) && (conn_ioc != nullptr) &&
-              (conn_slot != static_cast<unsigned int>(-1)) && (conn_slot == link_slot) && !model.iserror;
+    bool ok = (&ctx == &sess_ctx) && (conn_ioc == static_cast<asio::io_context *>(&ctx)) &&
+              (ioc_idx != static_cast<unsigned int>(-1)) && (ioc_idx == conn_slot) &&
+              (conn_slot == link_slot) && !model.iserror;
     std::string err = model.error_msg;
     model.unlock_conn();
 
