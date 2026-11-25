@@ -7813,8 +7813,8 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
 #endif
 
 // ========== 限速入口辅助函数 ==========
-// 60 秒流量窗口：返回"最近约 60 秒进来多少连接"。分桶是每条调用线程各自一份（两个 accept
-// 线程各一份），格子只有一个所有者，所以不需要锁也不需要原子访问；桶里拍的是全局 total_count，
+// 60 秒流量窗口：返回"最近约 60 秒进来多少连接"。分桶是每条调用线程各自一份（业务
+// worker 各一份），格子只有一个所有者，所以不需要锁也不需要原子访问；桶里拍的是全局 total_count，
 // 因此两份窗口量的是同一股总流量，不会各自只看到自己那个端口。
 // 桶按 秒 % 60 寻址，每桶记该秒拍到的快照；基线取"下一个要被覆盖的桶"（当前桶正在写，不能用）。
 // 秒级粒度，差一秒不影响判定：限速本来就是平滑放行，不是精确配额。
@@ -8055,60 +8055,83 @@ void httpserver::ratelimiter()
         }
     }
 }
-void httpserver::listeners()
+namespace
 {
-#ifdef __APPLE__
-    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
-#endif
-    serverconfig &sysconfigpath = getserversysconfig();
-    unsigned short portnum      = sysconfigpath.get_ssl_port();
-
-    asio::error_code ec_error;
-    // 监听对象放进共享所有权：stop() 要在别的线程上拿到同一个 acceptor 才谈得上 cancel()/close()。
-    // 只缓存 fd 不行——close 之后那个号会被别的线程立刻复用，二次 close 打到新 socket；
-    // 而 Windows 下 closesocket 也唤醒不了挂在 accept() 上的线程（asio 的 close 就是 closesocket）。
-    // 本函数内仍按普通对象用。
-    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(*this->io_context);
-    asio::ip::tcp::acceptor &acceptor = *acceptor_ptr;
-    asio::ip::tcp::endpoint endpoint;
-    if (server_ip6_listen)
+struct accept_count_guard
+{
+    explicit accept_count_guard(std::atomic_uint &count) : count_(count)
     {
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), portnum);
-        acceptor.open(endpoint.protocol());
-        acceptor.set_option(asio::ip::v6_only(false));
+        count_.fetch_add(1, std::memory_order_relaxed);
+    }
+    ~accept_count_guard()
+    {
+        if (active_)
+        {
+            count_.fetch_sub(1, std::memory_order_relaxed);
+        }
+    }
+    void release() { active_ = false; }
+    accept_count_guard(const accept_count_guard &) = delete;
+    accept_count_guard &operator=(const accept_count_guard &) = delete;
+
+  private:
+    std::atomic_uint &count_;
+    bool active_ = true;
+};
+} // namespace
+
+void httpserver::setupAcceptor(asio::ip::tcp::acceptor &acceptor,
+                               unsigned short port, bool ipv6, const char *tag)
+{
+    asio::error_code ec;
+    asio::ip::tcp::endpoint endpoint;
+    if (ipv6)
+    {
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port);
+        acceptor.open(endpoint.protocol(), ec);
+        if (!ec)
+            acceptor.set_option(asio::ip::v6_only(false), ec);
     }
     else
     {
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), portnum);
-        acceptor.open(endpoint.protocol());
+        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port);
+        acceptor.open(endpoint.protocol(), ec);
     }
 
-    acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
-    acceptor.set_option(asio::ip::tcp::no_delay(true));
-#if (defined(unix) || defined(__unix) || defined(__unix__) || defined(__APPLE__)) && !defined(__CYGWIN__)
-
-    typedef asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port;
-    acceptor.set_option(reuse_port(true));
-
-#endif
-
-    acceptor.bind(endpoint, ec_error);
-    acceptor.listen(asio::socket_base::max_listen_connections, ec_error);
-    if (ec_error)
+    auto fail = [&]()
     {
         std::unique_lock<std::mutex> lock(log_mutex);
-        error_loglist.emplace_back(" acceptor listen https error ");
+        error_loglist.emplace_back(std::string("acceptor listen ") + tag + " error " + ec.message());
         lock.unlock();
-        DEBUG_LOG("Acceptor listen https error ");
-        exit(1);
-    }
+        DEBUG_LOG("Acceptor listen %s error:%s", tag, ec.message().c_str());
+        std::exit(1);
+    };
+    if (ec)
+        fail();
 
-    // 注册 acceptor 对象，供 stop() 唤醒挂起的 accept() 并关掉监听
-    {
-        std::lock_guard<std::mutex> lock(acceptors_mutex);
-        acceptors.push_back(acceptor_ptr);
-    }
+    acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
+    if (ec)
+        fail();
+    acceptor.set_option(asio::ip::tcp::no_delay(true), ec);
+    if (ec)
+        fail();
+#if (defined(unix) || defined(__unix) || defined(__unix__) || defined(__APPLE__)) && !defined(__CYGWIN__)
+    typedef asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port;
+    acceptor.set_option(reuse_port(true), ec);
+    if (ec)
+        fail();
+#endif
 
+    acceptor.bind(endpoint, ec);
+    if (!ec)
+        acceptor.listen(asio::socket_base::max_listen_connections, ec);
+    if (ec)
+        fail();
+}
+
+asio::ssl::context httpserver::make_ssl_context()
+{
+    serverconfig &sysconfigpath = getserversysconfig();
     asio::ssl::context context_(asio::ssl::context::sslv23);
     context_.set_options(asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 |
                          asio::ssl::context::single_dh_use);
@@ -8119,7 +8142,6 @@ void httpserver::listeners()
     {
         context_.use_certificate_chain_file(sysconfigpath.ssl_chain_file());
         context_.use_private_key_file(sysconfigpath.ssl_key_file(), asio::ssl::context::pem);
-        // use_certificate_file
         context_.use_tmp_dh_file(sysconfigpath.ssl_dh_file());
         context_.use_certificate_file(sysconfigpath.ssl_chain_crt_file(), asio::ssl::context::pem);
     }
@@ -8130,362 +8152,420 @@ void httpserver::listeners()
     SSL_CTX_set_tlsext_servername_callback(context_.native_handle(), serverNameCallback);
 
     auto ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 |
-                    SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SSL_OP_SINGLE_ECDH_USE |
-                    SSL_OP_NO_TICKET | SSL_OP_CIPHER_SERVER_PREFERENCE;
+                    SSL_OP_NO_COMPRESSION | SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION |
+                    SSL_OP_SINGLE_ECDH_USE | SSL_OP_NO_TICKET | SSL_OP_CIPHER_SERVER_PREFERENCE;
     SSL_CTX_set_options(context_.native_handle(), ssl_opts);
-    // SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_AUTO_RETRY);
     SSL_CTX_set_mode(context_.native_handle(), SSL_MODE_RELEASE_BUFFERS);
 
     if (SSL_CTX_set_cipher_list(context_.native_handle(), DEFAULT_CIPHER_LIST) == 0)
     {
-        // std::cerr << ERR_error_string(ERR_get_error(), nullptr) << std::endl;
         std::unique_lock<std::mutex> lock(log_mutex);
         error_loglist.emplace_back(ERR_error_string(ERR_get_error(), nullptr));
-        lock.unlock();
     }
 
-    unsigned int protos_len;
-    const char *protos;
-
-    protos     = HTTP2_H2_ALPN HTTP1_NPN;
-    protos_len = sizeof(HTTP2_H2_ALPN HTTP1_NPN) - 1;
-
-    if (SSL_CTX_set_alpn_protos(context_.native_handle(), (const unsigned char *)protos, protos_len) < 0)
-    {
-    }
-
+    const char *protos = HTTP2_H2_ALPN HTTP1_NPN;
+    SSL_CTX_set_alpn_protos(context_.native_handle(),
+                            (const unsigned char *)protos,
+                            sizeof(HTTP2_H2_ALPN HTTP1_NPN) - 1);
     SSL_CTX_set_next_protos_advertised_cb(context_.native_handle(), next_proto_cb, (void *)HTTP2_H2H1_STR);
     unsigned long long temp_domain = 0;
     SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
-
-    // 在默认 SSL_CTX 上注册最小化 OCSP Stapling 回调
-    // OpenSSL 3.x 的 tls_construct_certificate_status 要求 tlsext_status_cb 存在
-    // 才会发送 OCSP response。实际 OCSP 响应由 SNI 回调设置。
     sysconfigpath.enable_ocsp_stapling(context_.native_handle());
+    return context_;
+}
 
-    // 轮流游标这条线程私有，普通计数即可：另一条监听线程各数各的，最坏是两条同一拍落到
-    // 同一个 ioc，落点重复不影响正确性。
-    unsigned short session_ioc_cursor   = 0;
-    unsigned int error_count            = 0;
-    unsigned int clear_error_count_time = 0;
-
-    std::string logtemp;
-
-    for (;;)
+asio::awaitable<void> httpserver::acceptDispatch(
+    std::shared_ptr<client_session> peer_session, bool isssl)
+{
+    try
     {
-        try
-        {
-            for (;;)
-            {
-                // accept 轮流落点：会话的 strand、socket 与后续协程都在这个 ioc 上跑，
-                // acceptor 自己仍在 io_contexts[0]——asio 的 accept() 是把新 fd assign 给
-                // peer socket，注册进 peer 自己的 io_context，不要求两者同上下文。
-                // io_contexts 在起这条线程前就建好了，个数至少 8；游标到顶回绕是有定义行为。
-                asio::io_context &session_ioc                = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
-                asio::ip::tcp::socket socket(peer_session->strand_);
-                peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
-                peer_session->isssl     = true;
-                peer_session->time_limit.store(timeid() + 16);
+        if (isstop || peer_session->isclose)
+            co_return;
 
-                acceptor.accept(peer_session->sslsocket->lowest_layer(), ec_error);
-                if (ec_error)
-                {
-                    // stop() 已经 cancel + shutdown + close 过监听，accept 返回错误 → 退出
-                    if (isstop)
-                    {
-                        break;
-                    }
-                    logtemp = "https accept ec_error ";
-                    logtemp.append(ec_error.message());
-                    logtemp.append(" ");
-                    logtemp.append(std::to_string(error_count));
-                    logtemp.append("\n");
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
+        if (isssl)
+            peer_session->sslsocket->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+        else
+            peer_session->socket->set_option(asio::ip::tcp::no_delay(true));
 
-                    if ((error_count % 6) > 4)
-                    {
-                        hard_kill_old_link = true;
-                    }
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
+        peer_session->getremoteip();
+        if (peer_session->isclose)
+            co_return;
+        peer_session->getremoteport();
+        if (peer_session->isclose)
+            co_return;
 
-                    error_count++;
-                    if (error_count > 128)
-                    {
-                        isstop = true;
-                    }
-
-                    peer_session->stop();
-
-                    if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
-                    {
-                        clear_error_count_time = timeid();
-                        error_count            = 0;
-                    }
-                    continue;
-                }
-                // 关闭 Nagle：响应头/体分两次 write，避免小包被 delayed ACK 扣住约 40ms
-                // Disable Nagle: header and body go out as separate writes, avoid the ~40ms delayed-ACK stall
-                peer_session->sslsocket->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
-                //The IP should be available now
-                peer_session->getremoteip();
-                if (peer_session->isclose)
-                {
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" https accept client close\n");
-                    lock.unlock();
-                    continue;
-                }
-                peer_session->getremoteport();
-                if (peer_session->isclose)
-                {
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" https accept client close\n");
-                    lock.unlock();
-                    continue;
-                }
-
-                //begin rate limiting
-                unsigned int sp_time     = timeid();
-                peer_session->time_begin = sp_time;
-                total_http2_count++;
+        peer_session->time_begin = timeid();
+        accept_count_guard count_guard(isssl ? total_http2_count : total_http1_count);
 
 #ifndef BENCHMARK
+        unsigned int has_save_link_count = update_minute_count(peer_session->time_begin);
+        if (rate_limit_status &&
+            has_save_link_count > rate_limit_new_wait_num.load() &&
+            live_link_count.load() > rate_limit_new_wait_num.load())
+        {
+            compute_rate_from_load(has_save_link_count);
+            enqueue_rate_limited(peer_session);
+            count_guard.release();
+            co_return;
+        }
 
-                // 60-second traffic window + speed limit determination (each accept thread keeps its own ring)
-                unsigned int has_save_link_count = update_minute_count(sp_time);
-                if (rate_limit_status &&
-                    has_save_link_count > rate_limit_new_wait_num.load() &&
-                    live_link_count.load() > rate_limit_new_wait_num.load())
-                {
-                    compute_rate_from_load(has_save_link_count);
-                    enqueue_rate_limited(peer_session);
-                    continue;
-                }
-
-                std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-                socket_session_lists.push_back(peer_session);
-                lock_sock.unlock();
+        {
+            std::lock_guard<std::mutex> lock(socket_session_lists_mutex);
+            socket_session_lists.push_back(peer_session);
+        }
 #endif
 
-                asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
-                               { return sslhandshake(peer_session); },
-                               asio::detached);
-                if (isstop)
-                {
-                    break;
-                }
-            }
-        }
-        catch (const std::exception &e)
-        {
-            std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back(e.what());
-            error_loglist.emplace_back(" https accept exception\n");
-            lock.unlock();
-        }
-        catch (...)
-        {
-            std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back("https accept catch\n");
-            lock.unlock();
-        }
-        if (isstop)
-        {
-            break;
-        }
+        count_guard.release();
+        if (isssl)
+            co_await sslhandshake(peer_session);
+        else
+            co_await clientpeerfun(peer_session, false);
     }
-}
-void httpserver::listener()
-{
-#ifdef __APPLE__
-    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
-#endif
-    serverconfig &sysconfigpath = getserversysconfig();
-    asio::error_code ec_error;
-
-    unsigned short portnum = sysconfigpath.get_port();
-
-    // 同 listeners()：acceptor 由 shared_ptr 持有，stop() 在别的线程上拿同一个对象唤醒并关闭
-    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(*this->io_context);
-    asio::ip::tcp::acceptor &acceptor = *acceptor_ptr;
-    asio::ip::tcp::endpoint endpoint;
-    if (server_ip6_listen)
-    {
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v6(), portnum);
-        acceptor.open(endpoint.protocol());
-        acceptor.set_option(asio::ip::v6_only(false));
-    }
-    else
-    {
-        endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), portnum);
-        acceptor.open(endpoint.protocol());
-    }
-
-    acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
-    acceptor.set_option(asio::ip::tcp::no_delay(true));
-
-#if (defined(unix) || defined(__unix) || defined(__unix__) || defined(__APPLE__)) && !defined(__CYGWIN__)
-
-    typedef asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port;
-    acceptor.set_option(reuse_port(true));
-
-#endif
-
-    acceptor.bind(endpoint, ec_error);
-    acceptor.listen(asio::socket_base::max_listen_connections, ec_error);
-    if (ec_error)
+    catch (const std::exception &e)
     {
         std::unique_lock<std::mutex> lock(log_mutex);
-        error_loglist.emplace_back("  acceptor listen http error  ");
-        lock.unlock();
-        DEBUG_LOG("Acceptor listen http error ");
-        exit(1);
+        error_loglist.emplace_back(std::string("acceptDispatch: ") + e.what() + "\n");
     }
-
-    // 注册 acceptor 对象，供 stop() 唤醒挂起的 accept() 并关掉监听
+    catch (...)
     {
-        std::lock_guard<std::mutex> lock(acceptors_mutex);
-        acceptors.push_back(acceptor_ptr);
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back("acceptDispatch unknown exception\n");
     }
+}
 
-    DEBUG_LOG("http accept");
-    // 轮流游标这条线程私有，普通计数即可。
+asio::awaitable<void> httpserver::acceptHttpLoop(
+    std::shared_ptr<asio::ip::tcp::acceptor> acceptor)
+{
     unsigned short session_ioc_cursor   = 0;
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
-    std::string logtemp;
-
     for (;;)
     {
+        bool need_backoff = false;
+        if (isstop)
+            co_return;
         try
         {
-            for (;;)
+            asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+            auto peer_session = std::make_shared<client_session>(session_ioc);
+
+            asio::error_code ec;
+            auto accepted = co_await acceptor->async_accept(
+                peer_session->strand_, asio::redirect_error(asio::use_awaitable, ec));
+            if (ec)
             {
-                // accept 轮流落点，同 https 那一支：socket assign 到 peer 自己的 io_context。
-                asio::io_context &session_ioc                = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
-                peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(peer_session->strand_);
-                peer_session->isssl                          = false;
-                peer_session->time_limit.store(timeid() + 16);
+                if (isstop || ec == asio::error::operation_aborted || ec == asio::error::bad_descriptor)
+                    co_return;
 
-                acceptor.accept(*peer_session->socket, ec_error);
-                if (ec_error)
+                std::unique_lock<std::mutex> lock(log_mutex);
+                error_loglist.emplace_back("http async_accept error " + ec.message() + " " +
+                                           std::to_string(error_count) + "\n");
+                if ((error_count % 6) > 4)
+                    hard_kill_old_link = true;
+                error_count++;
+                if (error_count > 128)
+                    request_stop();
+                if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
                 {
-                    // stop() 已经 cancel + shutdown + close 过监听，accept 返回错误 → 退出
-                    if (isstop)
-                    {
-                        break;
-                    }
-                    logtemp = "http accept ec_error ";
-                    logtemp.append(ec_error.message());
-                    logtemp.append(" ");
-                    logtemp.append(std::to_string(error_count));
-                    logtemp.append("\n");
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(logtemp);
-                    lock.unlock();
-
-                    if ((error_count % 6) > 4)
-                    {
-                        hard_kill_old_link = true;
-                    }
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-                    error_count++;
-                    if (error_count > 128)
-                    {
-                        isstop = true;
-                    }
-
-                    peer_session->stop();
-
-                    if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
-                    {
-                        clear_error_count_time = timeid();
-                        error_count            = 0;
-                    }
-                    continue;
+                    clear_error_count_time = timeid();
+                    error_count = 0;
                 }
-
-                // 关闭 Nagle：响应头/体分两次 write，避免小包被 delayed ACK 扣住约 40ms
-                // Disable Nagle: header and body go out as separate writes, avoid the ~40ms delayed-ACK stall
-                peer_session->socket->set_option(asio::ip::tcp::no_delay(true));
-                //The IP should be available now
-                peer_session->getremoteip();
-                if (peer_session->isclose)
-                {
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" http accept client close\n");
-                    lock.unlock();
-                    continue;
-                }
-                peer_session->getremoteport();
-                if (peer_session->isclose)
-                {
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(peer_session->client_ip);
-                    error_loglist.emplace_back(" http accept client close\n");
-                    lock.unlock();
-                    continue;
-                }
-
-                //begin rate limiting
-                unsigned int sp_time     = timeid();
-                peer_session->time_begin = sp_time;
-                total_http1_count++;
-
-#ifndef BENCHMARK
-
-                // 60-second traffic window + speed limit determination (each accept thread keeps its own ring)
-                unsigned int has_save_link_count = update_minute_count(sp_time);
-                if (rate_limit_status &&
-                    has_save_link_count > rate_limit_new_wait_num.load() &&
-                    live_link_count.load() > rate_limit_new_wait_num.load())
-                {
-                    compute_rate_from_load(has_save_link_count);
-                    enqueue_rate_limited(peer_session);
-                    continue;
-                }
-
-                std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-                socket_session_lists.push_back(peer_session);
-                lock_sock.unlock();
-#endif
-
-                asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
-                               { return clientpeerfun(peer_session, false); },
-                               asio::detached);
+                need_backoff = true;
+            }
+            else
+            {
                 if (isstop)
-                {
-                    break;
-                }
+                    co_return;
+                peer_session->socket = std::make_unique<asio::ip::tcp::socket>(std::move(accepted));
+                peer_session->isssl = false;
+                peer_session->time_limit.store(timeid() + 16);
+                asio::co_spawn(peer_session->strand_, acceptDispatch(peer_session, false), asio::detached);
             }
         }
         catch (const std::exception &e)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
-            error_loglist.emplace_back(e.what());
-            error_loglist.emplace_back(" http accept exception\n");
-            lock.unlock();
+            error_loglist.emplace_back(std::string(e.what()) + " http accept exception\n");
+            need_backoff = true;
         }
         catch (...)
         {
             std::unique_lock<std::mutex> lock(log_mutex);
             error_loglist.emplace_back("http accept catch\n");
-            lock.unlock();
+            need_backoff = true;
         }
         if (isstop)
+            co_return;
+        if (need_backoff)
         {
-            break;
+            asio::error_code ignored;
+            asio::steady_timer backoff(acceptor->get_executor(), std::chrono::seconds(2));
+            co_await backoff.async_wait(asio::redirect_error(asio::use_awaitable, ignored));
         }
     }
+}
+
+asio::awaitable<void> httpserver::acceptHttpsLoop(
+    std::shared_ptr<asio::ip::tcp::acceptor> acceptor)
+{
+    std::unique_ptr<asio::ssl::context> ssl_ctx;
+    try
+    {
+        ssl_ctx = std::make_unique<asio::ssl::context>(make_ssl_context());
+    }
+    catch (const std::exception &e)
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(std::string("https ssl context error: ") + e.what() + "\n");
+        co_return;
+    }
+    catch (...)
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back("https ssl context unknown exception\n");
+        co_return;
+    }
+
+    unsigned short session_ioc_cursor   = 0;
+    unsigned int error_count            = 0;
+    unsigned int clear_error_count_time = 0;
+
+    for (;;)
+    {
+        bool need_backoff = false;
+        if (isstop)
+            co_return;
+        try
+        {
+            asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+            auto peer_session = std::make_shared<client_session>(session_ioc);
+
+            asio::error_code ec;
+            auto accepted = co_await acceptor->async_accept(
+                peer_session->strand_, asio::redirect_error(asio::use_awaitable, ec));
+            if (ec)
+            {
+                if (isstop || ec == asio::error::operation_aborted || ec == asio::error::bad_descriptor)
+                    co_return;
+
+                std::unique_lock<std::mutex> lock(log_mutex);
+                error_loglist.emplace_back("https async_accept error " + ec.message() + " " +
+                                           std::to_string(error_count) + "\n");
+                if ((error_count % 6) > 4)
+                    hard_kill_old_link = true;
+                error_count++;
+                if (error_count > 128)
+                    request_stop();
+                if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
+                {
+                    clear_error_count_time = timeid();
+                    error_count = 0;
+                }
+                need_backoff = true;
+            }
+            else
+            {
+                if (isstop)
+                    co_return;
+                asio::ip::tcp::socket peer_socket(std::move(accepted));
+                peer_session->sslsocket =
+                    std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(
+                        std::move(peer_socket), *ssl_ctx);
+                peer_session->isssl = true;
+                peer_session->time_limit.store(timeid() + 16);
+                asio::co_spawn(peer_session->strand_, acceptDispatch(peer_session, true), asio::detached);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back(std::string(e.what()) + " https accept exception\n");
+            need_backoff = true;
+        }
+        catch (...)
+        {
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back("https accept catch\n");
+            need_backoff = true;
+        }
+        if (isstop)
+            co_return;
+        if (need_backoff)
+        {
+            asio::error_code ignored;
+            asio::steady_timer backoff(acceptor->get_executor(), std::chrono::seconds(2));
+            co_await backoff.async_wait(asio::redirect_error(asio::use_awaitable, ignored));
+        }
+    }
+}
+
+void httpserver::request_stop()
+{
+    stop_requested.store(true, std::memory_order_relaxed);
+    std::lock_guard<std::mutex> lock(stop_mutex);
+    isstop = true;
+    stop_condition.notify_all();
+}
+
+bool httpserver::start_accept_pool(unsigned int accept_num)
+{
+    if (accept_num < 1)
+        accept_num = 1;
+
+    std::unique_lock<std::mutex> lock(accept_pool_mutex);
+    if (accept_pool_closed || stop_requested.load(std::memory_order_relaxed))
+        return false;
+
+    try
+    {
+        accept_iocs_.reserve(accept_num);
+        accept_works_.reserve(accept_num);
+        accept_threads_.reserve(accept_num);
+        accept_loop_count = 0;
+
+        for (unsigned int i = 0; i < accept_num; ++i)
+        {
+            auto accept_ioc = std::make_unique<asio::io_context>(1);
+            accept_works_.emplace_back(accept_ioc->get_executor());
+
+            auto http_acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
+            setupAcceptor(*http_acceptor, getserversysconfig().get_port(), server_ip6_listen, "http");
+            auto https_acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
+            setupAcceptor(*https_acceptor, getserversysconfig().get_ssl_port(), server_ip6_listen, "https");
+
+            {
+                std::lock_guard<std::mutex> acceptor_lock(acceptors_mutex);
+                acceptors.push_back(http_acceptor);
+                acceptors.push_back(https_acceptor);
+            }
+            accept_iocs_.push_back(std::move(accept_ioc));
+        }
+
+        for (auto &accept_ioc : accept_iocs_)
+        {
+            accept_threads_.emplace_back([this, ioc = accept_ioc.get()]()
+                                         {
+#ifdef __APPLE__
+                                             pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
+                                             for (;;)
+                                             {
+                                                 try
+                                                 {
+                                                     ioc->run();
+                                                 }
+                                                 catch (...)
+                                                 {
+                                                 }
+                                                 if (isstop)
+                                                     break;
+                                             }
+                                         });
+        }
+#if defined(_WIN32)
+        for (auto &thread : accept_threads_)
+            set_thread_priority(thread, THREAD_PRIORITY_HIGHEST);
+#else
+        for (auto &thread : accept_threads_)
+            set_thread_priority(thread, 90);
+#endif
+
+        auto spawn_loop = [this](asio::io_context &ioc, asio::awaitable<void> loop)
+        {
+            asio::co_spawn(ioc, std::move(loop), [this](std::exception_ptr ep)
+                           {
+                               if (ep)
+                               {
+                                   try
+                                   {
+                                       std::rethrow_exception(ep);
+                                   }
+                                   catch (const std::exception &e)
+                                   {
+                                       std::unique_lock<std::mutex> lock(log_mutex);
+                                       error_loglist.emplace_back(std::string("accept loop error: ") + e.what());
+                                   }
+                                   catch (...)
+                                   {
+                                       std::unique_lock<std::mutex> lock(log_mutex);
+                                       error_loglist.emplace_back("accept loop unknown exception");
+                                   }
+                               }
+                               std::lock_guard<std::mutex> lock(accept_pool_mutex);
+                               accept_loop_count--;
+                               accept_stopped_condition.notify_all();
+                           });
+        };
+
+        for (std::size_t i = 0; i < accept_iocs_.size(); ++i)
+        {
+            spawn_loop(*accept_iocs_[i], acceptHttpLoop(acceptors[i * 2]));
+            accept_loop_count++;
+            spawn_loop(*accept_iocs_[i], acceptHttpsLoop(acceptors[i * 2 + 1]));
+            accept_loop_count++;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        lock.unlock();
+        request_stop();
+        std::unique_lock<std::mutex> log_lock(log_mutex);
+        error_loglist.emplace_back(std::string("start accept pool error: ") + e.what());
+        log_lock.unlock();
+        stop_accept_pool();
+        return false;
+    }
+    catch (...)
+    {
+        lock.unlock();
+        request_stop();
+        std::unique_lock<std::mutex> log_lock(log_mutex);
+        error_loglist.emplace_back("start accept pool unknown exception");
+        log_lock.unlock();
+        stop_accept_pool();
+        return false;
+    }
+    return true;
+}
+
+void httpserver::stop_accept_pool()
+{
+    std::call_once(accept_pool_stop_once, [this]()
+                   {
+        std::vector<std::shared_ptr<asio::ip::tcp::acceptor>> stopping_acceptors;
+        {
+            std::unique_lock<std::mutex> lock(accept_pool_mutex);
+            accept_pool_closed = true;
+            request_stop();
+            {
+                std::lock_guard<std::mutex> acceptor_lock(acceptors_mutex);
+                stopping_acceptors.swap(acceptors);
+            }
+            for (auto &acceptor : stopping_acceptors)
+            {
+                asio::post(acceptor->get_executor(), [acceptor]()
+                           {
+                    asio::error_code ec;
+                    acceptor->cancel(ec);
+                    acceptor->close(ec);
+                });
+            }
+            accept_works_.clear();
+            accept_stopped_condition.wait(lock, [this]() { return accept_loop_count == 0; });
+        }
+
+        for (auto &thread : accept_threads_)
+        {
+            if (thread.joinable())
+                thread.join();
+        }
+        stopping_acceptors.clear();
+
+        std::lock_guard<std::mutex> lock(accept_pool_mutex);
+        accept_threads_.clear();
+        accept_iocs_.clear();
+    });
 }
 
 void httpserver::add_runsocketthread()
@@ -8611,7 +8691,7 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     orm_log_file.append("orm_debug.log");
 }
 
-// 限速参数必须在单线程启动阶段装载：listener()/listeners() 的 accept 热路径与
+// 限速参数必须在单线程启动阶段装载：acceptDispatch() 的 accept 后处理与
 // ratelimiter() 都会无锁读这些 atomic，不能留到 httpwatch 线程里再做初始化，
 // 否则早期连接会按类内默认值而不是 server.conf 的配置限速，甚至踩到未校正的
 // num2 > num1（compute_rate_from_load 的 unsigned 减法会回绕成巨大放行率）。
@@ -9216,7 +9296,7 @@ void httpserver::httpwatch_check_cron_reboot(unsigned char cron_type, unsigned c
                 error_loglist.push_back(logstr);
             }
             logvlock.unlock();
-            isstop = true;
+            request_stop();
         }
     }
 }
@@ -9616,7 +9696,7 @@ void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsign
             logh2lock.unlock();
             if (old_ten_total_count == total_count.load())
             {
-                isstop = true;
+                request_stop();
             }
             else
             {
@@ -9660,7 +9740,7 @@ void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsign
 
             if (old_ten_total_count == total_count.load())
             {
-                isstop = true;
+                request_stop();
             }
             else
             {
@@ -9693,7 +9773,7 @@ void httpserver::httpwatch_check_restart_threshold(unsigned int restart_process_
                 std::unique_lock<std::mutex> logrblock(log_mutex);
                 error_loglist.push_back("--restart_process_time_start--\n");
                 logrblock.unlock();
-                isstop = true;
+                request_stop();
             }
         }
     }
@@ -9949,7 +10029,7 @@ void httpserver::httpwatch()
             {
                 if (fs::exists(restart_file))
                 {
-                    isstop = true;
+                    request_stop();
                     if (remove(restart_file.c_str()) == 0)
                     {
                         DEBUG_LOG(" -- remove restart_file -- ");
@@ -10669,7 +10749,7 @@ void httpserver::run(const std::string &sysconfpath)
     bool startup_ready = false;
     try
     {
-        isstop = false;
+        isstop = stop_requested.load();
 
         // get_client_context_obj 是"首个调用者定型"的单例（默认参数 nullptr）。
         // 必须在任何 acceptor / worker 线程以及配置加载里的无参调用之前，用真 io_context
@@ -10840,7 +10920,7 @@ void httpserver::run(const std::string &sysconfpath)
                         std::string tempthread = oss.str();
                         DEBUG_LOG("frame thread:%s", tempthread.c_str());
 #endif
-                        do
+                        for (;;)
                         {
                             try
                             {
@@ -10849,7 +10929,9 @@ void httpserver::run(const std::string &sysconfpath)
                             catch (...)
                             {
                             }
-                        } while (!isstop);
+                            if (isstop)
+                                break;
+                        }
                     });
             }
         }
@@ -10963,66 +11045,13 @@ void httpserver::run(const std::string &sysconfpath)
         }
 #endif
 
-        // accept 线程数取自 server.conf 的 socket_accept_num，HTTP 与 HTTPS 各起相同数量。
-        // The accept thread count comes from socket_accept_num in server.conf; HTTP and HTTPS each start that many.
-        unsigned int accept_thread_num = sysconfigpath.socket_accept_num;
-        if (accept_thread_num < 1)
+        runtime_ready.store(true, std::memory_order_relaxed);
+        if (start_accept_pool(sysconfigpath.socket_accept_num))
         {
-            accept_thread_num = 1;
+            std::unique_lock<std::mutex> stop_lock(stop_mutex);
+            stop_condition.wait(stop_lock, [this]() { return isstop.load(); });
         }
-
-        // accept 线程绝大多数时间阻塞在 accept() 上，配置值直接生效，解析时已限制在 1~8。
-        // 不再按核数二次封顶：cpuset 32 核下 core/16 会把配置的 4 压成 2。
-        // The configured value is authoritative (clamped to 1..8 when parsing); acceptors
-        // block in accept() and cost nothing when idle, so no second cap by core count.
-
-        // 每个线程各自用 SO_REUSEPORT 绑同一端口，新连接由内核分摊到各 acceptor。
-        // Each thread binds the same port with SO_REUSEPORT, and the kernel spreads new connections across acceptors.
-        std::vector<std::thread> https_accept_threads;
-        std::vector<std::thread> http_accept_threads;
-        https_accept_threads.reserve(accept_thread_num);
-        http_accept_threads.reserve(accept_thread_num);
-        for (unsigned int i = 0; i < accept_thread_num; ++i)
-        {
-            https_accept_threads.emplace_back(std::bind(&httpserver::listeners, this));
-            http_accept_threads.emplace_back(std::bind(&httpserver::listener, this));
-        }
-
-        // 设置线程优先级 — set thread priority
-#ifdef _WIN32
-        for (auto &thread : https_accept_threads)
-        {
-            set_thread_priority(thread, THREAD_PRIORITY_HIGHEST);
-        }
-        for (auto &thread : http_accept_threads)
-        {
-            set_thread_priority(thread, THREAD_PRIORITY_HIGHEST);
-        }
-#else
-        for (auto &thread : https_accept_threads)
-        {
-            set_thread_priority(thread, 90);
-        }
-        for (auto &thread : http_accept_threads)
-        {
-            set_thread_priority(thread, 90);
-        }
-#endif
-
-        for (auto &thread : https_accept_threads)
-        {
-            if (thread.joinable())
-            {
-                thread.join();
-            }
-        }
-        for (auto &thread : http_accept_threads)
-        {
-            if (thread.joinable())
-            {
-                thread.join();
-            }
-        }
+        stop();
 
         for (int i = 0; i < 1; ++i)
         {
@@ -11049,6 +11078,20 @@ void httpserver::run(const std::string &sysconfpath)
         {
             ratelimiter.join();
         }
+        std::list<std::shared_ptr<client_session>> abandoned_rate_sessions;
+        {
+            std::lock_guard<std::mutex> lock(socket_session_lists_mutex);
+            abandoned_rate_sessions.swap(socket_session_wait_rate);
+        }
+        rate_queue_count.store(0, std::memory_order_relaxed);
+        for (const auto &peer : abandoned_rate_sessions)
+        {
+            if (peer->isssl)
+                total_http2_count.fetch_sub(1, std::memory_order_relaxed);
+            else
+                total_http1_count.fetch_sub(1, std::memory_order_relaxed);
+        }
+        abandoned_rate_sessions.clear();
     }
     catch (std::exception &e)
     {
@@ -11067,61 +11110,43 @@ asio::io_context &httpserver::get_ctx()
 }
 void httpserver::stop()
 {
-    // ORM 先收：关空闲连接，再停 HTTP ioc。共用模式下 orm_io_host().stop() 是空操作。
-    std::string orm_stop_log = orm::init_orm_conn_pool_release();
-    if (!orm_stop_log.empty())
+    if (!runtime_ready.load(std::memory_order_relaxed))
     {
-        std::unique_lock<std::mutex> lock(log_mutex);
-        error_loglist.emplace_back(orm_stop_log);
+        request_stop();
+        return;
     }
+    std::call_once(server_stop_once, [this]()
+                   {
+                       // ORM 先收：关空闲连接，再停 HTTP ioc。共用模式下 orm_io_host().stop() 是空操作。
+                       std::string orm_stop_log = orm::init_orm_conn_pool_release();
+                       if (!orm_stop_log.empty())
+                       {
+                           std::unique_lock<std::mutex> lock(log_mutex);
+                           error_loglist.emplace_back(orm_stop_log);
+                       }
 
-    isstop = true;
-    rate_limit_condition.notify_all();// 叫醒 ratelimiter 检查 isstop
-    // 唤醒所有阻塞在 accept() 的 listener 线程，并把监听 fd 交回 acceptor 自己关。三步各管一段：
-    //   cancel()   Windows(Vista+) 上是 CancelIoEx，asio 唯一的跨线程唤醒入口——
-    //              那边的 closesocket 叫不醒挂在 accept() 里的线程；POSIX 下只作废 asio
-    //              自己排队的异步操作，对阻塞 accept 无副作用
-    //   shutdown() POSIX 下真正把阻塞中的 accept() 叫醒的是这一步，asio 的 close() 不做它
-    //   close()    fd 由 owner 关那一次就够，stop() 不再自己 ::close——否则那个号被别的线程
-    //              立刻复用之后，二次 close 打到的是新开的 socket
-    // 先把登记的对象换出来，锁里不做系统调用
-    std::vector<std::shared_ptr<asio::ip::tcp::acceptor>> stopping_acceptors;
-    {
-        std::lock_guard<std::mutex> lock(acceptors_mutex);
-        stopping_acceptors.swap(acceptors);
-    }
-    for (auto &one_acceptor : stopping_acceptors)
-    {
-        asio::error_code temp_ec;
-        if (one_acceptor->is_open())
-        {
-            one_acceptor->cancel(temp_ec);
-#ifdef _WIN32
-            ::shutdown(one_acceptor->native_handle(), SD_BOTH);
-#else
-            ::shutdown(one_acceptor->native_handle(), SHUT_RDWR);
-#endif
-        }
-        one_acceptor->close(temp_ec);
-    }
-    client_context &client_context = get_client_context_obj();
-    client_context.stop();
-    websocketcondition.notify_all();
-    clientrunpool.stop();
+                       request_stop();
+                       rate_limit_condition.notify_all();// 叫醒 ratelimiter 检查 isstop
+                       stop_accept_pool();
+                       client_context &client_context = get_client_context_obj();
+                       client_context.stop();
+                       websocketcondition.notify_all();
+                       clientrunpool.stop();
 #ifdef ENABLE_REDIS
-    // 现在共用框架 io_context，进程退出时 io_context.stop() 自然收掉所有协程，无需单独 stop redis pool
+                       // 现在共用框架 io_context，进程退出时 io_context.stop() 自然收掉所有协程，无需单独 stop redis pool
 #endif
-    // 每个 ioc 都要停：工作线程的 run() 靠这个返回，漏一个那条槽上的协程就不散场。
-    for (auto &one_ioc : io_contexts)
-    {
-        one_ioc->stop();
-    }
-    io_context->stop();
-    DEBUG_LOG("httpserver stop!");
-    {
-        std::unique_lock<std::mutex> lock(log_mutex);
-        error_loglist.emplace_back("-- httpserver stopped\n");
-    }
+                       // 每个 ioc 都要停：工作线程的 run() 靠这个返回，漏一个那条槽上的协程就不散场。
+                       for (auto &one_ioc : io_contexts)
+                       {
+                           one_ioc->stop();
+                       }
+                       io_context->stop();
+                       DEBUG_LOG("httpserver stop!");
+                       {
+                           std::unique_lock<std::mutex> lock(log_mutex);
+                           error_loglist.emplace_back("-- httpserver stopped\n");
+                       }
+                   });
 }
 
 unsigned int http::httpserver::socket_broadcast(unsigned int groupid, std::string_view payload)

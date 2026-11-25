@@ -1506,6 +1506,10 @@ bool serverconfig::loadserverglobalconfig()
         socket_accept_num = 1;
     }
 
+#ifdef _WIN32
+    // Windows 没有 SO_REUSEPORT，多个 acceptor 无法可靠地监听同一端口。
+    socket_accept_num = 1;
+#endif
 
     if (map_value["default"]["orm_thread_pool_num"].size() > 0)
     {

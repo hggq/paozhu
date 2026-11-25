@@ -248,19 +248,19 @@ int main(int argc, char *argv[])
             if (fd_flags >= 0)
                 ::fcntl(stop_sv[1], F_SETFL, fd_flags | O_NONBLOCK);
 
+            http::httpserver &httpmy = http::get_server_app();
+            std::thread stop_thread;
             try
             {
-                http::httpserver &httpmy = http::get_server_app();
-
-                // 监听 supervisor 的停机通知：回调跑在框架已有的 io 线程上，不额外开线程。
+                // 完成回调位于业务 io_context；stop() 会等待 accept 回调，必须另起线程执行。
                 auto stop_reader = std::make_shared<asio::posix::stream_descriptor>(httpmy.get_ctx(), stop_sv[1]);
                 auto stop_byte   = std::make_shared<unsigned char>(0);
                 stop_reader->async_read_some(
                     asio::buffer(stop_byte.get(), 1),
-                    [&httpmy, stop_reader, stop_byte](const asio::error_code &ec, std::size_t)
+                    [&httpmy, &stop_thread, stop_reader, stop_byte](const asio::error_code &ec, std::size_t)
                     {
                         if (!ec)
-                            httpmy.stop();
+                            stop_thread = std::thread([&httpmy]() { httpmy.stop(); });
                     });
 
                 // paozhu-rbac:begin
@@ -268,9 +268,13 @@ int main(int argc, char *argv[])
                 http::rbac::install_route_guard();
                 // paozhu-rbac:end
                 httpmy.run(argv_str);
+                if (stop_thread.joinable())
+                    stop_thread.join();
             }
             catch (std::exception &e)
             {
+                if (stop_thread.joinable())
+                    stop_thread.join();
                 std::printf("Exception: %s\n", e.what());
                 exit(1);
             }

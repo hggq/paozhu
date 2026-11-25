@@ -242,8 +242,15 @@ class httpserver
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
     asio::awaitable<void> orm_connect_clear(std::shared_ptr<orm::orm_conn_pool> peer_connect);
 
-    void listeners();
-    void listener();
+    bool start_accept_pool(unsigned int accept_num);
+    void request_stop();
+    void stop_accept_pool();
+    void setupAcceptor(asio::ip::tcp::acceptor &acceptor,
+                       unsigned short port, bool ipv6, const char *tag);
+    asio::ssl::context make_ssl_context();
+    asio::awaitable<void> acceptHttpLoop(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
+    asio::awaitable<void> acceptHttpsLoop(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
+    asio::awaitable<void> acceptDispatch(std::shared_ptr<client_session> peer_session, bool isssl);
     void ratelimiter();
 
     // 60 秒流量窗口：分桶按调用线程各存一份，返回最近约 60 秒的连接增量（计数源是全局 total_count）
@@ -365,6 +372,7 @@ class httpserver
         std::printf("~httpserver\n");
         isstop = true;
         websocketcondition.notify_all();
+        stop_accept_pool();
         io_context->stop();
 
         for (unsigned int i = 0; i < runthreads.size(); ++i)
@@ -407,6 +415,17 @@ class httpserver
     // io_contexts[0] 就是上面的兼容成员 io_context：框架自身的定时循环、同步取连接、
     // client_context 都留在它上面。ORM 启动时注入并共用这一组 ioc。
     std::vector<std::shared_ptr<asio::io_context>> io_contexts;
+    std::vector<std::unique_ptr<asio::io_context>> accept_iocs_;
+    std::vector<std::thread> accept_threads_;
+    std::vector<asio::executor_work_guard<asio::io_context::executor_type>> accept_works_;
+    std::mutex accept_pool_mutex;
+    std::condition_variable accept_stopped_condition;
+    std::size_t accept_loop_count = 0;
+    bool accept_pool_closed = false;
+    std::once_flag accept_pool_stop_once;
+    std::once_flag server_stop_once;
+    std::mutex stop_mutex;
+    std::condition_variable stop_condition;
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::list<std::weak_ptr<websockets_api>> websockettasks;
@@ -457,12 +476,14 @@ class httpserver
     // threads and coroutines — they must be atomic. A plain bool here is a data race (UB);
     // the compiler is free to hoist 'while (isstop == false)' into an infinite loop.
     std::atomic_bool isstop             = false;
+    std::atomic_bool stop_requested      = false;
+    std::atomic_bool runtime_ready       = false;
     std::atomic_bool istraffic          = false;
     std::atomic_bool hard_kill_old_link = false;
     std::atomic_bool rate_limit_status  = false;
     bool server_ip6_listen              = false;
 
-    // 各 listener 线程的 acceptor，建好监听后登记，stop() 负责唤醒挂起的 accept() 并关掉它。
+    // 各 accept_ioc 的 HTTP/HTTPS acceptor，建好监听后登记，stop_accept_pool() 负责唤醒挂起的 async_accept() 并关掉它。
     // 存 shared_ptr 而不是裸 fd：fd 号在 ::close 之后会被别的线程立刻复用，
     // 再由 stop() 关一次就打到了新 socket；而且只有拿到对象才谈得上下面的 cancel()。
     //
