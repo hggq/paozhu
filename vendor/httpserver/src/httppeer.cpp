@@ -2271,8 +2271,27 @@ void httppeer::clsoesend()
     }
 }
 
+void httppeer::h2_begin_raw_stream()
+{
+    if (httpv == 2 && socket_session && !h2send.raw_stream_active)
+    {
+        socket_session->http2_begin_content_stream(stream_id);
+        h2send.raw_stream_active = true;
+    }
+}
+
+void httppeer::h2_end_raw_stream()
+{
+    if (h2send.raw_stream_active && socket_session)
+    {
+        h2send.raw_stream_active = false;
+        socket_session->http2_end_content_stream(stream_id);
+    }
+}
+
 void httppeer::clear()
 {
+    h2_end_raw_stream();
     host.clear();
     ;
     url.clear();
@@ -2368,6 +2387,9 @@ void httppeer::clear()
     http2_send_header.clear();
 
     output.clear();
+    // 释放文件所有权并清空发送进度，避免池化复用时继承上一个 HTTP/2 流的状态。
+    h2file.reset();
+    h2send.reset();
     sitepath.clear();
     sendfilename.clear();
 
@@ -2575,6 +2597,7 @@ void httppeer::send_make_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str);
@@ -2610,6 +2633,7 @@ void httppeer::send_make_end()
     }
     // HTTP/1.1: Content-Length 模式下，浏览器按长度读取完毕自动结束，无需额外操作
     // 发完后置 ischunked = true，让 server.cpp 那边直接返回
+    h2_end_raw_stream();
     ischunked = true;
 }
 
@@ -2634,6 +2658,7 @@ asio::awaitable<void> httppeer::async_send_make_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str);
@@ -2669,6 +2694,7 @@ asio::awaitable<void> httppeer::async_send_make_end()
             co_await socket_session->async_http2_send_data_payload(stream_id, std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
+    h2_end_raw_stream();
     ischunked = true;
     co_return;
 }
@@ -2696,6 +2722,7 @@ void httppeer::send_chunk_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str);
@@ -2750,6 +2777,7 @@ void httppeer::send_chunk_end()
             socket_session->send_writer(std::string_view("0\r\n\r\n"));
         }
     }
+    h2_end_raw_stream();
     ischunked = true;
 }
 
@@ -2775,6 +2803,7 @@ asio::awaitable<void> httppeer::async_send_chunk_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str);
@@ -2831,6 +2860,7 @@ asio::awaitable<void> httppeer::async_send_chunk_end()
             co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
         }
     }
+    h2_end_raw_stream();
     ischunked = true;
     co_return;
 }
@@ -2860,6 +2890,7 @@ asio::awaitable<void> httppeer::async_make_sse_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str);
@@ -2891,6 +2922,7 @@ void httppeer::make_sse_header()
         header_str.append("\r\n");
     }
 
+    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str);
@@ -2982,6 +3014,7 @@ asio::awaitable<void> httppeer::async_make_sse_end()
             co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
         }
     }
+    h2_end_raw_stream();
     co_return;
 }
 
@@ -3001,6 +3034,7 @@ void httppeer::make_sse_end()
             socket_session->send_writer(std::string_view("0\r\n\r\n"));
         }
     }
+    h2_end_raw_stream();
 }
 
 }// namespace http

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <sstream>
 #include <map>
+#include <memory>
 #include <list>
 #include <unordered_map>
 #include <filesystem>
@@ -50,8 +51,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void scheme(unsigned char);
     std::shared_ptr<httppeer> get_ptr();
     // index_headers=false：不查/不插编码器动态表（流式 send_writer 路径不持喂入锁，
-    // 编码顺序无法与上线顺序对齐，必须保持不插表表示）。直发路径默认 true，
-    // 且调用必须发生在喂入锁临界区内（见 server.cpp 的 h2_push_headers_wait）。
+    // 编码顺序无法与上线顺序对齐，必须保持不插表表示）。默认 true 的调用发生在
+    // 发送协程的喂入锁临界区内，动态表变更序与 HEADERS 上线序一致。
     std::string make_http2_header(unsigned char flag_code = 0, bool index_headers = true);
     std::string make_http1_header();
     void set_header(const std::string &, const std::string &);
@@ -304,6 +305,45 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     struct stat fileinfo;
     std::string output;
+    // HTTP/2 文件发送状态由 peer 独占；补读协程使用其中的文件偏移、剩余长度和读取进度。
+    struct h2_file_state_t
+    {
+        static constexpr std::size_t INITIAL_READ_SIZE = 64 * 1024;
+        static constexpr std::size_t MAX_READ_SIZE     = 256 * 1024;
+        using file_handle_t = std::unique_ptr<std::FILE, int (*)(std::FILE *)>;
+
+        file_handle_t fp;
+        unsigned long long offset    = 0;
+        unsigned long long remaining = 0;
+        std::size_t read_size        = INITIAL_READ_SIZE;
+        std::chrono::steady_clock::time_point last_read_time{};
+
+        explicit h2_file_state_t(file_handle_t handle) : fp(std::move(handle)) {}
+    };
+    std::unique_ptr<h2_file_state_t> h2file;
+    // 每个 HTTP/2 流独立保存发送进度；完成通知和补读状态随流创建、随清理复位。
+    struct h2send_state_t
+    {
+        std::shared_ptr<h2_borrow_state> completion;
+        std::size_t sent_bytes = 0;
+        bool headers_sent = false;
+        bool end_on_headers = false;
+        bool registered = false;
+        bool raw_stream_active = false;
+        bool refill_pending = false;
+        std::chrono::steady_clock::time_point blocked_deadline{};
+        void reset()
+        {
+            completion.reset();
+            sent_bytes = 0;
+            headers_sent = false;
+            end_on_headers = false;
+            registered = false;
+            raw_stream_active = false;
+            refill_pending = false;
+            blocked_deadline = {};
+        }
+    } h2send;
     std::string sitepath;
     std::string sendfilename;
     // 路由预查「先落盘」那一步 stat 过的文件路径：get_fileinfo() 拼出的 sendfilename 与它相同时
@@ -346,6 +386,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool h2_authority_seen = false;// :authority 至少出现过一次（RFC 9113 §8.3.1）
     bool h2_host_seen      = false;// 普通 host 头至少出现过一次
     bool h2_regular_seen = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
+
+  private:
+    void h2_begin_raw_stream();
+    void h2_end_raw_stream();
 };
 // — v6 router —
 enum class fn_kind : uint8_t

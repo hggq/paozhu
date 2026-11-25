@@ -159,7 +159,7 @@ class httpserver
     template <typename JobT>
     asio::awaitable<void> http2_co_send_compress(std::shared_ptr<httppeer> peer, JobT &job);
 
-    // Shared helpers to remove duplicated blocks across the http2 send paths.
+    // HTTP/2 各发送路径共用的正文压缩与请求状态清理函数。
     void http2_compress_output(std::shared_ptr<httppeer> &peer, std::string &out_content, unsigned long long &out_len);
     void clear_peer_data(std::shared_ptr<httppeer> &peer);
 
@@ -209,7 +209,7 @@ class httpserver
     void http2_refund_send_window(client_session *session_obj, unsigned int stream_id, unsigned long long back);
 
 
-    // H2 专属：控制环优先 + RST 缓发 + 内容环 gather + dead 复查 + WU 补发
+    // H2 专属：FIFO 控制/流式帧优先 + peer 轮转 gather + dead 复查 + WU 补发
     asio::awaitable<void> ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session);
     // 共用：WS / MQTT client / Socket client —— 单环顺序写
     asio::awaitable<void> ring_client_send_loop(std::shared_ptr<client_session> peer_session);
@@ -265,15 +265,11 @@ class httpserver
     // ---- HTTP/2 内部发送原语（原为 file-scope static，改成成员以消除 get_server_app()）----
     // Abort one stream: mark dead + RST(CANCEL), discard any queued DATA.
     asio::awaitable<void> http2_abort_stream(std::shared_ptr<httppeer> &peer, unsigned int sid);
-    // HEADERS ring producer: encode + enqueue in one critical section.
-    asio::awaitable<bool> h2_push_headers_wait(const std::shared_ptr<client_session> &sess,
-                                               const std::shared_ptr<httppeer> &peer, unsigned char hflag);
-    // Stall on stream window then retry; false = budget exhausted (caller should abort).
-    asio::awaitable<bool> http2_window_stall(std::shared_ptr<httppeer> &peer, unsigned int sid);
-    // Inline ring producer: headers + batched DATA, for handler direct responses.
+    // Inline pull producer: body ready in peer->output, register then await completion.
     asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, std::string_view body, bool head);
-    // File ring producer: headers + batched DATA read from disk (offloaded to pool thread).
-    asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> peer, std::FILE *fp,
+    // File pull producer: own the handle, read the first chunk, then register.
+    asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> peer,
+                                               std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp,
                                                unsigned long long offset, unsigned long long total);
 
     // 集中处理 HTTP/2 解析期错误：连接级→GOAWAY 断连（返回 true，调用方 break）；

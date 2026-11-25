@@ -12,6 +12,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <deque>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -71,6 +72,7 @@
 namespace http
 {
 struct http2_send_data_t;
+class httppeer;
 
 void h2_write_data_header(char *header, unsigned int sid, unsigned char flags, unsigned int len);
 // 组一枚完整 DATA 帧（9 字节帧头 + 载荷深拷贝），入环前的标准组帧形状。
@@ -135,15 +137,13 @@ class client_session : public std::enable_shared_from_this<client_session>
     void cancel();
     void half_stop();
     asio::awaitable<std::string> async_stop();
-    // GOAWAY 入控制环（满则 20ms 一拍重试，2 秒预算），再有限等控制环排空后返回。
-    // 调用方（client_http2_loop 的各 break 路径、http2loop 异常路径）随后会 cancel()，
-    // 不等排空就会把环里的 GOAWAY 与在途响应一起杀掉。
+    // GOAWAY 入 FIFO 环，环满时重试并受 2 秒预算限制；入环后等待它写出再返回。
+    // 调用方随后会 cancel()，因此这里必须等 GOAWAY 真正上线。
     asio::awaitable<void> async_send_goway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
-    // 关闭前冲刷：有界等待控制环排空。绝不直接写 socket——写者只有消费者协程，
-    // 这里只 co_await 定时器，每次让出 strand 都让消费者的写完成推进。
-    // pop 在 async_write 完成之后（环空 ⇒ 队尾帧已写出）。上限 2 秒：
-    // 客户端停读时不无限拖住 teardown。返回 false = 超时/连接已坏仍未排空。
-    asio::awaitable<bool> flush_send_ring();
+    // 有界等待发送环和待发送 peer 排空。只等待并让出 strand，不直接写 socket；
+    // 唯一写者是发送协程。上限 2 秒，避免客户端停读时无限阻塞关闭流程。
+    // include_producers=false 时只检查已排队 peer，不等待尚未注册的响应生产者。
+    asio::awaitable<bool> flush_send_ring(bool include_producers = true);
 
     asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
     asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
@@ -167,116 +167,83 @@ class client_session : public std::enable_shared_from_this<client_session>
     void wake_ring_consumer();
 
     // ---- h2 发送原语 ----
-    // h2 帧一律入环（控制环 / 内容环），由消费者协程在 strand 上串行写出，
-    // 生产者只 push + 停等，不碰 socket，也没有跨 I/O 持有的写锁。
-    // 等一次窗口：true=额度到了（调用方马上 reserve，中间别 co_await），
-    // false=关闭/流已死/预算耗尽，调用方负责撤流。被叫醒后额度没到就用剩余预算重挂，
-    // 小增量唤醒不续命。dead 传 peer->isclose。
+    // 普通响应注册为待发送 peer，由唯一发送协程按轮转顺序构造 HEADERS/DATA；
+    // 控制帧和兼容流式接口的完整帧仍走同一个 FIFO 环。
     asio::awaitable<bool> http2_wait_window_episode(unsigned int sid, const std::atomic_bool &dead);
-    // 解析侧收到 WU / IWS 上调 / 流关闭时调用，叫醒对应的停等者。
     void http2_cancel_conn_waiters();
     void http2_cancel_stream_waiter(unsigned int sid);
     void http2_cancel_all_stream_waiters();
-    // 关闭冲刷：置 closing，叫醒所有等待者。
     void http2_close_waiters();
-    // 同步停等者的唤醒边（业务池线程不能挂 strand timer）：上面四个函数收尾时调用，
-    // 锁内递增世代再 notify_all。停等者先快照世代再 reserve，reserve 失败后按
-    // 「世代已变」谓词挂 CV——reserve 与挂起之间到达的唤醒不会丢。
     std::mutex http2_sync_window_mutex;
     std::condition_variable http2_sync_window_cv;
     unsigned long long http2_sync_window_gen = 0;
     void http2_wake_sync_window_waiters();
-    // RST 入控制环，满则 20ms 一拍重试（2 秒预算）；false = 预算耗尽或连接已关。
     asio::awaitable<bool> http2_send_rst(unsigned int s_stream_id, unsigned int stream_error_code);
-    // RST 入环版：解析循环里用，不在读路径上等写锁。false = 环满，连接已过载。
     bool push_rst_stream(unsigned int sid, unsigned int code);
 
-    // ---- 喂入锁：本连接所有 h2 生产者（内容批 / HEADERS / 控制帧）的唯一竞争点 ----
-    // 谁拿到谁入环：内容批持锁内查 24 闸、一次推 ≤6 帧再放；HEADERS 持锁内编码+入环
-    // （动态表变更序 = 入环序 = 上线序）；控制帧持锁直推、不查闸。锁内只做 memcpy/编码，
-    // 绝不跨 co_await / I/O；环满或闸满都先放锁再等 20ms。环自带 push 锁嵌套在内
-    // （消费者/pop 与 post_write 仍只用环锁），全局锁序恒为 喂入锁 → 环 push 锁。
     std::mutex http2_feed_mutex;
-    // 控制帧入控制环（持喂入锁，不查闸）：仅 push，唤醒/计数由调用方自理。false = 环满。
     bool push_control_frame(const unsigned char *fr, unsigned int n);
 
-    // ---- 内容环：流式响应（HEADERS/DATA）的发送队列 ----
-    // 与控制环同款同池，但只装内容帧；消费者每帧先看控制环再看内容环，
-    // 控制帧（SETTINGS/PING/WU）永远优先于排队中的内容；RST 例外——内容环
-    // 还有同流帧时先排空它们再放 RST（HEADERS 入环即必须上线）。
-    // 只有 h2 会话分配它；websocket/mqtt/原生 socket 恒为 nullptr，消费者判空跳过。
-    // 流式生产者（send_writer/async_send_writer 的 httpv==2 分支）把 DATA 按
-    // min(对端 MAX_FRAME_SIZE, CONST_HTTP2_SEND_FRAME_BUF) 分片、逐片预留发送窗口后入环；
-    // 内联/文件生产者每轮至多 CONST_HTTP2_SEND_BATCH_FRAMES 帧、积压到
-    // CONST_HTTP2_CONTENT_RING_FEED_GATE 槽就地等；环满/窗口见底原地等
-    // （async 挂 timer 让出 strand；sync 窗口停等挂 CV、环满自适应 sleep），预算耗尽撤流。
-    std::unique_ptr<http2_send_queue_cache> http2_content_queue = nullptr;
-    // 死流标记：cleanup_stream（对端 RST/流级错误）与本地撤流写入，消费者出队时复查，
-    // 命中即丢帧（DATA 退还已预留的窗口额度）。内容环排空时清掉没有在途生产者的标记，
-    // 内存有界。跨线程读写（业务池 sync 生产者 / strand 解析与消费者），自带锁。
+    struct pending_h2_peer
+    {
+        std::shared_ptr<httppeer> peer;
+        // 无发送窗口时为 true；窗口恢复后重新进入可运行轮转队列。
+        bool blocked = false;
+        std::chrono::steady_clock::time_point deadline{};
+    };
+    // 待发送和暂时阻塞的 peer 共用此队列，取出可运行项后放到队尾以实现轮转。
+    std::deque<pending_h2_peer> http2_pending_peers;
+    std::shared_ptr<httppeer> http2_active_peer;
+    std::unordered_map<unsigned int, std::shared_ptr<httppeer>> http2_refilling_peers;
+    std::mutex http2_pending_peers_mutex;
+    void http2_register_pending_peer(const std::shared_ptr<httppeer> &peer);
+    std::shared_ptr<httppeer> http2_take_next_peer();
+    void http2_requeue_peer(const std::shared_ptr<httppeer> &peer, bool blocked);
+    bool http2_begin_peer_refill(const std::shared_ptr<httppeer> &peer);
+    void http2_finish_peer_refill(const std::shared_ptr<httppeer> &peer, bool ready);
+    bool http2_has_refilling_peers();
+    void http2_complete_active_peer(const std::shared_ptr<httppeer> &peer, bool success);
+    void http2_cancel_active_peer();
+    void http2_cancel_pending_peer(unsigned int sid);
+    void http2_cancel_all_pending_peers(bool wake = true);
+    void http2_begin_content_stream(unsigned int sid);
+    void http2_end_content_stream(unsigned int sid);
+    std::vector<std::shared_ptr<httppeer>> http2_cancel_expired_peers();
+    void http2_unblock_pending_peers(bool connection, unsigned int sid);
+    bool http2_has_pending_peers();
+    bool http2_has_queued_peers();
+    bool http2_has_runnable_peer();
+    asio::awaitable<void> http2_wait_send_event(std::chrono::nanoseconds wait_time);
+
     std::mutex http2_dead_streams_mutex;
     std::set<unsigned int> http2_dead_streams;
-    // 在途生产者登记表（与死流标记同锁）：响应级和单帧级登记可嵌套，计数归零才注销。
     std::unordered_map<unsigned int, unsigned int> http2_content_producers;
-    // 本 sid 在内容环中排队待写出的帧计数：入环 ++、出环（含死流丢弃）-- 归零 erase。
-    // 与 dead_streams / content_producers 同锁，精确判定"该流在消费侧是否还有引用"。
-    // 随帧出环归零 erase，集合自然有界 = 环容量上限。
-    // Frames-of-sid still sitting in the content ring (pending write).
-    // Incremented on push success, decremented on dequeue (incl. dead-stream drop).
-    // Same mutex as dead_streams/content_producers. Natural upper bound = ring capacity.
     std::unordered_map<unsigned int, unsigned int> http2_inflight_frames;
     void http2_mark_stream_dead(unsigned int sid);
     bool http2_stream_is_dead(unsigned int sid);
+    void http2_try_reap_dead_mark_locked(unsigned int sid);
+    void http2_note_frame_dequeued(unsigned int sid, unsigned char type);
     struct h2_content_producer_guard
     {
         h2_content_producer_guard(client_session *session, unsigned int stream_id);
         ~h2_content_producer_guard();
-        h2_content_producer_guard(const h2_content_producer_guard &) = delete;
+        h2_content_producer_guard(const h2_content_producer_guard &)            = delete;
         h2_content_producer_guard &operator=(const h2_content_producer_guard &) = delete;
 
       private:
         client_session *sess;
         unsigned int sid;
     };
-    // 精确回收死流标记：producers 无登记 && inflight_frames 归零 时安全 erase。
-    // 调用方保证已持有 http2_dead_streams_mutex（与 inflight_frames/producers 同锁）。
-    // Precise reclamation entry: erase dead_stream[sid] iff no in-flight producer AND
-    // no pending frame in content ring. Caller must hold http2_dead_streams_mutex.
-    void http2_try_reap_dead_mark_locked(unsigned int sid);
-    // 流式发送失败的统一收尾（只在 strand 上调）：退额度、标死流、清窗口条目，
-    // rst=true 再投 RST(CANCEL)（对端已 RST/连接将关时传 false，不对 closed 流发 RST）。
-    // sync 生产者经 asio::post(strand_) 投递到这里，不跨线程碰 strand 专属的等待者容器。
     void http2_content_stream_failed(unsigned int sid, unsigned long long refund_bytes, bool rst);
-    // 流式帧入内容环（满则原地等，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT 秒）。
     unsigned int http2_send_content_frame(std::string_view frame);
     asio::awaitable<unsigned int> async_http2_send_content_frame(std::string_view frame);
-    // DATA payload 直入：预留窗口 + 按 min(对端 MAX_FRAME_SIZE, CONST_HTTP2_SEND_FRAME_BUF)
-    // 拆片 + 组帧一步完成，payload 只 memcpy 一次（调用方不必先组整帧再被拆散重组）。
-    // end_flags 是最后一帧的 flags（0x01=END_STREAM / 0x00），非末帧自动剥 END_STREAM；
-    // 空 payload 发零长 DATA（不占窗口额度）。返回入环字节数（含帧头），0 = 一字节未入。
-    // 停等/环满/失败收尾语义与 http2_send_content_frame 的 DATA 分支完全一致。
     unsigned int http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
     asio::awaitable<unsigned int> async_http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
-    // 裸内容帧入环（窗口额度由调用方预留/退还）。
     bool http2_try_push_content_raw(std::string_view frame, std::string *owned, unsigned int sid);
-    // sync 版：一次尝试立刻返回，不 sleep、不循环；环满/流已死/连接已关返回 false，
-    // 重试策略和预算由调用方决定。按右值引用收帧：成功才移动进槽，拒收时源缓冲原样
-    // 保留，调用方可复用同一帧重试。
     bool http2_push_content_raw_sync(std::string &&frame, unsigned int sid);
     bool http2_push_content_raw_sync(const char *frame, unsigned int frame_size, unsigned int sid);
-    // async 版：按值收帧，环满原地挂 timer 自适应重试，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT
-    // 秒；false = 预算耗尽或连接/流已死。
     asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
     asio::awaitable<bool> http2_push_content_raw(const char *frame, unsigned int frame_size, unsigned int sid);
-    // 内联/文件 DATA 批入环：持喂入锁一次推完整批（≤CONST_HTTP2_SEND_BATCH_FRAMES 帧），
-    // 锁内查 CONST_HTTP2_CONTENT_RING_FEED_GATE 闸，满则放锁等 20ms 再竞争。闸+批 ≤ 可用槽，
-    // 持锁期间别的生产者进不来，本批必然装得下。reserved_bytes 是本批预留的窗口额度；
-    // 未入环的差额由本函数内部退款，已入环后被消费者丢弃的死流 DATA 仍由消费者退款。
-    // 返回实际入环字节数；返回 0 表示预算耗尽或流/连接已死（一帧未推，frames 原样保留）。
-    asio::awaitable<unsigned long long> http2_push_content_batch(std::span<const data_frame_borrowed> frames,
-                                                                unsigned int sid,
-                                                                unsigned long long reserved_bytes,
-                                                                const std::shared_ptr<h2_borrow_state> &completion);
 
   public:
     unsigned char *_cache_data  = nullptr;
@@ -338,7 +305,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     //   - post_write 的三道闸（环满 / 积压过 MQTT_SEND_RING_BYTE_LIMIT / push 失败），
     //     也就是 websocket_api::send()、mqtt 的出站、socket_api::send() 三条路共用这一个数。
     //     post_write 最前面那条"连接已关或没环"不算背压，不进这个数。
-    //   - 内容环满时流式帧 push 被拒（http2_send_content_frame 原地重试期间的每一次拒绝）。
+    //   - FIFO 环满时流式帧 push 被拒（http2_send_content_frame 原地重试期间的每一次拒绝）。
     // 这个数目前在哪里打印：http2 连接收尾时的 "http2 ring stats overflow"；原生 socket 收尾时的
     // "tcp ring close ... refuse="。websocket / mqtt 的连接目前没有落这一行的地方。
     std::atomic<unsigned long long> http2_ring_overflow_count = 0;
@@ -363,6 +330,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::atomic<unsigned long long> http2_ring_backpressure_count = 0;
 
     std::atomic_bool http2_need_wakeup = false;
+    std::atomic_bool http2_fifo_write_active = false;
     //std::string http2_ring_queue_temp;
 
     std::mutex http2_sock_mutex;
@@ -370,8 +338,9 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     std::mutex wake_ring_consumer_mutex;
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
+    std::shared_ptr<asio::steady_timer> http2_consumer_timer;
 
-    // ---- h2 停等状态（都在 strand 上）----
+    // ---- HTTP/2 停等状态（都在 strand 上）----
     // 窗口停等登记：流级一流一个 timer；连接级按登记序 FIFO。
     std::multimap<unsigned int, asio::steady_timer *> http2_stream_window_waiters;
     std::vector<asio::steady_timer *> http2_conn_window_waiters;

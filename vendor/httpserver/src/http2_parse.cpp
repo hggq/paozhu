@@ -3549,13 +3549,12 @@ void http2parse::cleanup_stream(unsigned int sid)
             temp_peer->isclose = true;
         }
     }
-    // 直发架构 dead 边：上面已把 peer->isclose 置真（内联发送协程的停等判据），
-    // 这里 cancel 该流的窗口停等者让它立刻醒来见 dead，而不是睡满 10 秒预算。
-    // 本函数是全部解析侧死亡边（对端 RST / 流级错误 / 收尾）的唯一回收口径，
-    // 一处接边即覆盖；本端撤流由发送协程自己置 isclose 并退出。
+    // peer->isclose 是待发送 peer 的停止判据；窗口等待者需要立即取消，
+    // 不能在置死后继续睡到停等预算耗尽。
+    // 对端 RST、流级错误和流收尾统一走这里释放该流的发送状态。
     peer_session->http2_cancel_stream_waiter(sid);
-    // 内容环 dead 边：这条流可能还有排队中的 HEADERS/DATA（流式响应），标死让
-    // 消费者协程（H2 专属）出队时丢帧并退还 DATA 已预留的窗口额度。
+    // 标记 FIFO 中该流的流式响应帧：发送协程出队时丢弃 DATA，
+    // 并退还发送时预留的窗口额度。
     peer_session->http2_mark_stream_dead(sid);
     {
         std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
@@ -6100,6 +6099,7 @@ void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer
     {
         peer_pool.discard_total++;
         p->no_repool = true;
+        p->h2file.reset();
         return;
     }
     // user_code_handler_call 是 fastcgi 回调队列，不能让新请求继承。
@@ -6108,6 +6108,7 @@ void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer
     {
         peer_pool.discard_total++;
         p->no_repool = true;
+        p->h2file.reset();
         return;
     }
 
