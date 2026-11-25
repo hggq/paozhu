@@ -67,30 +67,21 @@ struct h2_borrow_state : std::enable_shared_from_this<h2_borrow_state>
     asio::awaitable<bool> wait()
     {
         co_await asio::this_coro::executor;
-        struct wait_result
-        {
-            std::function<void(bool)> complete;
-        };
-        auto result = std::make_shared<wait_result>();
         co_await asio::async_initiate<void(bool)>(
-            [self = shared_from_this(), result](auto &&handler) mutable
+            [self = shared_from_this()](auto &&handler) mutable
             {
                 auto completion = std::make_shared<std::decay_t<decltype(handler)>>(std::move(handler));
-                result->complete = [completion](bool value) mutable
+                auto wake = [self, completion]()
                 {
-                    (*completion)(value);
-                };
-                auto wake = [self, result]()
-                {
+                    bool value = false;
+                    {
+                        std::lock_guard<std::mutex> lock(self->mutex);
+                        value = !self->cancelled;
+                    }
                     asio::post(self->wait_executor,
-                               [self, result]()
+                               [completion, value]()
                                {
-                                   bool value = false;
-                                   {
-                                       std::lock_guard<std::mutex> lock(self->mutex);
-                                       value = !self->cancelled;
-                                   }
-                                   result->complete(value);
+                                   (*completion)(value);
                                });
                 };
                 bool ready = false;

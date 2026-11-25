@@ -932,7 +932,8 @@ void client_session::wake_ring_consumer()
         }
         if (timer)
         {
-            asio::dispatch(timer->get_executor(), [timer = std::move(timer)]() mutable
+            auto timer_executor = timer->get_executor();
+            asio::dispatch(timer_executor, [timer = std::move(timer)]() mutable
                            { timer->cancel(); });
         }
     }
@@ -965,8 +966,9 @@ std::shared_ptr<httppeer> client_session::http2_take_next_peer()
         if (item.peer->isclose.load(std::memory_order_relaxed))
         {
             item.peer->h2send.registered = false;
-            if (item.peer->h2send.completion)
-                item.peer->h2send.completion->cancel();
+            auto completion = std::move(item.peer->h2send.completion);
+            if (completion)
+                completion->cancel();
             continue;
         }
         if (item.blocked)
@@ -1038,7 +1040,7 @@ void client_session::http2_finish_peer_refill(const std::shared_ptr<httppeer> &p
         {
             peer->h2send.registered = false;
             peer->h2send.blocked_deadline = {};
-            completion = peer->h2send.completion;
+            completion = std::move(peer->h2send.completion);
             http2_try_reap_dead_mark_locked(peer->stream_id);
         }
     }
@@ -1064,7 +1066,7 @@ void client_session::http2_complete_active_peer(const std::shared_ptr<httppeer> 
             http2_active_peer.reset();
         peer->h2send.registered = false;
         peer->h2send.blocked_deadline = {};
-        completion = peer->h2send.completion;
+        completion = std::move(peer->h2send.completion);
         http2_try_reap_dead_mark_locked(peer->stream_id);
     }
     if (completion)
@@ -1123,8 +1125,9 @@ void client_session::http2_cancel_all_pending_peers(bool wake)
     for (auto &item : peers)
     {
         item.peer->h2send.registered = false;
-        if (item.peer->h2send.completion)
-            item.peer->h2send.completion->cancel();
+        auto completion = std::move(item.peer->h2send.completion);
+        if (completion)
+            completion->cancel();
     }
     if (wake)
         wake_ring_consumer();
@@ -1175,8 +1178,9 @@ std::vector<std::shared_ptr<httppeer>> client_session::http2_cancel_expired_peer
             }
             it->peer->isclose = true;
             it->peer->h2send.registered = false;
-            if (it->peer->h2send.completion)
-                it->peer->h2send.completion->cancel();
+            auto completion = std::move(it->peer->h2send.completion);
+            if (completion)
+                completion->cancel();
             expired.push_back(it->peer);
             it = http2_pending_peers.erase(it);
         }

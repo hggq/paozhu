@@ -3878,12 +3878,6 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 break;
             }
 #endif
-            // 解析侧入环的接收窗口补量帧需要环消费者写出；旗由 grant 路径置位。
-            // 发送窗口停等者的唤醒不走这里——WU/IWS 解析边已直接 cancel 对应 timer。
-            if (peer_session->http2_need_wakeup)
-            {
-                peer_session->wake_ring_consumer();
-            }
             // 只有整块读完才允许下一轮 read_some 覆盖 _cache_data（它从下标 0 写，
             // 未解析的尾部一旦被覆盖就永久丢帧）；留着尾巴就接着从 offsetnum 解。
             if (offsetnum >= readnum)
