@@ -192,6 +192,7 @@ asio::awaitable<bool> httpserver::h2_push_headers_wait(const std::shared_ptr<cli
                 ++sess->http2_inflight_frames[peer->stream_id];
                 std::unique_lock<std::mutex> lk(q->http2_queue_send_mutex);
                 q->data[tail] = std::move(header);
+                q->borrowed[tail] = h2_slot_borrowed{};
                 q->tail_.store(next_tail, std::memory_order_release);
                 pushed = true;
             }
@@ -243,7 +244,7 @@ asio::awaitable<bool> httpserver::http2_window_stall(std::shared_ptr<httppeer> &
 // 槽就地等）。唯一写者 ring_client_http2_send_loop 按环序写出、控制帧优先，SETTINGS 结构上
 // 先于 HEADERS（RFC 9113 §3.4），不需要先排空环。head=true 或空正文时 END_STREAM
 // 落 HEADERS。返回 false = 流已撤或连接已关。
-asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> peer, std::string body, bool head)
+asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> peer, std::string_view body, bool head)
 {
     auto sess              = peer->socket_session;
     const unsigned int sid = peer->stream_id;
@@ -265,6 +266,7 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
     if (head || total == 0)
         co_return true;
 
+    auto completion = std::make_shared<h2_borrow_state>(co_await asio::this_coro::executor);
     unsigned long long sent = 0;
     while (sent < total)
     {
@@ -273,40 +275,53 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
         if (peer->isclose.load(std::memory_order_relaxed) ||
             sess->isclose.load(std::memory_order_relaxed) ||
             sess->http2_closing.load(std::memory_order_relaxed))
+        {
+            co_await completion->wait();
             co_return false;
+        }
         const unsigned long long mfs  = sess->remote_max_frame_size.load();
         const unsigned long long want = std::min<unsigned long long>(total - sent, CONST_HTTP2_SEND_BATCH_FRAMES * mfs);
         const unsigned long long got  = http2_reserve_send_window(sess.get(), sid, want);
         if (got == 0)
         {
             if (!co_await http2_window_stall(peer, sid))
+            {
+                co_await completion->wait();
                 co_return false;
+            }
             continue;
         }
         // 本批额度切成 ≤6 枚 ≤mfs 的帧，一次持喂入锁整批入环（锁内查 24 闸）。
         // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。失败按实际上环字节退差额。
-        std::vector<std::string> frames;
-        frames.reserve(CONST_HTTP2_SEND_BATCH_FRAMES);
+        std::array<data_frame_borrowed, CONST_HTTP2_SEND_BATCH_FRAMES> frames;
         unsigned long long pos = 0;
+        unsigned int frame_count = 0;
         while (pos < got)
         {
             const unsigned long long flen = std::min(mfs, got - pos);
             const unsigned char fflags    = (sent + got >= total && pos + flen >= got) ? 0x01 : 0x00;
-            frames.push_back(h2_make_data_chunk(sid, fflags, body.data() + sent + pos, static_cast<unsigned int>(flen)));
+            auto &frame                   = frames[frame_count++];
+            frame.payload_ptr             = body.data() + sent + pos;
+            frame.payload_len             = static_cast<unsigned int>(flen);
+            h2_write_data_header(frame.header, sid, fflags, frame.payload_len);
             pos += flen;
         }
-        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid, got);
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(
+            std::span<const data_frame_borrowed>(frames.data(), frame_count), sid, got, completion);
         if (pushed_bytes != got)
         {
             // 差额已由 batch 内部退还；已上环帧由 abort 标死后消费者丢弃并退款。
             // The remainder is refunded inside the batch; enqueued frames are refunded
             // by the consumer when it drops dead-stream DATA.
+            co_await completion->wait();
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
         sent += pushed_bytes;
         sess->time_limit.store(timeid() + 16);
     }
+    if (!co_await completion->wait())
+        co_return false;
     co_return true;
 }
 
@@ -338,6 +353,8 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
 
     constexpr unsigned long long READ_CHUNK = 1ull << 20;
     std::string chunk;
+    auto completion     = std::make_shared<h2_borrow_state>(co_await asio::this_coro::executor);
+    bool chunk_borrowed = false;
     size_t chunk_pos            = 0;
     unsigned long long file_pos = offset;
     unsigned long long sent     = 0;
@@ -346,9 +363,19 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
         if (peer->isclose.load(std::memory_order_relaxed) ||
             sess->isclose.load(std::memory_order_relaxed) ||
             sess->http2_closing.load(std::memory_order_relaxed))
+        {
+            if (chunk_borrowed)
+                co_await completion->wait();
             co_return false;
+        }
         if (chunk_pos == chunk.size())
         {
+            if (chunk_borrowed)
+            {
+                if (!co_await completion->wait())
+                    co_return false;
+                chunk_borrowed = false;
+            }
             // 读盘在池线程；读时还没预留窗口，失败不用退还。
             const unsigned long long want_read = std::min(READ_CHUNK, total - sent);
             const unsigned long long pos       = file_pos;
@@ -376,7 +403,11 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
         if (peer->isclose.load(std::memory_order_relaxed) ||
             sess->isclose.load(std::memory_order_relaxed) ||
             sess->http2_closing.load(std::memory_order_relaxed))
+        {
+            if (chunk_borrowed)
+                co_await completion->wait();
             co_return false;
+        }
         const unsigned long long mfs   = sess->remote_max_frame_size.load();
         const unsigned long long avail = chunk.size() - chunk_pos;
         const unsigned long long cap   = CONST_HTTP2_SEND_BATCH_FRAMES * mfs;
@@ -385,34 +416,51 @@ asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppee
         if (got == 0)
         {
             if (!co_await http2_window_stall(peer, sid))
+            {
+                if (chunk_borrowed)
+                    co_await completion->wait();
                 co_return false;
+            }
             continue;
         }
         // 本批额度切成 ≤6 枚 ≤mfs 的帧，一次持喂入锁整批入环（锁内查 24 闸）。
         // 末批不足 6 帧即正文到尾，END_STREAM 落最后一帧。失败按实际上环字节退差额。
-        std::vector<std::string> frames;
-        frames.reserve(CONST_HTTP2_SEND_BATCH_FRAMES);
+        std::array<data_frame_borrowed, CONST_HTTP2_SEND_BATCH_FRAMES> frames;
         unsigned long long pos = 0;
+        unsigned int frame_count = 0;
         while (pos < got)
         {
             const unsigned long long flen = std::min(mfs, got - pos);
             // END_STREAM 只落在整段正文的最后一帧
             const unsigned char fflags = (sent + got >= total && pos + flen >= got) ? 0x01 : 0x00;
-            frames.push_back(h2_make_data_chunk(sid, fflags, chunk.data() + chunk_pos + pos, static_cast<unsigned int>(flen)));
+            auto &frame                   = frames[frame_count++];
+            frame.payload_ptr             = chunk.data() + chunk_pos + pos;
+            frame.payload_len             = static_cast<unsigned int>(flen);
+            h2_write_data_header(frame.header, sid, fflags, frame.payload_len);
             pos += flen;
         }
-        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(frames, sid, got);
+        const unsigned long long pushed_bytes = co_await sess->http2_push_content_batch(
+            std::span<const data_frame_borrowed>(frames.data(), frame_count), sid, got, completion);
         if (pushed_bytes != got)
         {
             // 差额已由 batch 内部退还；已上环帧由 abort 标死后消费者丢弃并退款。
             // The remainder is refunded inside the batch; enqueued frames are refunded
             // by the consumer when it drops dead-stream DATA.
+            chunk_borrowed = pushed_bytes > 0;
+            co_await completion->wait();
             co_await http2_abort_stream(peer, sid);
             co_return false;
         }
+        chunk_borrowed = true;
         chunk_pos += static_cast<size_t>(pushed_bytes);
         sent += pushed_bytes;
         sess->time_limit.store(timeid() + 16);
+        if (chunk_pos == chunk.size())
+        {
+            if (!co_await completion->wait())
+                co_return false;
+            chunk_borrowed = false;
+        }
     }
     co_return true;
 }
@@ -841,7 +889,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         if (job.type == 16 || job.type == 17)
         {
             // 内存压缩体
-            co_await http2_send_inline(peer, std::move(job.content), false);
+            co_await http2_send_inline(peer, job.content, false);
         }
         else
         {
@@ -1035,7 +1083,7 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
     peer->type("text/html; charset=utf-8");
     const bool head  = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
     std::string body = head ? std::string() : bodycontent;
-    co_await http2_send_inline(peer, std::move(body), head);
+    co_await http2_send_inline(peer, body, head);
     co_return;
 }
 
@@ -1358,11 +1406,8 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 clen = peer->output.size();
                 peer->length(clen);
             }
-            if (!head && peer->compress == 0)
-            {
-                body = std::move(peer->output);
-            }
-            co_await http2_send_inline(peer, std::move(body), head);
+            std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
+            co_await http2_send_inline(peer, content, head);
             clear_peer_data(peer);
             co_return false;
         }
@@ -1418,11 +1463,8 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                         clen = peer->output.size();
                         peer->length(clen);
                     }
-                    if (!head && peer->compress == 0)
-                    {
-                        body = std::move(peer->output);
-                    }
-                    co_await http2_send_inline(peer, std::move(body), head);
+                    std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
+                    co_await http2_send_inline(peer, content, head);
                     clear_peer_data(peer);
                     co_return false;
                 }
@@ -1582,11 +1624,8 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
         peer->type("text/html; charset=utf-8");
     }
     DEBUG_LOG("fastcgi send content");
-    if (!head && peer->compress == 0)
-    {
-        body = std::move(peer->output);
-    }
-    co_await http2_send_inline(peer, std::move(body), head);
+    std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
+    co_await http2_send_inline(peer, content, head);
     clear_peer_data(peer);
     co_return;
 }
@@ -1594,6 +1633,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 {
     try
     {
+        client_session::h2_content_producer_guard producer_guard{peer->socket_session.get(), peer->stream_id};
+        if (peer->isclose.load(std::memory_order_relaxed))
+            co_return;
+
         serverconfig &sysconfigpath = getserversysconfig();
 
         // sitepath 必须在预查之前定好：带点 URL 的「先落盘」要用它拼出盘上那个文件
@@ -1703,11 +1746,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             {
                 peer->type("text/html; charset=utf-8");
             }
-            if (!head && peer->compress == 0)
-            {
-                body = std::move(peer->output);
-            }
-            co_await http2_send_inline(peer, std::move(body), head);
+            std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
+            co_await http2_send_inline(peer, content, head);
             clear_peer_data(peer);
             co_return;
         }
@@ -1764,13 +1804,9 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 peer->type("text/html; charset=utf-8");
             }
             DEBUG_LOG("http2_send_content");
-            if (!head && (peer->compress == 0 || body.empty()))
-            {
-                // identity，或控制器预压缩（正文在 output）；自动压缩成功时 body 已填好，
-                // 不能拿原始 output 覆盖。
-                body = std::move(peer->output);
-            }
-            co_await http2_send_inline(peer, std::move(body), head);
+            std::string_view content =
+                (!head && (peer->compress == 0 || body.empty())) ? std::string_view(peer->output) : std::string_view(body);
+            co_await http2_send_inline(peer, content, head);
             clear_peer_data(peer);
             co_return;
         }
@@ -2998,6 +3034,19 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
     http2_send_queue_cache *cleanup_q       = nullptr;
     unsigned char           cleanup_advance = 0;
     unsigned char           cleanup_head    = 0;
+    struct borrow_cleanup
+    {
+        client_session *sess;
+        ~borrow_cleanup()
+        {
+            sess->isclose = true;
+            sess->http2_close_waiters();
+            std::lock_guard<std::mutex> feed(sess->http2_feed_mutex);
+            if (sess->http2_content_queue)
+                sess->http2_content_queue->cancel_borrowed();
+            sess->http2_ring_queue->cancel_borrowed();
+        }
+    } borrow_guard{peer_session.get()};
 
     try
     {
@@ -3106,33 +3155,37 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 }
                 if (q == nullptr && peer_session->http2_content_queue)
                 {
-                    std::unique_lock cnt_lk(peer_session->http2_content_queue->http2_queue_send_mutex);
-                    auto *cq       = peer_session->http2_content_queue.get();
-                    unsigned char h = cq->head_.load(std::memory_order_acquire);
-                    if (h != cq->tail_.load(std::memory_order_acquire))
+                    bool ring_empty = false;
                     {
-                        q             = cq;
-                        is_content    = true;
-                        for_head      = h;
-                        content_count = cq->has_size();
+                        std::unique_lock cnt_lk(peer_session->http2_content_queue->http2_queue_send_mutex);
+                        auto *cq       = peer_session->http2_content_queue.get();
+                        unsigned char h = cq->head_.load(std::memory_order_acquire);
+                        if (h != cq->tail_.load(std::memory_order_acquire))
+                        {
+                            q             = cq;
+                            is_content    = true;
+                            for_head      = h;
+                            content_count = cq->has_size();
+                        }
+                        else
+                        {
+                            ring_empty = true;
+                        }
                     }
-                    else
+                    if (ring_empty)
                     {
-                        // 内容环排空：清掉没有在途生产者的死流标记，内存有界。
-                        // 仍有生产者的流必须保留标记——停等中的生产者醒来靠它退出，
-                        // 提前清掉会让它往已重置的流重新预留窗口并推帧。
+                        // 与生产者一致的 feed→dead 锁序；持 feed 可挡住清理期间的新入环。
+                        std::lock_guard<std::mutex> feed(peer_session->http2_feed_mutex);
                         std::lock_guard<std::mutex> dl(peer_session->http2_dead_streams_mutex);
                         for (auto it = peer_session->http2_dead_streams.begin();
                              it != peer_session->http2_dead_streams.end();)
                         {
-                            if (peer_session->http2_content_producers.count(*it) == 0)
-                            {
+                            const bool no_producer = peer_session->http2_content_producers.count(*it) == 0;
+                            const auto inflight    = peer_session->http2_inflight_frames.find(*it);
+                            if (no_producer && (inflight == peer_session->http2_inflight_frames.end() || inflight->second == 0))
                                 it = peer_session->http2_dead_streams.erase(it);
-                            }
                             else
-                            {
                                 ++it;
-                            }
                         }
                     }
                 }
@@ -3156,7 +3209,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     constexpr unsigned char GATHER_MAX_SLOTS = 12;
                     const unsigned char slots_try = std::min(content_count, GATHER_MAX_SLOTS);
                     std::vector<asio::const_buffer> gather_bufs;
-                    gather_bufs.reserve(slots_try);
+                    gather_bufs.reserve(slots_try * 2);
                     unsigned char slots_consumed = 0;
                     // 本批前移槽各自的 sid（死流 DATA 被跳过也占槽，同样要减 inflight）。
                     // Sids of every slot we advance (dead-stream DATA also counts —
@@ -3167,6 +3220,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     {
                         const unsigned char idx  = (for_head + i) & (q->capacity_ - 1);
                         const std::string &slot  = q->data[idx];
+                        const h2_slot_borrowed &borrow = q->borrowed[idx];
                         slots_consumed           = i + 1;
 
                         // dead 复查：DATA 帧死流跳过 + 退款，HEADERS/CONTINUATION 不跳
@@ -3186,6 +3240,11 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                     static_cast<unsigned int>(static_cast<unsigned char>(slot[2]));
                                 if (flen > 0)
                                     get_server_app().http2_refund_send_window(peer_session.get(), fsid, flen);
+                                if (borrow.completion)
+                                {
+                                    auto completion = q->take_borrowed(idx).completion;
+                                    completion->release();
+                                }
                                 continue;  // skip, but still occupies a head_ slot
                             }
                         }
@@ -3200,6 +3259,8 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                 static_cast<unsigned int>(static_cast<unsigned char>(slot[8]));
                         }
                         gather_bufs.emplace_back(slot.data(), slot.size());
+                        if (borrow.payload_ptr != nullptr)
+                            gather_bufs.emplace_back(borrow.payload_ptr, borrow.payload_len);
                     }
 
                     // gather_bufs 里是指向环槽的裸 const_buffer。head_ 必须等 async_write
@@ -3259,7 +3320,20 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
 
                     // 写完成（或本批全是死流、无需写）后才释放这些槽给生产者复用。
                     if (advance_slots > 0)
+                    {
+                        std::array<std::shared_ptr<h2_borrow_state>, GATHER_MAX_SLOTS> completions;
+                        for (unsigned char i = 0; i < advance_slots; ++i)
+                        {
+                            const unsigned char idx = (for_head + i) & (q->capacity_ - 1);
+                            completions[i] = q->take_borrowed(idx).completion;
+                        }
                         q->head_.store((for_head + advance_slots) & (q->capacity_ - 1), std::memory_order_release);
+                        for (unsigned char i = 0; i < advance_slots; ++i)
+                        {
+                            if (completions[i])
+                                completions[i]->release();
+                        }
+                    }
                     // 本批已消费完，清掉兜底记录：否则后续无写入的 head_ 前移（死流跳过）
                     // 之后再抛异常，catch 会按陈旧记录把 head_ 回退进已释放的槽。
                     cleanup_advance = 0;
@@ -3273,6 +3347,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
 
                 // ===== 原单帧路径（控制环帧 / 内容环仅剩 1 帧时）=====
                 const std::string &slot = q->data[for_head];
+                const h2_slot_borrowed &borrow = q->borrowed[for_head];
                 // 内容帧 dead 复查只丢 DATA：HEADERS/CONTINUATION 入环时已在 push 临界区
                 // 变更编码器动态表，丢掉会让对端解码表永久错位，入环即必须上线。
                 // DATA 命中死流（cleanup_stream / 本地撤流标记）即丢帧，并退还生产者
@@ -3304,6 +3379,11 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                 peer_session->http2_try_reap_dead_mark_locked(fsid);
                             }
                         }
+                        if (borrow.completion)
+                        {
+                            auto completion = q->take_borrowed(for_head).completion;
+                            completion->release();
+                        }
                         q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
                         if (peer_session->has_pending_window_update())
                         {
@@ -3314,6 +3394,12 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 }
 
                 unsigned long long sent_bytes = slot.size();
+                std::array<asio::const_buffer, 2> write_bufs{asio::const_buffer(slot.data(), slot.size())};
+                if (borrow.payload_ptr != nullptr)
+                {
+                    write_bufs[1] = asio::const_buffer(borrow.payload_ptr, borrow.payload_len);
+                    sent_bytes += borrow.payload_len;
+                }
                 // 兜底保存：async_write 抛异常时 catch 里需要知道该前推 1 个槽。
                 cleanup_q       = q;
                 cleanup_advance = 1;
@@ -3322,11 +3408,11 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 // async_write(use_awaitable) 在 socket 错误时抛异常，跳到外层 catch 收尾。
                 if (peer_session->isssl)
                 {
-                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(slot), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->sslsocket, write_bufs, asio::use_awaitable);
                 }
                 else
                 {
-                    co_await asio::async_write(*peer_session->socket, asio::buffer(slot), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->socket, write_bufs, asio::use_awaitable);
                 }
                 // 积压字节饱和减：只有 post_write 入口累加，http2 直 push 恒 0 自然跳过
                 if (q->bytes.load(std::memory_order_relaxed) >= sent_bytes)
@@ -3352,7 +3438,12 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         }
                     }
                 }
+                std::shared_ptr<h2_borrow_state> completion;
+                if (borrow.completion)
+                    completion = q->take_borrowed(for_head).completion;
                 q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
+                if (completion)
+                    completion->release();
                 // 本槽已消费完，清掉兜底记录，防 catch 按陈旧记录回退 head_。
                 cleanup_advance = 0;
                 // 同一拍补发本端接收窗口的欠账补量帧：补量帧只可能在环满时被拒，

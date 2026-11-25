@@ -271,7 +271,7 @@ class httpserver
     // Stall on stream window then retry; false = budget exhausted (caller should abort).
     asio::awaitable<bool> http2_window_stall(std::shared_ptr<httppeer> &peer, unsigned int sid);
     // Inline ring producer: headers + batched DATA, for handler direct responses.
-    asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, std::string body, bool head);
+    asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, std::string_view body, bool head);
     // File ring producer: headers + batched DATA read from disk (offloaded to pool thread).
     asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> peer, std::FILE *fp,
                                                unsigned long long offset, unsigned long long total);

@@ -25,6 +25,7 @@
 #include <thread>
 #include <memory>
 #include <string_view>
+#include <span>
 #include <atomic>
 
 #include <cstdlib>
@@ -71,6 +72,7 @@ namespace http
 {
 struct http2_send_data_t;
 
+void h2_write_data_header(char *header, unsigned int sid, unsigned char flags, unsigned int len);
 // 组一枚完整 DATA 帧（9 字节帧头 + 载荷深拷贝），入环前的标准组帧形状。
 std::string h2_make_data_chunk(unsigned int sid, unsigned char flags, const char *payload, unsigned int len);
 
@@ -214,10 +216,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 内存有界。跨线程读写（业务池 sync 生产者 / strand 解析与消费者），自带锁。
     std::mutex http2_dead_streams_mutex;
     std::set<unsigned int> http2_dead_streams;
-    // 在途流式生产者登记表（与死流标记同锁）：生产者进 http2_send_content_frame /
-    // http2_send_data_payload 注册、退出注销。消费者清死流标记时跳过仍有在途生产者的流——否则停等中的生产者醒来
-    // 可能见不到标记，往已重置的流上重新预留窗口并推帧。
-    std::set<unsigned int> http2_content_producers;
+    // 在途生产者登记表（与死流标记同锁）：响应级和单帧级登记可嵌套，计数归零才注销。
+    std::unordered_map<unsigned int, unsigned int> http2_content_producers;
     // 本 sid 在内容环中排队待写出的帧计数：入环 ++、出环（含死流丢弃）-- 归零 erase。
     // 与 dead_streams / content_producers 同锁，精确判定"该流在消费侧是否还有引用"。
     // 随帧出环归零 erase，集合自然有界 = 环容量上限。
@@ -227,6 +227,17 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::unordered_map<unsigned int, unsigned int> http2_inflight_frames;
     void http2_mark_stream_dead(unsigned int sid);
     bool http2_stream_is_dead(unsigned int sid);
+    struct h2_content_producer_guard
+    {
+        h2_content_producer_guard(client_session *session, unsigned int stream_id);
+        ~h2_content_producer_guard();
+        h2_content_producer_guard(const h2_content_producer_guard &) = delete;
+        h2_content_producer_guard &operator=(const h2_content_producer_guard &) = delete;
+
+      private:
+        client_session *sess;
+        unsigned int sid;
+    };
     // 精确回收死流标记：producers 无登记 && inflight_frames 归零 时安全 erase。
     // 调用方保证已持有 http2_dead_streams_mutex（与 inflight_frames/producers 同锁）。
     // Precise reclamation entry: erase dead_stream[sid] iff no in-flight producer AND
@@ -247,21 +258,25 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
     asio::awaitable<unsigned int> async_http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
     // 裸内容帧入环（窗口额度由调用方预留/退还）。
+    bool http2_try_push_content_raw(std::string_view frame, std::string *owned, unsigned int sid);
     // sync 版：一次尝试立刻返回，不 sleep、不循环；环满/流已死/连接已关返回 false，
     // 重试策略和预算由调用方决定。按右值引用收帧：成功才移动进槽，拒收时源缓冲原样
     // 保留，调用方可复用同一帧重试。
     bool http2_push_content_raw_sync(std::string &&frame, unsigned int sid);
+    bool http2_push_content_raw_sync(const char *frame, unsigned int frame_size, unsigned int sid);
     // async 版：按值收帧，环满原地挂 timer 自适应重试，预算 CONST_HTTP2_WINDOW_STALL_TIMEOUT
     // 秒；false = 预算耗尽或连接/流已死。
     asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
+    asio::awaitable<bool> http2_push_content_raw(const char *frame, unsigned int frame_size, unsigned int sid);
     // 内联/文件 DATA 批入环：持喂入锁一次推完整批（≤CONST_HTTP2_SEND_BATCH_FRAMES 帧），
     // 锁内查 CONST_HTTP2_CONTENT_RING_FEED_GATE 闸，满则放锁等 20ms 再竞争。闸+批 ≤ 可用槽，
     // 持锁期间别的生产者进不来，本批必然装得下。reserved_bytes 是本批预留的窗口额度；
     // 未入环的差额由本函数内部退款，已入环后被消费者丢弃的死流 DATA 仍由消费者退款。
     // 返回实际入环字节数；返回 0 表示预算耗尽或流/连接已死（一帧未推，frames 原样保留）。
-    asio::awaitable<unsigned long long> http2_push_content_batch(std::vector<std::string> &frames,
+    asio::awaitable<unsigned long long> http2_push_content_batch(std::span<const data_frame_borrowed> frames,
                                                                 unsigned int sid,
-                                                                unsigned long long reserved_bytes);
+                                                                unsigned long long reserved_bytes,
+                                                                const std::shared_ptr<h2_borrow_state> &completion);
 
   public:
     unsigned char *_cache_data  = nullptr;

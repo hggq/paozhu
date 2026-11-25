@@ -1133,19 +1133,23 @@ static unsigned int h2_frame_payload_len(std::string_view f)
            (static_cast<unsigned int>(static_cast<unsigned char>(f[1])) << 8) |
            static_cast<unsigned int>(static_cast<unsigned char>(f[2]));
 }
+void h2_write_data_header(char *header, unsigned int sid, unsigned char flags, unsigned int len)
+{
+    header[0] = static_cast<char>((len >> 16) & 0xFF);
+    header[1] = static_cast<char>((len >> 8) & 0xFF);
+    header[2] = static_cast<char>(len & 0xFF);
+    header[3] = 0x00;
+    header[4] = static_cast<char>(flags);
+    header[5] = static_cast<char>((sid >> 24) & 0x7F);
+    header[6] = static_cast<char>((sid >> 16) & 0xFF);
+    header[7] = static_cast<char>((sid >> 8) & 0xFF);
+    header[8] = static_cast<char>(sid & 0xFF);
+}
 std::string h2_make_data_chunk(unsigned int sid, unsigned char flags, const char *payload, unsigned int len)
 {
     std::string chunk;
     chunk.resize(9 + static_cast<size_t>(len));
-    chunk[0] = static_cast<char>((len >> 16) & 0xFF);
-    chunk[1] = static_cast<char>((len >> 8) & 0xFF);
-    chunk[2] = static_cast<char>(len & 0xFF);
-    chunk[3] = 0x00;
-    chunk[4] = static_cast<char>(flags);
-    chunk[5] = static_cast<char>((sid >> 24) & 0x7F);
-    chunk[6] = static_cast<char>((sid >> 16) & 0xFF);
-    chunk[7] = static_cast<char>((sid >> 8) & 0xFF);
-    chunk[8] = static_cast<char>(sid & 0xFF);
+    h2_write_data_header(chunk.data(), sid, flags, len);
     if (len > 0)
         std::memcpy(&chunk[9], payload, len);
     return chunk;
@@ -1225,35 +1229,28 @@ static void h2_content_fail_post(client_session *sess, unsigned int sid, unsigne
                { self->http2_content_stream_failed(sid, refund_bytes, rst); });
 }
 
-// 在途生产者登记（RAII）：消费者只在某流没有在途生产者时才清它的死流标记。
-// 没有这个登记，窗口停等中的生产者醒来时标记可能已被整表清空，会往已重置的流
-// 重新预留窗口并推帧。登记与死流标记同一把锁，登记/注销与清表互斥。
-struct h2_content_producer_guard
+client_session::h2_content_producer_guard::h2_content_producer_guard(client_session *session, unsigned int stream_id)
+    : sess(session), sid(stream_id)
 {
-    client_session *sess;
-    unsigned int sid;
-    h2_content_producer_guard(client_session *s, unsigned int id) : sess(s), sid(id)
-    {
-        std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
-        sess->http2_content_producers.insert(sid);
-    }
-    ~h2_content_producer_guard()
-    {
-        // 先注销生产者登记，再尝试精确回收。如果此刻 inflight_frames 也归零，
-        // 死流标记就能在"最后引用者退出"时即刻被 erase，不必等整环排空。
-        // First drop producer registration, then attempt precise reclamation.
-        // When inflight_frames is also zero, the dead-stream mark is erased right
-        // here — at the "last referrer gone" moment, not waiting for whole ring drain.
-        std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
-        sess->http2_content_producers.erase(sid);
-        sess->http2_try_reap_dead_mark_locked(sid);
-    }
-};
+    std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
+    ++sess->http2_content_producers[sid];
+}
 
-// 裸内容帧入环，sync 版：一次尝试立刻返回，不 sleep、不循环。
+client_session::h2_content_producer_guard::~h2_content_producer_guard()
+{
+    std::lock_guard<std::mutex> lk(sess->http2_dead_streams_mutex);
+    auto it = sess->http2_content_producers.find(sid);
+    if (it != sess->http2_content_producers.end())
+    {
+        if (--it->second == 0)
+            sess->http2_content_producers.erase(it);
+    }
+    sess->http2_try_reap_dead_mark_locked(sid);
+}
+
+// 裸内容帧入环，一次尝试：owned 非空时移动槽内存储，否则直接拷贝调用方帧头。
 // 环满 / 流已死 / 连接已关都返回 false。调用方决定 retry 策略和预算。
-// 按右值引用收帧：环的 push 只在成功时移动，拒收时调用方的源缓冲原样保留，可复用重试。
-bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned int sid)
+bool client_session::http2_try_push_content_raw(std::string_view frame, std::string *owned, unsigned int sid)
 {
     if (isclose.load(std::memory_order_relaxed) ||
         http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
@@ -1261,13 +1258,17 @@ bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned i
     bool pushed = false;
     {
         std::lock_guard<std::mutex> feed(http2_feed_mutex);
-        // 喂入锁内复查死流：堵住「锁外查死 → 取锁」间隙被 strand 侧 RST 抢跑的窗口。
-        if (http2_stream_is_dead(sid))
+        if (isclose.load(std::memory_order_relaxed) ||
+            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
             return false;
         // 必须先登记再发布 tail_：消费者不取喂入锁，可能在下一次调度前就出队。
         std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
         ++http2_inflight_frames[sid];
-        pushed = http2_content_queue->push(std::move(frame));
+        if (owned)
+            pushed = http2_content_queue->push(std::move(*owned));
+        else
+            pushed = http2_content_queue->push(reinterpret_cast<const unsigned char *>(frame.data()),
+                                               static_cast<unsigned int>(frame.size()));
         if (!pushed)
         {
             auto it = http2_inflight_frames.find(sid);
@@ -1285,6 +1286,16 @@ bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned i
     http2_ring_overflow_count++;
     return false;
 }
+
+bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned int sid)
+{
+    return http2_try_push_content_raw(frame, &frame, sid);
+}
+
+bool client_session::http2_push_content_raw_sync(const char *frame, unsigned int frame_size, unsigned int sid)
+{
+    return http2_try_push_content_raw(std::string_view(frame, frame_size), nullptr, sid);
+}
 // async 版：timer 挂在本连接 strand 上，每次让出都让消费者协程的写完成推进，不会互锁。
 // 注：h2_content_fail_post 从业务线程直接调 http2_mark_stream_dead，打破 strand 串行不变量，
 // 喂入锁内必须复查死流（与 sync 版 http2_push_content_raw_sync 对齐）。
@@ -1298,38 +1309,36 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
         if (isclose.load(std::memory_order_relaxed) ||
             http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
             co_return false;
-        bool pushed = false;
-        {
-            std::lock_guard<std::mutex> feed(http2_feed_mutex);
-            // 喂入锁内复查死流：h2_content_fail_post 可能在锁外查死到取锁间隙内
-            // 从业务线程标记该流为死，sync 版已有此复查，async 版对齐。
-            if (http2_stream_is_dead(sid))
-                co_return false;
-            // 必须先登记再发布 tail_，消费者不取喂入锁，可能在下一次调度前就出队。
-            std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
-            ++http2_inflight_frames[sid];
-            pushed = http2_content_queue->push(std::move(frame));
-            if (!pushed)
-            {
-                auto it = http2_inflight_frames.find(sid);
-                if (--it->second == 0)
-                    http2_inflight_frames.erase(it);
-            }
-        }
-        if (pushed)
-        {
-            // 唤醒放在喂入锁外：本协程在 strand 上，wake 的 dispatch 会就地复活消费者，
-            // 消费者冲刷欠账补量会再取喂入锁，持锁唤醒＝同线程重入非递归锁。
-            if (http2_need_wakeup)
-                wake_ring_consumer();
+        if (http2_try_push_content_raw(frame, &frame, sid))
             co_return true;
-        }
-        http2_ring_overflow_count++;
         if (std::chrono::steady_clock::now() >= deadline)
             co_return false;
         const unsigned char backlog = http2_content_queue->has_size();
         wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
-        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
+        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
+            continue;
+        timer.expires_after(std::chrono::microseconds(wait_interval_us));
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        (void)wait_ec;
+    }
+}
+
+asio::awaitable<bool> client_session::http2_push_content_raw(const char *frame, unsigned int frame_size, unsigned int sid)
+{
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
+    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+    for (;;)
+    {
+        if (isclose.load(std::memory_order_relaxed) ||
+            http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+            co_return false;
+        if (http2_try_push_content_raw(std::string_view(frame, frame_size), nullptr, sid))
+            co_return true;
+        if (std::chrono::steady_clock::now() >= deadline)
+            co_return false;
+        const unsigned char backlog = http2_content_queue->has_size();
+        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
         if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
             continue;
         timer.expires_after(std::chrono::microseconds(wait_interval_us));
@@ -1344,9 +1353,10 @@ static_assert(CONST_HTTP2_CONTENT_RING_FEED_GATE + CONST_HTTP2_SEND_BATCH_FRAMES
                   <= CONST_HTTP2_RING_QUEUE_CAPACITY - 1,
               "feed gate + batch must fit in the content ring");
 
-asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std::vector<std::string> &frames,
+asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std::span<const data_frame_borrowed> frames,
                                                                             unsigned int sid,
-                                                                            unsigned long long reserved_bytes)
+                                                                            unsigned long long reserved_bytes,
+                                                                            const std::shared_ptr<h2_borrow_state> &completion)
 {
     asio::steady_timer timer(co_await asio::this_coro::executor);
     unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
@@ -1366,6 +1376,12 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
         unsigned char      pushed_count = 0;
         {
             std::unique_lock<std::mutex> feed(http2_feed_mutex);
+            if (isclose.load(std::memory_order_relaxed) ||
+                http2_closing.load(std::memory_order_relaxed) || http2_stream_is_dead(sid))
+            {
+                get_server_app().http2_refund_send_window(this, sid, reserved_bytes);
+                co_return 0;
+            }
             const unsigned char backlog   = http2_content_queue->has_size();
             const unsigned int  free_slots = (CONST_HTTP2_RING_QUEUE_CAPACITY - 1) - backlog;
             // ② 闸 + 剩余槽双判定：任一不满足则整批不入环，frames 未被 move，可安全重试。
@@ -1374,29 +1390,39 @@ asio::awaitable<unsigned long long> client_session::http2_push_content_batch(std
                 frames.size() <= free_slots)
             {
                 done = true;
-                // ③ 接住返回值；按实际上环字节记账，绝不静默吞帧。
-                //    Check push() result; account bytes actually enqueued.
-                for (std::string &f : frames)
+                // 先登记整批引用，再发布任何一帧；消费者可能并发释放最后一枚。
+                // 取消与喂入临界区串行化后，这里只会在令牌仍有效时注册成功。
+                if (!completion->add(static_cast<unsigned int>(frames.size())))
                 {
-                    const unsigned int flen = h2_frame_payload_len(f);  // take payload length before move
-                    if (!http2_content_queue->push(std::move(f)))
-                    {
-                        http2_ring_queue_drop_count++;
-                        // 防御性兜底：feed-gate + free_slots 双判定 + static_assert 保证理论不可达，
-                        // 触发即环容量约束被破坏。不用 assert：debug 会 abort、release 静默。
-                        LOG_ERROR << "http2 batch push failed inside feed gate, frames=" << static_cast<unsigned long long>(frames.size()) << LOG_END;
-                        break;
-                    }
-                    pushed_bytes += flen;
-                    ++pushed_count;
+                    done = true;
                 }
-                // 批次属同一 sid，整批 push 完后一次性加 inflight，避免每帧拿一次锁。
-                // All frames share one sid — bump inflight_frames once for the whole batch
-                // to avoid taking the lock per frame.
-                if (pushed_count > 0)
+                else
                 {
+                    // 首批帧发布前登记整批，避免消费者先出队而跳过 inflight 递减。
+                    const unsigned int frame_count = static_cast<unsigned int>(frames.size());
                     std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
-                    http2_inflight_frames[sid] += pushed_count;
+                    http2_inflight_frames[sid] += frame_count;
+                    for (const data_frame_borrowed &f : frames)
+                    {
+                        const unsigned int flen = h2_frame_payload_len(std::string_view(f.header, 9));
+                        if (!http2_content_queue->push_data_borrowed(f.header, f.payload_ptr, f.payload_len, completion))
+                        {
+                            http2_ring_queue_drop_count++;
+                            LOG_ERROR << "http2 batch push failed inside feed gate, frames="
+                                      << static_cast<unsigned long long>(frames.size()) << LOG_END;
+                            break;
+                        }
+                        pushed_bytes += flen;
+                        ++pushed_count;
+                    }
+                    if (pushed_count < frame_count)
+                    {
+                        auto &inflight = http2_inflight_frames[sid];
+                        inflight -= frame_count - pushed_count;
+                        if (inflight == 0)
+                            http2_inflight_frames.erase(sid);
+                    }
+                    completion->release(static_cast<unsigned int>(frames.size() - pushed_count));
                 }
             }
         }
@@ -1496,10 +1522,11 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
     {
         if (http2_stream_is_dead(sid))
             return 0;
-        std::string chunk = h2_make_data_chunk(sid, end_flags, nullptr, 0);
-        if (http2_push_content_raw_sync(std::move(chunk), sid))
+        char header[9];
+        h2_write_data_header(header, sid, end_flags, 0);
+        if (http2_push_content_raw_sync(header, sizeof(header), sid))
             return 9;
-        // retry：END_STREAM 丢了流永远不结束，必须等。push 拒收保留源缓冲，复用 chunk。
+        // retry：END_STREAM 丢了流永远不结束，必须等。帧头固定，重试直接复用。
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
         for (;;)
         {
@@ -1509,7 +1536,7 @@ unsigned int client_session::http2_send_data_payload(unsigned int sid, std::stri
             if (std::chrono::steady_clock::now() >= deadline)
                 break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            if (http2_push_content_raw_sync(std::move(chunk), sid))
+            if (http2_push_content_raw_sync(header, sizeof(header), sid))
                 return 9;
         }
         if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
@@ -1649,8 +1676,9 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(unsi
     {
         if (http2_stream_is_dead(sid))
             co_return 0;
-        std::string chunk = h2_make_data_chunk(sid, end_flags, nullptr, 0);
-        if (co_await http2_push_content_raw(std::move(chunk), sid))
+        char header[9];
+        h2_write_data_header(header, sid, end_flags, 0);
+        if (co_await http2_push_content_raw(header, sizeof(header), sid))
             co_return 9;
         if (!http2_stream_is_dead(sid) && !isclose.load(std::memory_order_relaxed) &&
             !http2_closing.load(std::memory_order_relaxed))

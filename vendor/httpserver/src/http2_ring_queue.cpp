@@ -20,6 +20,7 @@ bool http2_send_queue_cache::push(const unsigned char *buffer, unsigned int buff
     {
         data[tail].clear();
         data[tail].append(reinterpret_cast<const char *>(buffer), buffersize);
+        borrowed[tail] = h2_slot_borrowed{};
         tail_.store(next_tail, std::memory_order_release);
         lk.unlock();
         return true;
@@ -35,6 +36,7 @@ bool http2_send_queue_cache::push(const std::string &item)
     if (next_tail != head_.load(std::memory_order_acquire))
     {
         data[tail] = item;
+        borrowed[tail] = h2_slot_borrowed{};
         tail_.store(next_tail, std::memory_order_release);
         lk.unlock();
         return true;
@@ -50,12 +52,29 @@ bool http2_send_queue_cache::push(std::string &&item)
     if (next_tail != head_.load(std::memory_order_acquire))
     {
         data[tail] = std::move(item);
+        borrowed[tail] = h2_slot_borrowed{};
         tail_.store(next_tail, std::memory_order_release);
         lk.unlock();
         return true;
     }
     lk.unlock();
     return false;
+}
+bool http2_send_queue_cache::push_data_borrowed(const char *header,
+                                                const char *payload_ptr,
+                                                unsigned int payload_len,
+                                                std::shared_ptr<h2_borrow_state> completion)
+{
+    std::unique_lock lk(http2_queue_send_mutex);
+    const std::size_t tail      = tail_.load(std::memory_order_relaxed);
+    const std::size_t next_tail = (tail + 1) & (capacity_ - 1);
+    if (next_tail == head_.load(std::memory_order_acquire))
+        return false;
+
+    data[tail].assign(header, 9);
+    borrowed[tail] = h2_slot_borrowed{payload_ptr, payload_len, std::move(completion)};
+    tail_.store(next_tail, std::memory_order_release);
+    return true;
 }
 unsigned char http2_send_queue_cache::has_size()
 {
@@ -98,6 +117,9 @@ bool http2_send_queue_cache::pop(std::string &item)
     }
 
     item = data[head];
+    if (borrowed[head].completion)
+        borrowed[head].completion->release();
+    borrowed[head] = h2_slot_borrowed{};
     head_.store((head + 1) & (capacity_ - 1), std::memory_order_release);
 
     return true;
@@ -105,6 +127,7 @@ bool http2_send_queue_cache::pop(std::string &item)
 
 void http2_send_queue_cache::reset()
 {
+    cancel_borrowed();
     head_ = 0;
     tail_ = 0;
     bytes.store(0, std::memory_order_relaxed);

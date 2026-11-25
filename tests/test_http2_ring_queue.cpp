@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
 #include "http2_ring_queue.h"
 
 static int g_failures = 0;
@@ -139,6 +142,115 @@ int main()
         ok = ok && ring.push(std::move(keep));
         ok = ok && keep.empty();
         group_result("move push: success empties source, full-ring rejection keeps source", ok);
+    }
+
+    // 组8: borrowed DATA 只复制 9 字节帧头，载荷仍指向生产者缓冲。
+    {
+        asio::io_context io;
+        http::http2_send_queue_cache ring;
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->add(1);
+        std::string payload = "borrowed-payload";
+        char header[9]     = {0, 0, 15, 0, 1, 0, 0, 0, 1};
+        bool ok            = ring.push_data_borrowed(header, payload.data(), 15, completion);
+        ok                 = ok && ring.data[0].size() == 9 && ring.borrowed[0].payload_ptr == payload.data() &&
+            ring.borrowed[0].payload_len == 15 && ring.borrowed[0].completion == completion;
+        auto taken = ring.take_borrowed(0);
+        ok        = ok && taken.payload_ptr == payload.data() && ring.borrowed[0].payload_ptr == nullptr;
+        taken.completion->release();
+        group_result("borrowed DATA stores header and payload view", ok);
+    }
+
+    // 组9: 满环拒收 borrowed 帧，不发布槽位、不接管完成令牌。
+    {
+        asio::io_context io;
+        http::http2_send_queue_cache ring;
+        for (int i = 0; i < static_cast<int>(ring.capacity_) - 1; i++)
+            ring.push("owned");
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->add(1);
+        char header[9] = {};
+        char payload   = 'x';
+        bool ok        = !ring.push_data_borrowed(header, &payload, 1, completion);
+        ok             = ok && ring.borrowed[0].payload_ptr == nullptr && ring.has_size() == ring.capacity_ - 1;
+        completion->release();
+        group_result("borrowed full-ring rejection leaves slot untouched", ok);
+    }
+
+    // 组10: 完成计数归零才唤醒等待者，且唤醒投递到等待协程的 executor。
+    {
+        asio::io_context io;
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->add(2);
+        bool resumed = false;
+        bool value   = false;
+        asio::co_spawn(io,
+                       [completion, &resumed, &value]() -> asio::awaitable<void>
+                       {
+                           value   = co_await completion->wait();
+                           resumed = true;
+                       },
+                       asio::detached);
+        io.poll();
+        completion->release();
+        io.restart();
+        io.poll();
+        bool first = !resumed;
+        completion->release();
+        io.restart();
+        io.poll();
+        group_result("borrow completion wakes after final release", first && resumed && value);
+    }
+
+    // 组11: 消费者退出时 cancel 能唤醒等待者，并报告失败。
+    {
+        asio::io_context io;
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->add(1);
+        bool resumed = false;
+        bool value   = true;
+        asio::co_spawn(io,
+                       [completion, &resumed, &value]() -> asio::awaitable<void>
+                       {
+                           value   = co_await completion->wait();
+                           resumed = true;
+                       },
+                       asio::detached);
+        io.poll();
+        completion->cancel();
+        io.restart();
+        io.poll();
+        group_result("borrow cancellation wakes waiter", resumed && !value);
+    }
+
+    // 组12: owned push 复用 borrowed 槽时清除 borrowed 标签。
+    {
+        asio::io_context io;
+        http::http2_send_queue_cache ring;
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->add(1);
+        char header[9] = {};
+        char payload   = 'x';
+        bool ok        = ring.push_data_borrowed(header, &payload, 1, completion);
+        ring.head_.store(1, std::memory_order_release);
+        for (unsigned int i = 0; i < ring.capacity_ - 1; i++)
+            ok = ring.push("owned") && ok;
+        ring.head_.store(2, std::memory_order_release);
+        ok = ring.push("reused-owned") && ok;
+        ok = ok && ring.borrowed[0].payload_ptr == nullptr && ring.borrowed[0].completion == nullptr;
+        completion->cancel();
+        group_result("owned push clears reused borrowed tag", ok);
+    }
+
+    // 组13: 消费者取消后，迟到注册被拒绝，迟到释放不会破坏计数。
+    {
+        asio::io_context io;
+        auto completion = std::make_shared<http::h2_borrow_state>(io.get_executor());
+        completion->cancel();
+        bool ok = !completion->add(2);
+        completion->release(2);
+        ok = ok && !completion->add(1);
+        group_result("cancelled borrow rejects late add and release", ok);
     }
 
     if (g_failures == 0)
