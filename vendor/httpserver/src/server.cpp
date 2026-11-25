@@ -1632,8 +1632,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
     co_return;
 }
 
-asio::awaitable<void> httpserver::http1_send_file_header(std::shared_ptr<httppeer> peer,
-                                                         std::shared_ptr<client_session> peer_session,
+asio::awaitable<void> httpserver::http1_send_file_header([[maybe_unused]] std::shared_ptr<httppeer> peer,
+                                                         [[maybe_unused]] std::shared_ptr<client_session> peer_session,
                                                          std::shared_ptr<http2_send_data_t> sq_obj)
 {
     peer->status(200);
@@ -2896,10 +2896,6 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 // 变更顺序与帧上线顺序一致。
 asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session)
 {
-    auto write_all = [](auto &stream, const std::vector<asio::const_buffer> &bufs) -> asio::awaitable<void>
-    {
-        co_await asio::async_write(stream, bufs, asio::use_awaitable);
-    };
     auto frame_sid = [](std::string_view frame) -> unsigned int
     {
         return (static_cast<unsigned int>(static_cast<unsigned char>(frame[5])) << 24) |
@@ -2932,11 +2928,16 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
             if (fifo_ready && !runnable_peer_turn)
             {
                 ++fifo_streak;
+                // Scope guard that resets the active flag on exit (including exception paths).
                 struct fifo_write_guard
                 {
                     std::atomic_bool &active;
+                    fifo_write_guard(std::atomic_bool &a) : active(a) {}
                     ~fifo_write_guard() { active.store(false, std::memory_order_release); }
-                } fifo_guard{peer_session->http2_fifo_write_active};
+                    fifo_write_guard(const fifo_write_guard &)            = delete;
+                    fifo_write_guard &operator=(const fifo_write_guard &) = delete;
+                };
+                fifo_write_guard fifo_guard(peer_session->http2_fifo_write_active);
                 peer_session->http2_fifo_write_active.store(true, std::memory_order_release);
                 idle_wait_ms = 100;
                 std::string frame;
@@ -2956,12 +2957,12 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     }
                     else
                     {
+                        std::vector<asio::const_buffer> fifo_buffers;
+                        fifo_buffers.emplace_back(frame.data(), frame.size());
                         if (peer_session->isssl)
-                            co_await write_all(*peer_session->sslsocket,
-                                               {asio::const_buffer(frame.data(), frame.size())});
+                            co_await asio::async_write(*peer_session->sslsocket, fifo_buffers, asio::use_awaitable);
                         else
-                            co_await write_all(*peer_session->socket,
-                                               {asio::const_buffer(frame.data(), frame.size())});
+                            co_await asio::async_write(*peer_session->socket, fifo_buffers, asio::use_awaitable);
                     }
                     if (peer_session->http2_ring_queue->bytes.load(std::memory_order_relaxed) >= frame.size())
                         peer_session->http2_ring_queue->bytes.fetch_sub(frame.size(), std::memory_order_relaxed);
@@ -3040,9 +3041,9 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     try
                     {
                         if (sess.isssl)
-                            co_await write_all(*sess.sslsocket, buffers);
+                            co_await asio::async_write(*sess.sslsocket, buffers, asio::use_awaitable);
                         else
-                            co_await write_all(*sess.socket, buffers);
+                            co_await asio::async_write(*sess.socket, buffers, asio::use_awaitable);
                     }
                     catch (...)
                     {
@@ -3084,9 +3085,9 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                                    try
                                                    {
                                                        auto &file_state = *peer->h2file;
-                                                       const auto now   = std::chrono::steady_clock::now();
+                                                       const auto read_now = std::chrono::steady_clock::now();
                                                        if (file_state.last_read_time.time_since_epoch().count() != 0 &&
-                                                           now - file_state.last_read_time < CONST_HTTP2_FILE_FAST_READ_INTERVAL)
+                                                           read_now - file_state.last_read_time < CONST_HTTP2_FILE_FAST_READ_INTERVAL)
                                                        {
                                                            file_state.read_size = std::min(
                                                                httppeer::h2_file_state_t::MAX_READ_SIZE,
@@ -3601,12 +3602,12 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (http2pre->winupdate_dropped > logged_winupdate_dropped)
             {
                 logged_winupdate_dropped     = http2pre->winupdate_dropped;
+#ifndef BENCHMARK
                 unsigned long long kept_size = 0;
                 {
                     std::lock_guard<std::mutex> winlk(peer_session->stream_send_window_mutex);
                     kept_size = peer_session->stream_send_window.size();
                 }
-#ifndef BENCHMARK
                 log_item.clear();
                 log_item.append("http2 window_update dropped ");
                 log_item.append(std::to_string(http2pre->winupdate_dropped));
@@ -3837,9 +3838,11 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     }
                     http2pre->weak_sweep_removed += dead_sids.size();
                     if (!dead_sids.empty())
+                    {
                         DEBUG_LOG("http2 sweep removed %u weak size %u",
                                   (unsigned int)dead_sids.size(),
                                   (unsigned int)http2pre->http_data_weak.size());
+                    }
                 }
                 // 登记这条流的 peer 弱引用：http2parse 里已在 HEADERS emplace 时同步 insert 过，
                 // 这里是 extract 后对同一个 sid 同一个对象的幂等覆盖，无害且保留原设计。
@@ -8483,16 +8486,16 @@ bool httpserver::start_accept_pool(unsigned int accept_num)
                                    }
                                    catch (const std::exception &e)
                                    {
-                                       std::unique_lock<std::mutex> lock(log_mutex);
+                                       std::unique_lock<std::mutex> error_log_lock(log_mutex);
                                        error_loglist.emplace_back(std::string("accept loop error: ") + e.what());
                                    }
                                    catch (...)
                                    {
-                                       std::unique_lock<std::mutex> lock(log_mutex);
+                                       std::unique_lock<std::mutex> error_log_lock(log_mutex);
                                        error_loglist.emplace_back("accept loop unknown exception");
                                    }
                                }
-                               std::lock_guard<std::mutex> lock(accept_pool_mutex);
+                               std::lock_guard<std::mutex> accept_state_lock(accept_pool_mutex);
                                accept_loop_count--;
                                accept_stopped_condition.notify_all();
                            });
