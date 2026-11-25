@@ -1264,16 +1264,15 @@ bool client_session::http2_push_content_raw_sync(std::string &&frame, unsigned i
         // 喂入锁内复查死流：堵住「锁外查死 → 取锁」间隙被 strand 侧 RST 抢跑的窗口。
         if (http2_stream_is_dead(sid))
             return false;
+        // 必须先登记再发布 tail_：消费者不取喂入锁，可能在下一次调度前就出队。
+        std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
+        ++http2_inflight_frames[sid];
         pushed = http2_content_queue->push(std::move(frame));
-        if (pushed)
+        if (!pushed)
         {
-            // push 成功即入环；inflight_frames 必须与 push 同临界区，否则消费者
-            // 刚好在 push 发布与 inflight++ 之间 dequeue 会让计数错位。
-            // inflight increment must be in the same critical section as push:
-            // otherwise a consumer dequeue between tail_ release and our ++ would
-            // cause off-by-one in the counter.
-            std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
-            ++http2_inflight_frames[sid];
+            auto it = http2_inflight_frames.find(sid);
+            if (--it->second == 0)
+                http2_inflight_frames.erase(it);
         }
     }
     if (pushed)
@@ -1306,13 +1305,15 @@ asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame, 
             // 从业务线程标记该流为死，sync 版已有此复查，async 版对齐。
             if (http2_stream_is_dead(sid))
                 co_return false;
+            // 必须先登记再发布 tail_，消费者不取喂入锁，可能在下一次调度前就出队。
+            std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
+            ++http2_inflight_frames[sid];
             pushed = http2_content_queue->push(std::move(frame));
-            if (pushed)
+            if (!pushed)
             {
-                // push 成功即入环；inflight_frames 必须与 push 同临界区（同 sync 版）。
-                // inflight increment in the same critical section as push (aligned with sync version).
-                std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
-                ++http2_inflight_frames[sid];
+                auto it = http2_inflight_frames.find(sid);
+                if (--it->second == 0)
+                    http2_inflight_frames.erase(it);
             }
         }
         if (pushed)

@@ -187,6 +187,9 @@ asio::awaitable<bool> httpserver::h2_push_headers_wait(const std::shared_ptr<cli
                 // 不会消失，编码完再短暂取环锁写槽即可。编码绝不能挪到喂入锁外：
                 // 环满丢弃已编码头块会让动态表留下对端没见过的幻影条目，解码永久失步。
                 std::string header = peer->make_http2_header(hflag);
+                // 先登记再发布 tail_，消费者可能立即出队并递减。
+                std::lock_guard<std::mutex> dl(sess->http2_dead_streams_mutex);
+                ++sess->http2_inflight_frames[peer->stream_id];
                 std::unique_lock<std::mutex> lk(q->http2_queue_send_mutex);
                 q->data[tail] = std::move(header);
                 q->tail_.store(next_tail, std::memory_order_release);
