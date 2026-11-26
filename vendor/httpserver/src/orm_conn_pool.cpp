@@ -594,15 +594,19 @@ unsigned int orm_conn_pool::slot_max_of(unsigned int link_type, unsigned int slo
 
 unsigned int orm_conn_pool::slot_min_of(unsigned int link_type, unsigned int slot_index) const
 {
-    (void)slot_index;// 每槽预建数独立等于配置的 min_pool，不切分
     const unsigned int role_min = conf_data[link_type & 1u].min_pool;
     // min_pool 为 0：不预建任何连接，全部按需懒建
     if (role_min == 0)
     {
         return 0;
     }
-    // 预建不能超过本槽上限（防御性：防止 min_pool > max_pool）
-    return std::min(role_min, slot_max_of(link_type, slot_index));
+    const unsigned int slot_count = static_cast<unsigned int>(slots.size());
+    const unsigned int budget     = max_pool_of(link_type);
+    const unsigned int even_share = slot_count <= 1
+                                        ? budget
+                                        : std::max(1u, budget / slot_count);
+    // min_pool 是每槽预建上限；实际值还受全局预算均分限制，余数留给懒建。
+    return std::min(role_min, std::min(even_share, slot_max_of(link_type, slot_index)));
 }
 
 std::string init_orm_conn_pool_release()
@@ -688,7 +692,8 @@ std::string init_orm_conn_pool(
 
         // 预算切分自检：打印每槽实际生效的上限/预建。
         // max_pool 是全局预算，按槽数切分（余数给小槽，每槽保底 1）；
-        // min_pool 是每槽独立预建数，不切分。N == 1 时 slot_max 等于 max_pool 原值。
+        // min_pool 是每槽预建上限，实际还按 max_pool / N 封顶，余数留给懒建。
+        // N == 1 时 slot_max 等于 max_pool 原值。
         // SQLite 是单连接模式（只认槽 0、忽略条数），不打印，避免误读。
         if (item.db_type != DB_TYPE::SQLITE)
         {
@@ -730,7 +735,7 @@ std::string init_orm_conn_pool(
             // min_pool 是每槽预建数，每槽独立预建各自的 slot_min，其余按需懒建。
             for (unsigned int si = 0; si < conn->slots.size(); ++si)
             {
-                unsigned char prebuild = static_cast<unsigned char>(conn->slot_min_of(item.link_type, si));
+                const unsigned int prebuild = conn->slot_min_of(item.link_type, si);
                 if (item.db_type == DB_TYPE::POSTGRESQL)
                 {
                     expected += prebuild;
@@ -1010,7 +1015,7 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
     wake_conn_waiter(w);
 }
 
-unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n, unsigned int slot_index)
+unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned int n, unsigned int slot_index)
 {
     orm_slot &slot   = slot_ref(slot_index);
     unsigned int i   = 0;// 已尝试条数
@@ -1092,7 +1097,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
     co_return co_await async_add_mysql_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
-unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n, unsigned int slot_index)
+unsigned int orm_conn_pool::init_mysql_select_conn(unsigned int n, unsigned int slot_index)
 {
     orm_slot &slot   = slot_ref(slot_index);
     unsigned int i   = 0;// 已尝试条数
@@ -1565,7 +1570,7 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
     wake_conn_waiter(w);
 }
 
-unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n, unsigned int slot_index)
+unsigned int orm_conn_pool::init_pg_edit_conn(unsigned int n, unsigned int slot_index)
 {
     orm_slot &slot = slot_ref(slot_index);
     unsigned int i = 0;// 已尝试条数
@@ -1647,7 +1652,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
     co_return co_await async_add_pg_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
-unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n, unsigned int slot_index)
+unsigned int orm_conn_pool::init_pg_select_conn(unsigned int n, unsigned int slot_index)
 {
     orm_slot &slot = slot_ref(slot_index);
     unsigned int i = 0;// 已尝试条数

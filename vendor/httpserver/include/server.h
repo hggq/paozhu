@@ -407,7 +407,8 @@ class httpserver
     // io_context 由 shared_ptr 持有：ORM pool、client_context 这些活到退出期的对象
     // 还要拿它关连接，谁需要就各自持一份所有权。0 是 asio concurrency_hint 的默认值。
     std::shared_ptr<asio::io_context> io_context = std::make_shared<asio::io_context>(0);
-    // io_contexts 个数 = run 线程组数（一个 ioc 一组线程），个数取 min(cothreadnum, 核数)。
+    // io_contexts 个数 = run 线程组数（一个 ioc 一组线程）：可用 CPU 受 cothreadnum 限制，
+    // 再保底 4，最后受 ioc_thread_num 硬上限约束。
     // io_contexts[0] 就是上面的兼容成员 io_context：框架自身的定时循环、同步取连接、
     // client_context 都留在它上面。ORM 启动时注入并共用这一组 ioc。
     std::vector<std::shared_ptr<asio::io_context>> io_contexts;

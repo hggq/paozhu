@@ -168,10 +168,10 @@ class serverconfig
 
     unsigned int acme_every_day_time = 7;
     unsigned int acme_every_num      = 5;
-    unsigned int socket_accept_num  = 1;
+    unsigned int socket_accept_num   = 1;
     unsigned int per_ioc_thread_num  = 1;
-    unsigned int orm_ioc_num         = 4;// ORM 自托管 io_context 个数，下限 1，上限核数
-    unsigned int orm_thread_pool_num = 0;// ORM线程池可以和orm_ioc_num 1:1, 0 use hardware_concurrency()
+    unsigned int ioc_thread_num      = 4;// HTTP/ORM 共用 io_context 个数硬上限，最小 1
+    unsigned int orm_thread_pool_num = 0;// ORM 自托管线程池线程数，0 use hardware_concurrency()
     unsigned int ocsp_interval_time  = 14400;
 
     std::map<std::string, SSL_CTX *> g_ctxMap;

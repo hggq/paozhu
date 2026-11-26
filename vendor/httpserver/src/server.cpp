@@ -10647,6 +10647,15 @@ void httpserver::run(const std::string &sysconfpath)
         {
             total_count = 4;
         }
+        if (total_count > sysconfigpath.ioc_thread_num)
+        {
+            total_count = sysconfigpath.ioc_thread_num;
+        }
+        if (total_count < 1)
+        {
+            total_count = 1;
+        }
+
         // DB 初始化在起任何工作/监听线程之前完成；失败的 tag 跳过，server 照常启动。
         // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
         //

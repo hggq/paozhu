@@ -140,14 +140,14 @@ class orm_conn_pool
     std::shared_ptr<mysql_conn_base> get_mysql_edit_conn();
     std::shared_ptr<mysql_conn_base> add_mysql_edit_connect();
     void back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn);
-    unsigned int init_mysql_edit_conn(unsigned char n, unsigned int slot_index = 0);
+    unsigned int init_mysql_edit_conn(unsigned int n, unsigned int slot_index = 0);
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_add_mysql_edit_connect();
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_get_mysql_edit_conn();
 
     std::shared_ptr<mysql_conn_base> get_mysql_select_conn();
     std::shared_ptr<mysql_conn_base> add_mysql_select_connect();
     void back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn);
-    unsigned int init_mysql_select_conn(unsigned char n, unsigned int slot_index = 0);
+    unsigned int init_mysql_select_conn(unsigned int n, unsigned int slot_index = 0);
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_add_mysql_select_connect();
     asio::awaitable<std::shared_ptr<mysql_conn_base>> async_get_mysql_select_conn();
 
@@ -155,14 +155,14 @@ class orm_conn_pool
     std::shared_ptr<pg_conn_base> get_pg_edit_conn();
     std::shared_ptr<pg_conn_base> add_pg_edit_connect();
     void back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn);
-    unsigned int init_pg_edit_conn(unsigned char n, unsigned int slot_index = 0);
+    unsigned int init_pg_edit_conn(unsigned int n, unsigned int slot_index = 0);
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_add_pg_edit_connect();
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_get_pg_edit_conn();
 
     std::shared_ptr<pg_conn_base> get_pg_select_conn();
     std::shared_ptr<pg_conn_base> add_pg_select_connect();
     void back_pg_select_conn(std::shared_ptr<pg_conn_base> conn);
-    unsigned int init_pg_select_conn(unsigned char n, unsigned int slot_index = 0);
+    unsigned int init_pg_select_conn(unsigned int n, unsigned int slot_index = 0);
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_add_pg_select_connect();
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_get_pg_select_conn();
 
@@ -209,7 +209,7 @@ class orm_conn_pool
     std::atomic<unsigned int> rr_counter{0};
 
     // slot_max_of：全局 max_pool 按槽数切分（余数给小槽，每槽保底 1）。
-    // slot_min_of：每槽独立等于配置的 min_pool，不切分（cap 到 slot_max_of，保底 1）。
+    // slot_min_of：min_pool 为 0 时不预建；否则每槽取 min(min_pool, max(1, max_pool / N), slot_max)。
     // N == 1 时 slot_max 等于 max_pool 原值。
     // init 预建、异步取连接的门闩、启动自检都用这两个值，公开只为便于自检与测试打印。
     unsigned int slot_max_of(unsigned int link_type, unsigned int slot_index) const;
@@ -249,7 +249,7 @@ class orm_conn_pool
     // tag 级配置：host/port/dbname/user/password/ssl/charset/pretable/db_type，
     // 以及上限/预建预算 max_pool / min_pool。
     // max_pool 是全局预算，init 时按槽数切分成每槽配额（见 slot_max_of）；
-    // min_pool 是每槽独立预建数，不切分（见 slot_min_of）。槽只读，不持有副本。
+    // min_pool 是每槽预建上限，实际还按 max_pool / 槽数封顶（见 slot_min_of）。槽只读，不持有副本。
     std::array<orm_conn_t, 2> conf_data;
     // 最近一次启动预建失败的原因，仅用于日志。预建失败不再注销 tag：池保留下来，
     // 后续 get_*_conn 会按 conf_data 懒建连接，数据库起来后自动恢复。

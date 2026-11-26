@@ -1455,27 +1455,27 @@ bool serverconfig::loadserverglobalconfig()
         per_ioc_thread_num = 1;
     }
 
-    if (map_value["default"]["orm_ioc_num"].size() > 0)
+    if (map_value["default"]["ioc_thread_num"].size() > 0)
     {
-        orm_ioc_num = 0;
-        for (size_t i = 0; i < map_value["default"]["orm_ioc_num"].size(); i++)
+        ioc_thread_num = 0;
+        for (size_t i = 0; i < map_value["default"]["ioc_thread_num"].size(); i++)
         {
-            if (map_value["default"]["orm_ioc_num"][i] >= '0' && map_value["default"]["orm_ioc_num"][i] <= '9')
+            if (map_value["default"]["ioc_thread_num"][i] >= '0' && map_value["default"]["ioc_thread_num"][i] <= '9')
             {
-                orm_ioc_num = orm_ioc_num * 10 + (map_value["default"]["orm_ioc_num"][i] - '0');
+                ioc_thread_num = ioc_thread_num * 10 + (map_value["default"]["ioc_thread_num"][i] - '0');
                 continue;
             }
             break;
         }
         
-        if (orm_ioc_num < 1)
+        if (ioc_thread_num < 1)
         {
-            orm_ioc_num = 1;
+            ioc_thread_num = 1;
         }
     }
     else
     {
-        orm_ioc_num = 4;
+        ioc_thread_num = 4;
     }
 
     if (map_value["default"]["socket_accept_num"].size() > 0)
