@@ -2759,84 +2759,130 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
             if (peer_session->http2_closing.load(std::memory_order_relaxed))
                 break;
 
-            auto peer = peer_session->http2_take_next_peer();
-            if (peer)
+            auto &sess = *peer_session;
+            struct peer_send_batch
             {
-                fifo_streak = 0;
-                idle_wait_ms = 100;
-                auto &sess = *peer_session;
-                const unsigned int sid = peer->stream_id;
-                if (peer->isclose.load(std::memory_order_relaxed) || sess.http2_stream_is_dead(sid))
-                {
-                    sess.http2_complete_active_peer(peer, false);
-                    continue;
-                }
-
-                // headers 和 buffers 都保存在协程帧内，asio::const_buffer 只保存视图，
-                // 因此跨 async_write 挂起时仍指向有效内存。
+                std::shared_ptr<httppeer> peer;
                 std::string headers;
-                if (!peer->h2send.headers_sent)
+                unsigned long long reserved = 0;
+                unsigned int first_frame = 0;
+                unsigned int frame_count = 0;
+            };
+            std::vector<peer_send_batch> batch;
+            std::array<data_frame_borrowed, CONST_HTTP2_SEND_BATCH_FRAMES> frames;
+            unsigned int frame_count = 0;
+            bool abort_batch     = false;
+            auto cancel_batch    = [&]()
+            {
+                for (auto &item : batch)
                 {
-                    std::lock_guard<std::mutex> feed(sess.http2_feed_mutex);
+                    if (item.reserved > 0)
+                        http2_refund_send_window(&sess, item.peer->stream_id, item.reserved);
+                    sess.http2_complete_active_peer(item.peer, false);
+                }
+            };
+
+            try
+            {
+                while (frame_count < CONST_HTTP2_SEND_BATCH_FRAMES)
+                {
+                    if (isstop || sess.isclose.load(std::memory_order_relaxed))
+                    {
+                        abort_batch = true;
+                        break;
+                    }
+                    auto peer = sess.http2_take_next_peer();
+                    if (!peer)
+                        break;
+                    const unsigned int sid = peer->stream_id;
                     if (peer->isclose.load(std::memory_order_relaxed) || sess.http2_stream_is_dead(sid))
                     {
                         sess.http2_complete_active_peer(peer, false);
                         continue;
                     }
-                    headers = peer->make_http2_header(peer->h2send.end_on_headers ? HTTP2_HEADER_END_STREAM : 0);
-                }
 
-                std::array<data_frame_borrowed, CONST_HTTP2_SEND_BATCH_FRAMES> frames;
-                unsigned int frame_count = 0;
-                unsigned long long reserved = 0;
-                if (!peer->h2send.end_on_headers && peer->h2send.sent_bytes < peer->output.size())
-                {
-                    const unsigned long long mfs = sess.remote_max_frame_size.load();
-                    const unsigned long long remaining = peer->output.size() - peer->h2send.sent_bytes;
-                    const unsigned long long want = std::min<unsigned long long>(remaining, CONST_HTTP2_SEND_BATCH_FRAMES * mfs);
-                    reserved = http2_reserve_send_window(&sess, sid, want);
-                    unsigned long long pos = 0;
-                    while (pos < reserved)
+                    std::string headers;
+                    if (!peer->h2send.headers_sent)
                     {
-                        const unsigned long long len = std::min(mfs, reserved - pos);
-                        const bool last = reserved == remaining && pos + len == reserved &&
-                                          (!peer->h2file || peer->h2file->remaining == 0);
-                        auto &frame = frames[frame_count++];
-                        frame.payload_ptr = peer->output.data() + peer->h2send.sent_bytes + pos;
-                        frame.payload_len = static_cast<unsigned int>(len);
-                        h2_write_data_header(frame.header, sid, last ? 0x01 : 0x00, frame.payload_len);
-                        pos += len;
+                        std::lock_guard<std::mutex> feed(sess.http2_feed_mutex);
+                        if (peer->isclose.load(std::memory_order_relaxed) || sess.http2_stream_is_dead(sid))
+                        {
+                            sess.http2_complete_active_peer(peer, false);
+                            continue;
+                        }
+                        headers = peer->make_http2_header(peer->h2send.end_on_headers ? HTTP2_HEADER_END_STREAM : 0);
+                    }
+
+                    batch.push_back(peer_send_batch{peer, std::move(headers), 0, frame_count, 0});
+                    auto &item = batch.back();
+                    if (!peer->h2send.end_on_headers && peer->h2send.sent_bytes < peer->output.size())
+                    {
+                        const unsigned long long mfs = sess.remote_max_frame_size.load();
+                        const unsigned long long remaining = peer->output.size() - peer->h2send.sent_bytes;
+                        const unsigned int slots = CONST_HTTP2_SEND_BATCH_FRAMES - frame_count;
+                        const unsigned long long want = std::min<unsigned long long>(remaining, slots * mfs);
+                        item.reserved = http2_reserve_send_window(&sess, sid, want);
+                        unsigned long long pos = 0;
+                        while (pos < item.reserved)
+                        {
+                            const unsigned long long len = std::min(mfs, item.reserved - pos);
+                            const bool last = item.reserved == remaining && pos + len == item.reserved &&
+                                              (!peer->h2file || peer->h2file->remaining == 0);
+                            auto &frame = frames[frame_count++];
+                            frame.payload_ptr = peer->output.data() + peer->h2send.sent_bytes + pos;
+                            frame.payload_len = static_cast<unsigned int>(len);
+                            h2_write_data_header(frame.header, sid, last ? 0x01 : 0x00, frame.payload_len);
+                            pos += len;
+                        }
+                        item.frame_count = frame_count - item.first_frame;
                     }
                 }
 
-                std::vector<asio::const_buffer> buffers;
-                buffers.reserve(1 + frame_count * 2);
-                if (!headers.empty())
-                    buffers.emplace_back(headers.data(), headers.size());
-                for (unsigned int i = 0; i < frame_count; ++i)
-                {
-                    buffers.emplace_back(frames[i].header, sizeof(frames[i].header));
-                    buffers.emplace_back(frames[i].payload_ptr, frames[i].payload_len);
-                }
+                if (isstop || sess.isclose.load(std::memory_order_relaxed))
+                    abort_batch = true;
 
-                if (!buffers.empty())
+                if (!abort_batch)
                 {
-                    try
+                    std::vector<asio::const_buffer> buffers;
+                    buffers.reserve(batch.size() + frame_count * 2);
+                    for (const auto &item : batch)
+                    {
+                        if (!item.headers.empty())
+                            buffers.emplace_back(item.headers.data(), item.headers.size());
+                        for (unsigned int i = 0; i < item.frame_count; ++i)
+                        {
+                            const auto &frame = frames[item.first_frame + i];
+                            buffers.emplace_back(frame.header, sizeof(frame.header));
+                            buffers.emplace_back(frame.payload_ptr, frame.payload_len);
+                        }
+                    }
+                    if (!buffers.empty())
                     {
                         if (sess.isssl)
                             co_await asio::async_write(*sess.sslsocket, buffers, asio::use_awaitable);
                         else
                             co_await asio::async_write(*sess.socket, buffers, asio::use_awaitable);
                     }
-                    catch (...)
-                    {
-                        if (reserved > 0)
-                            http2_refund_send_window(&sess, sid, reserved);
-                        throw;
-                    }
                 }
+            }
+            catch (...)
+            {
+                cancel_batch();
+                throw;
+            }
 
-                if (!headers.empty())
+            if (abort_batch)
+            {
+                cancel_batch();
+                break;
+            }
+
+            for (auto &item : batch)
+            {
+                auto &peer = item.peer;
+                const unsigned int sid = peer->stream_id;
+                const unsigned long long reserved = item.reserved;
+                if (!item.headers.empty())
                     peer->h2send.headers_sent = true;
                 peer->h2send.sent_bytes += static_cast<std::size_t>(reserved);
                 if (reserved > 0)
@@ -2844,7 +2890,8 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
 
                 if (peer->isclose.load(std::memory_order_relaxed) ||
                     sess.isclose.load(std::memory_order_relaxed) ||
-                    sess.http2_closing.load(std::memory_order_relaxed))
+                    sess.http2_closing.load(std::memory_order_relaxed) ||
+                    sess.http2_stream_is_dead(sid))
                 {
                     sess.http2_complete_active_peer(peer, false);
                 }
@@ -2953,6 +3000,11 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 {
                     sess.http2_requeue_peer(peer, reserved == 0);
                 }
+            }
+            if (!batch.empty())
+            {
+                fifo_streak = 0;
+                idle_wait_ms = 100;
                 continue;
             }
 

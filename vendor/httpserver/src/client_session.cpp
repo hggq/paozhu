@@ -961,23 +961,25 @@ std::shared_ptr<httppeer> client_session::http2_take_next_peer()
     const std::size_t scan = http2_pending_peers.size();
     for (std::size_t i = 0; i < scan; ++i)
     {
-        auto item = std::move(http2_pending_peers.front());
-        http2_pending_peers.pop_front();
-        if (item.peer->isclose.load(std::memory_order_relaxed))
+        auto taken = http2_pending_peers.front().peer;
+        if (taken->isclose.load(std::memory_order_relaxed))
         {
-            item.peer->h2send.registered = false;
-            auto completion = std::move(item.peer->h2send.completion);
+            http2_pending_peers.pop_front();
+            taken->h2send.registered = false;
+            auto completion = std::move(taken->h2send.completion);
             if (completion)
                 completion->cancel();
             continue;
         }
-        if (item.blocked)
+        if (http2_pending_peers.front().blocked)
         {
-            http2_pending_peers.push_back(std::move(item));
+            http2_pending_peers.push_back(http2_pending_peers.front());
+            http2_pending_peers.pop_front();
             continue;
         }
-        http2_active_peer = item.peer;
-        return item.peer;
+        http2_active_peers.push_back(taken);
+        http2_pending_peers.pop_front();
+        return taken;
     }
     return nullptr;
 }
@@ -991,9 +993,8 @@ void client_session::http2_requeue_peer(const std::shared_ptr<httppeer> &peer, b
         peer->h2send.blocked_deadline = {};
     {
         std::lock_guard<std::mutex> lk(http2_pending_peers_mutex);
-        if (http2_active_peer == peer)
-            http2_active_peer.reset();
         http2_pending_peers.push_back(pending_h2_peer{peer, blocked, peer->h2send.blocked_deadline});
+        std::erase_if(http2_active_peers, [&peer](const auto &active) { return active == peer; });
     }
 }
 
@@ -1004,10 +1005,9 @@ bool client_session::http2_begin_peer_refill(const std::shared_ptr<httppeer> &pe
         peer->isclose.load(std::memory_order_relaxed) || isclose.load(std::memory_order_relaxed) ||
         http2_closing.load(std::memory_order_relaxed))
         return false;
-    if (http2_active_peer == peer)
-        http2_active_peer.reset();
     peer->h2send.refill_pending = true;
     http2_refilling_peers.emplace(peer->stream_id, peer);
+    std::erase_if(http2_active_peers, [&peer](const auto &active) { return active == peer; });
     return true;
 }
 
@@ -1062,8 +1062,7 @@ void client_session::http2_complete_active_peer(const std::shared_ptr<httppeer> 
     {
         std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
         std::lock_guard<std::mutex> pl(http2_pending_peers_mutex);
-        if (http2_active_peer == peer)
-            http2_active_peer.reset();
+        std::erase_if(http2_active_peers, [&peer](const auto &active) { return active == peer; });
         peer->h2send.registered = false;
         peer->h2send.blocked_deadline = {};
         completion = std::move(peer->h2send.completion);
@@ -1103,13 +1102,13 @@ void client_session::http2_cancel_pending_peer(unsigned int sid)
 
 void client_session::http2_cancel_active_peer()
 {
-    std::shared_ptr<httppeer> active;
+    std::vector<std::shared_ptr<httppeer>> active;
     {
         std::lock_guard<std::mutex> lk(http2_pending_peers_mutex);
-        active = http2_active_peer;
+        active.swap(http2_active_peers);
     }
-    if (active)
-        http2_complete_active_peer(active, false);
+    for (const auto &peer : active)
+        http2_complete_active_peer(peer, false);
 }
 
 void client_session::http2_cancel_all_pending_peers(bool wake)
@@ -1212,14 +1211,14 @@ bool client_session::http2_has_pending_peers()
 {
     std::lock_guard<std::mutex> dl(http2_dead_streams_mutex);
     std::lock_guard<std::mutex> pl(http2_pending_peers_mutex);
-    return http2_active_peer != nullptr || !http2_pending_peers.empty() ||
+    return !http2_active_peers.empty() || !http2_pending_peers.empty() ||
            !http2_refilling_peers.empty() || !http2_content_producers.empty();
 }
 
 bool client_session::http2_has_queued_peers()
 {
     std::lock_guard<std::mutex> lk(http2_pending_peers_mutex);
-    return http2_active_peer != nullptr || !http2_pending_peers.empty();
+    return !http2_active_peers.empty() || !http2_pending_peers.empty();
 }
 
 bool client_session::http2_has_runnable_peer()
@@ -1505,7 +1504,8 @@ void client_session::http2_try_reap_dead_mark_locked(unsigned int sid)
         return;
     if (it != http2_inflight_frames.end())
         http2_inflight_frames.erase(it);
-    if ((http2_active_peer && http2_active_peer->stream_id == sid) ||
+    if (std::any_of(http2_active_peers.begin(), http2_active_peers.end(),
+                    [sid](const auto &peer) { return peer->stream_id == sid; }) ||
         http2_refilling_peers.find(sid) != http2_refilling_peers.end() ||
         std::any_of(http2_pending_peers.begin(), http2_pending_peers.end(),
                     [sid](const pending_h2_peer &item) { return item.peer->stream_id == sid; }))

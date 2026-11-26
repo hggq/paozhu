@@ -193,7 +193,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     };
     // 待发送和暂时阻塞的 peer 共用此队列，取出可运行项后放到队尾以实现轮转。
     std::deque<pending_h2_peer> http2_pending_peers;
-    std::shared_ptr<httppeer> http2_active_peer;
+    // 一次合并写出可同时持有多份 output 视图，所有参与者都留在活跃表直到发送收尾。
+    std::vector<std::shared_ptr<httppeer>> http2_active_peers;
     std::unordered_map<unsigned int, std::shared_ptr<httppeer>> http2_refilling_peers;
     std::mutex http2_pending_peers_mutex;
     void http2_register_pending_peer(const std::shared_ptr<httppeer> &peer);
