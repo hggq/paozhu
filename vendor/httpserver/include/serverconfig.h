@@ -174,6 +174,9 @@ class serverconfig
     unsigned int orm_thread_pool_num = 0;// ORM 自托管线程池线程数，0 use hardware_concurrency()
     unsigned int ocsp_interval_time  = 14400;
 
+    std::vector<unsigned short> http_port;
+    std::vector<unsigned short> https_port;
+
     std::map<std::string, SSL_CTX *> g_ctxMap;
     std::map<unsigned long long, bool> domain_http2;
     std::vector<struct site_host_info_t> sitehostinfos;

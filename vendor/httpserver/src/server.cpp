@@ -2601,6 +2601,12 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 
             for (;;)
             {
+                // 每批之间复查退出信号：持续入队时不再一批接一批无限写下去。
+                // half_close 刻意不在这里判：它要等环内残留（含回应对端的 CLOSE 帧）
+                // 全部发完才全关，由外层 ring_empty 分支处理。
+                if (isstop || peer_session->isclose.load(std::memory_order_relaxed))
+                    break;
+
                 http2_send_queue_cache *q = peer_session->http2_ring_queue.get();
                 unsigned char for_head    = 0;
                 unsigned int  batch_n     = 0;
@@ -8193,25 +8199,45 @@ bool httpserver::start_accept_pool(unsigned int accept_num)
 
     try
     {
+        struct accept_listener_t
+        {
+            std::shared_ptr<asio::ip::tcp::acceptor> acceptor;
+            asio::io_context *ioc;
+            bool isssl;
+        };
+
+        serverconfig &sysconfigpath = getserversysconfig();
         accept_iocs_.reserve(accept_num);
         accept_works_.reserve(accept_num);
         accept_threads_.reserve(accept_num);
         accept_loop_count = 0;
+        std::vector<accept_listener_t> listeners;
+        listeners.reserve(accept_num * (sysconfigpath.http_port.size() + sysconfigpath.https_port.size()));
 
         for (unsigned int i = 0; i < accept_num; ++i)
         {
             auto accept_ioc = std::make_unique<asio::io_context>(1);
             accept_works_.emplace_back(accept_ioc->get_executor());
 
-            auto http_acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
-            setupAcceptor(*http_acceptor, getserversysconfig().get_port(), server_ip6_listen, "http");
-            auto https_acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
-            setupAcceptor(*https_acceptor, getserversysconfig().get_ssl_port(), server_ip6_listen, "https");
-
+            for (unsigned short port : sysconfigpath.http_port)
             {
-                std::lock_guard<std::mutex> acceptor_lock(acceptors_mutex);
-                acceptors.push_back(http_acceptor);
-                acceptors.push_back(https_acceptor);
+                auto acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
+                setupAcceptor(*acceptor, port, server_ip6_listen, "http");
+                {
+                    std::lock_guard<std::mutex> acceptor_lock(acceptors_mutex);
+                    acceptors.push_back(acceptor);
+                }
+                listeners.push_back({acceptor, accept_ioc.get(), false});
+            }
+            for (unsigned short port : sysconfigpath.https_port)
+            {
+                auto acceptor = std::make_shared<asio::ip::tcp::acceptor>(*accept_ioc);
+                setupAcceptor(*acceptor, port, server_ip6_listen, "https");
+                {
+                    std::lock_guard<std::mutex> acceptor_lock(acceptors_mutex);
+                    acceptors.push_back(acceptor);
+                }
+                listeners.push_back({acceptor, accept_ioc.get(), true});
             }
             accept_iocs_.push_back(std::move(accept_ioc));
         }
@@ -8272,11 +8298,12 @@ bool httpserver::start_accept_pool(unsigned int accept_num)
                            });
         };
 
-        for (std::size_t i = 0; i < accept_iocs_.size(); ++i)
+        for (const auto &listener : listeners)
         {
-            spawn_loop(*accept_iocs_[i], acceptHttpLoop(acceptors[i * 2]));
-            accept_loop_count++;
-            spawn_loop(*accept_iocs_[i], acceptHttpsLoop(acceptors[i * 2 + 1]));
+            if (listener.isssl)
+                spawn_loop(*listener.ioc, acceptHttpsLoop(listener.acceptor));
+            else
+                spawn_loop(*listener.ioc, acceptHttpLoop(listener.acceptor));
             accept_loop_count++;
         }
     }

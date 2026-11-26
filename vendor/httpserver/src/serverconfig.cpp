@@ -2,6 +2,8 @@
 #include <map>
 #include <memory>
 #include <climits>
+#include <charconv>
+#include <limits>
 #include <algorithm>
 #include <cctype>
 #include "serverconfig.h"
@@ -35,6 +37,39 @@ static unsigned int htmlcache_seconds(const std::string &val)
         }
     }
     return temp;
+}
+
+static void parse_port_list(const std::string &value,
+                            std::vector<unsigned short> &ports,
+                            unsigned short default_port)
+{
+    ports.clear();
+    std::size_t begin = 0;
+    while (begin <= value.size())
+    {
+        const std::size_t end      = value.find(',', begin);
+        const std::size_t item_end = end == std::string::npos ? value.size() : end;
+        std::string_view item(value.data() + begin, item_end - begin);
+        while (!item.empty() && (item.front() == ' ' || item.front() == '\t'))
+            item.remove_prefix(1);
+        while (!item.empty() && (item.back() == ' ' || item.back() == '\t'))
+            item.remove_suffix(1);
+
+        unsigned int port = 0;
+        const auto parsed = std::from_chars(item.data(), item.data() + item.size(), port);
+        if (parsed.ec == std::errc{} && parsed.ptr == item.data() + item.size() &&
+            port > 0 && port <= std::numeric_limits<unsigned short>::max() &&
+            std::find(ports.begin(), ports.end(), static_cast<unsigned short>(port)) == ports.end())
+        {
+            ports.push_back(static_cast<unsigned short>(port));
+        }
+
+        if (end == std::string::npos)
+            break;
+        begin = end + 1;
+    }
+    if (ports.empty())
+        ports.push_back(default_port);
 }
 
 // conf 里的钩子名（static_pre 的名字那一段、method_pre / method_after 名单）不规定写法，
@@ -658,6 +693,8 @@ bool serverconfig::loadserverglobalconfig()
         return false;
     }
     map_value = loadserversconfig(configfile);
+    parse_port_list(map_value["default"]["httpport"], http_port, 80);
+    parse_port_list(map_value["default"]["httpsport"], https_port, 443);
 
     std::string current_wwwpath = map_value["default"]["wwwpath"];
     fs::path cpath              = current_wwwpath;
@@ -2242,43 +2279,11 @@ unsigned int serverconfig::get_co_thread_num()
 
 unsigned int serverconfig::get_ssl_port()
 {
-    unsigned int tempnum = 0;
-
-    for (size_t i = 0; i < map_value["default"]["httpsport"].size(); i++)
-    {
-        if (map_value["default"]["httpsport"][i] > 0x2F && map_value["default"]["httpsport"][i] < 0x3A)
-        {
-            tempnum = tempnum * 10 + (map_value["default"]["httpsport"][i] - '0');
-        }
-    }
-    if (tempnum > 9)
-    {
-        return tempnum;
-    }
-    else
-    {
-        return 443;
-    }
+    return https_port.empty() ? 443 : https_port.front();
 }
 unsigned int serverconfig::get_port()
 {
-    unsigned int tempnum = 0;
-
-    for (std::size_t i = 0; i < map_value["default"]["httpport"].size(); i++)
-    {
-        if (map_value["default"]["httpport"][i] > 0x2F && map_value["default"]["httpport"][i] < 0x3A)
-        {
-            tempnum = tempnum * 10 + (map_value["default"]["httpport"][i] - '0');
-        }
-    }
-    if (tempnum > 9)
-    {
-        return tempnum;
-    }
-    else
-    {
-        return 80;
-    }
+    return http_port.empty() ? 80 : http_port.front();
 }
 SSL_CTX *serverconfig::getdefaultctx()
 {
