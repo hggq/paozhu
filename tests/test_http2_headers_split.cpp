@@ -307,4 +307,21 @@ TEST_CASE(middle_frames_carry_no_flags)
     REQUIRE(frames.back().flags & HTTP2_HEADER_END_HEADERS);
 }
 
+// stream id setter 忽略保留位：只写 31 位协议流 ID。
+TEST_CASE(frame_stream_id_setter_clears_reserved_bit)
+{
+    std::string frame = make_frame(HTTP2_HEADER_END_HEADERS, 1, 0);
+    REQUIRE(http::set_http2_frame_streamid(frame, 0x81000001U));
+    auto built = walk(frame);
+    REQUIRE_EQ(built.size(), (size_t)1);
+    REQUIRE_EQ(built[0].stream_id, 0x01000001U);
+    REQUIRE_EQ((unsigned char)frame[5], (unsigned char)0x01);
+
+    REQUIRE(http::set_http2_frame_streamid(frame, 0x82000003U));
+    built = walk(frame);
+    REQUIRE_EQ(built.size(), (size_t)1);
+    REQUIRE_EQ(built[0].stream_id, 0x02000003U);
+    REQUIRE_EQ((unsigned char)frame[5], (unsigned char)0x02);
+}
+
 TEST_MAIN()

@@ -27,13 +27,6 @@ static_assert((CONST_HTTP2_RING_QUEUE_CAPACITY & (CONST_HTTP2_RING_QUEUE_CAPACIT
 static_assert(CONST_HTTP2_RING_QUEUE_CAPACITY <= 255,
               "http2 ring capacity must fit unsigned char (head_/tail_ type)");
 
-struct h2_slot_borrowed
-{
-    const char *payload_ptr = nullptr;
-    unsigned int payload_len = 0;
-    std::shared_ptr<h2_borrow_state> completion;
-};
-
 struct data_frame_borrowed
 {
     char header[9]{};
@@ -44,7 +37,6 @@ struct data_frame_borrowed
 struct http2_send_queue_cache
 {
     std::array<std::string, CONST_HTTP2_RING_QUEUE_CAPACITY> data;
-    std::array<h2_slot_borrowed, CONST_HTTP2_RING_QUEUE_CAPACITY> borrowed;
     const unsigned char capacity_ = CONST_HTTP2_RING_QUEUE_CAPACITY;
     std::atomic<unsigned char> head_{0};
     std::atomic<unsigned char> tail_{0};
@@ -54,33 +46,10 @@ struct http2_send_queue_cache
     // 做减法，先减后加会让这一帧的字节永久留在计数里。
     std::atomic<unsigned long long> bytes{0};
 
-    // push 把完整帧深拷贝进 owned 槽；borrowed DATA 只复制 9 字节帧头，载荷由
-    // completion 保证写到消费者释放该槽后才可改写或销毁。
+    // push 把完整帧深拷贝进槽，入环成功后调用方可立即释放源缓冲。
     bool push(const unsigned char *buffer, unsigned int buffersize);
     bool push(const std::string &item);
     bool push(std::string &&item);
-    bool push_data_borrowed(const char *header,
-                            const char *payload_ptr,
-                            unsigned int payload_len,
-                            std::shared_ptr<h2_borrow_state> completion);
-
-    h2_slot_borrowed take_borrowed(unsigned char index)
-    {
-        auto slot = std::move(borrowed[index]);
-        borrowed[index] = h2_slot_borrowed{};
-        return slot;
-    }
-
-    void cancel_borrowed()
-    {
-        std::lock_guard<std::mutex> lock(http2_queue_send_mutex);
-        for (auto &slot : borrowed)
-        {
-            if (slot.completion)
-                slot.completion->cancel();
-            slot = h2_slot_borrowed{};
-        }
-    }
 
     unsigned char has_size();
     bool pop(std::string &item);

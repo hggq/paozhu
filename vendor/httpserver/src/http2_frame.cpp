@@ -80,24 +80,6 @@ std::map<std::string, unsigned char> http2_header_codes_table = {
 
 };
 
-bool make_http2_headers(std::string &hh_data, unsigned int streamid)
-{
-
-    unsigned char frame_header_data[] = {0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01};
-
-    for (int i = 0; i < 9; i++)
-    {
-        hh_data.push_back(frame_header_data[i]);
-    }
-    frame_header_data[8] = streamid & 0xFF;
-    streamid             = streamid >> 8;
-    frame_header_data[7] = streamid & 0xFF;
-    streamid             = streamid >> 8;
-    frame_header_data[6] = streamid & 0xFF;
-    streamid             = streamid >> 8;
-    frame_header_data[5] = streamid & 0xFF;
-    return true;
-}
 bool set_http2_frame_streamid(std::string &hh_data, unsigned int streamid)
 {
     if (hh_data.size() < 9)
@@ -110,7 +92,7 @@ bool set_http2_frame_streamid(std::string &hh_data, unsigned int streamid)
     streamid   = streamid >> 8;
     hh_data[6] = streamid & 0xFF;
     streamid   = streamid >> 8;
-    hh_data[5] = streamid & 0xFF;
+    hh_data[5] = streamid & 0x7F;
 
     return true;
 }

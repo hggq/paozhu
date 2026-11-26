@@ -693,7 +693,7 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
 {
     // GOAWAY 入控制环，环满就地自适应重试，2 秒预算——客户端停读时不无限拖住 teardown。
     unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    fr[9]                = (last_stream_id >> 24) & 0xFF;
+    fr[9]                = (last_stream_id >> 24) & 0x7F;
     fr[10]               = (last_stream_id >> 16) & 0xFF;
     fr[11]               = (last_stream_id >> 8) & 0xFF;
     fr[12]               = last_stream_id & 0xFF;
@@ -1443,7 +1443,7 @@ bool client_session::push_control_frame(const unsigned char *fr, unsigned int n)
 
 static unsigned int h2_frame_sid(std::string_view f)
 {
-    return (static_cast<unsigned int>(static_cast<unsigned char>(f[5])) << 24) |
+    return (static_cast<unsigned int>(static_cast<unsigned char>(f[5]) & 0x7F) << 24) |
            (static_cast<unsigned int>(static_cast<unsigned char>(f[6])) << 16) |
            (static_cast<unsigned int>(static_cast<unsigned char>(f[7])) << 8) |
            static_cast<unsigned int>(static_cast<unsigned char>(f[8]));

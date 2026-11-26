@@ -1605,7 +1605,7 @@ std::string httppeer::make_http2_header(unsigned char flag_code, bool index_head
     streamid              = streamid >> 8;
     http2header[6]        = streamid & 0xFF;
     streamid              = streamid >> 8;
-    http2header[5]        = streamid & 0xFF;
+    http2header[5]        = streamid & 0x7F;
 
     hpack_enc_table *enc = nullptr;
 #ifdef PAOZHU_HPACK_ENCODER_DYNAMIC_TABLE

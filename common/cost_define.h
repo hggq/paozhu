@@ -300,13 +300,9 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 #define CONST_HTTP2_SEND_FRAME_BUF 15360
 
-// 内联/文件发送每轮入内容环的 DATA 帧数上限：一次窗口预留按字节记账，切成至多这么多帧
-// 逐帧入环（仍按对端 MAX_FRAME_SIZE 切帧）。与下面的补喂闸配套：闸 24 + 批 6 = 30 ≤ 31
-// 可用槽，一批开始喂入后不会因本批而卡满。
+// 内联/文件发送每轮组批的 DATA 帧数上限：一次窗口预留按字节记账，在协程栈上
+// 切成至多这么多帧后合并写出。批次只占窗口额度，不占用 FIFO 环槽。
 #define CONST_HTTP2_SEND_BATCH_FRAMES 6
-
-// 内容环补喂闸：积压槽数达到本值就就地等（20ms 一拍自醒），给在途批次与控制帧留槽。
-#define CONST_HTTP2_CONTENT_RING_FEED_GATE 24
 
 // 环满等待：基础拍长（微秒）+ 自适应边界。入参是环的积压槽数（has_size），不是剩余槽。
 // 积压 > SLOW：消费者还没排空多少，说明自己醒早了，持续翻倍加长等待；

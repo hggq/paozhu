@@ -194,6 +194,38 @@ asio::awaitable<bool> httpserver::http2_send_inline(std::shared_ptr<httppeer> pe
     co_return co_await http2_register_inline(peer, head);
 }
 
+asio::awaitable<void> httpserver::http2_send_inline_response(std::shared_ptr<httppeer> peer)
+{
+    if (peer->get_status() < 100)
+        peer->status(200);
+    if (!peer->isset_type())
+        peer->type("text/html; charset=utf-8");
+
+    const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
+    std::string body;
+    unsigned long long clen = 0;
+    if (head)
+    {
+        peer->compress = 0;
+        clen           = peer->output.size();
+        peer->length(clen);
+    }
+    else if (peer->compress == 0)
+    {
+        http2_compress_output(peer, body, clen);
+    }
+    else
+    {
+        clen = peer->output.size();
+        peer->length(clen);
+    }
+
+    std::string_view content =
+        (!head && (peer->compress == 0 || body.empty())) ? std::string_view(peer->output) : std::string_view(body);
+    co_await http2_send_inline(peer, content, head);
+    clear_peer_data(peer);
+}
+
 // 文件/Range：peer 接管文件句柄，首块读入 output 后注册；当前块发完后异步补读下一块。
 asio::awaitable<bool> httpserver::http2_send_file_inline(std::shared_ptr<httppeer> peer,
                                                        std::unique_ptr<std::FILE, int (*)(std::FILE *)> fp,
@@ -699,169 +731,6 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
     co_return;
 }
 
-asio::awaitable<void>
-httpserver::http2_send_content(unsigned int stream_id, std::string &_send_data, const unsigned char *buffer, unsigned int begin_end, bool is_end)
-{
-    unsigned int data_send_id = stream_id;
-    _send_data.resize(9);
-    _send_data[3] = 0x00;
-    _send_data[4] = 0x00;
-    _send_data[8] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[7] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[6] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[5] = data_send_id & 0xFF;
-    data_send_id  = 0;
-    if (begin_end == 0)
-    {
-        _send_data[4] = 0x01;
-        _send_data[2] = 0;
-        _send_data[1] = 0;
-        _send_data[0] = 0;
-        co_return;
-    }
-    if (is_end)
-    {
-        _send_data[4] = 0x01;
-    }
-    _send_data[3] = 0x00;
-    data_send_id  = begin_end;
-    _send_data[2] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[1] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[0] = data_send_id & 0xFF;
-
-    _send_data.append((const char *)buffer, begin_end);
-
-    co_return;
-}
-asio::awaitable<void>
-httpserver::http2_send_content(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end)
-{
-    unsigned int data_send_id = stream_id;
-    _send_data.resize(9);
-    _send_data[3] = 0x00;
-    _send_data[4] = 0x00;
-    _send_data[8] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[7] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[6] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[5] = data_send_id & 0xFF;
-    data_send_id  = 0;
-    if (_source_data.size() == 0)
-    {
-        _send_data[4] = 0x01;
-        _send_data[2] = 0;
-        _send_data[1] = 0;
-        _send_data[0] = 0;
-        co_return;
-    }
-    if (is_end)
-    {
-        _send_data[4] = 0x01;
-    }
-    _send_data[3] = 0x00;
-    data_send_id  = _source_data.size();
-    _send_data[2] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[1] = data_send_id & 0xFF;
-    data_send_id  = data_send_id >> 8;
-    _send_data[0] = data_send_id & 0xFF;
-
-    _send_data.append(_source_data);
-
-    co_return;
-}
-
-asio::awaitable<void>
-httpserver::http2_send_content_append(unsigned int stream_id, std::string &_send_data, const unsigned char *buffer, unsigned int begin_end, bool is_end)
-{
-    unsigned int data_send_id = stream_id;
-    unsigned int new_offset   = static_cast<unsigned int>(_send_data.size());
-
-    _send_data.resize(new_offset + 9);
-    _send_data[new_offset + 3] = 0x00;
-    _send_data[new_offset + 4] = 0x00;
-    _send_data[new_offset + 8] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 7] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 6] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 5] = data_send_id & 0xFF;
-    data_send_id               = 0;
-    if (begin_end == 0)
-    {
-        _send_data[new_offset + 4] = 0x01;
-        _send_data[new_offset + 2] = 0;
-        _send_data[new_offset + 1] = 0;
-        _send_data[new_offset + 0] = 0;
-        co_return;
-    }
-    if (is_end)
-    {
-        _send_data[new_offset + 4] = 0x01;
-    }
-    _send_data[new_offset + 3] = 0x00;
-    data_send_id               = begin_end;
-    _send_data[new_offset + 2] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 1] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 0] = data_send_id & 0xFF;
-
-    _send_data.append((const char *)buffer, begin_end);
-
-    co_return;
-}
-
-asio::awaitable<void>
-httpserver::http2_send_content_append(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end)
-{
-    unsigned int data_send_id = stream_id;
-    unsigned int new_offset   = static_cast<unsigned int>(_send_data.size());
-
-    _send_data.resize(new_offset + 9);
-    _send_data[new_offset + 3] = 0x00;
-    _send_data[new_offset + 4] = 0x00;
-    _send_data[new_offset + 8] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 7] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 6] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 5] = data_send_id & 0xFF;
-    data_send_id               = 0;
-    if (_source_data.size() == 0)
-    {
-        _send_data[new_offset + 4] = 0x01;
-        _send_data[new_offset + 2] = 0;
-        _send_data[new_offset + 1] = 0;
-        _send_data[new_offset + 0] = 0;
-        co_return;
-    }
-    if (is_end)
-    {
-        _send_data[new_offset + 4] = 0x01;
-    }
-    _send_data[new_offset + 3] = 0x00;
-    data_send_id               = _source_data.size();
-    _send_data[new_offset + 2] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 1] = data_send_id & 0xFF;
-    data_send_id               = data_send_id >> 8;
-    _send_data[new_offset + 0] = data_send_id & 0xFF;
-
-    _send_data.append(_source_data);
-
-    co_return;
-}
-
 asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent)
 {
     peer->compress = 0;
@@ -1176,26 +1045,8 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
         else
         {
             peer->status(403);
-            if (!peer->isset_type())
-            {
-                peer->type("text/html; charset=utf-8");
-            }
-            const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
-            std::string body;
-            unsigned long long clen = 0;
-            peer->compress          = 0;
-            if (!head)
-            {
-                http2_compress_output(peer, body, clen);
-            }
-            else
-            {
-                clen = peer->output.size();
-                peer->length(clen);
-            }
-            std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
-            co_await http2_send_inline(peer, content, head);
-            clear_peer_data(peer);
+            peer->compress = 0;
+            co_await http2_send_inline_response(peer);
             co_return false;
         }
     }
@@ -1233,26 +1084,8 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 else
                 {
                     peer->status(403);
-                    if (!peer->isset_type())
-                    {
-                        peer->type("text/html; charset=utf-8");
-                    }
-                    const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
-                    std::string body;
-                    unsigned long long clen = 0;
-                    peer->compress          = 0;
-                    if (!head)
-                    {
-                        http2_compress_output(peer, body, clen);
-                    }
-                    else
-                    {
-                        clen = peer->output.size();
-                        peer->length(clen);
-                    }
-                    std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
-                    co_await http2_send_inline(peer, content, head);
-                    clear_peer_data(peer);
+                    peer->compress = 0;
+                    co_await http2_send_inline_response(peer);
                     co_return false;
                 }
             }
@@ -1387,33 +1220,9 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     co_await co_user_fastcgi_task(peer);
 
-    const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
-    std::string body;
-    unsigned long long clen = 0;
-    peer->compress          = 0;
-    if (!head)
-    {
-        http2_compress_output(peer, body, clen);
-    }
-    else
-    {
-        clen = peer->output.size();
-        peer->length(clen);
-    }
-
-    if (peer->get_status() < 100)
-    {
-        peer->status(200);
-    }
+    peer->compress = 0;
     DEBUG_LOG("htttp2 php out");
-    if (!peer->isset_type())
-    {
-        peer->type("text/html; charset=utf-8");
-    }
-    DEBUG_LOG("fastcgi send content");
-    std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
-    co_await http2_send_inline(peer, content, head);
-    clear_peer_data(peer);
+    co_await http2_send_inline_response(peer);
     co_return;
 }
 asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
@@ -1508,33 +1317,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                                             sysconfigpath.configpath);
             peer->status(200);
             peer->type("text/html; charset=utf-8");
+            peer->compress = 0;
 
-            const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
-            std::string body;
-            unsigned long long clen = 0;
-            peer->compress          = 0;
-            if (!head)
-            {
-                http2_compress_output(peer, body, clen);
-            }
-            else
-            {
-                clen = peer->output.size();
-                peer->length(clen);
-            }
-
-            if (peer->get_status() < 100)
-            {
-                peer->status(200);
-            }
             DEBUG_LOG("htttp2 displaydirectory out");
-            if (!peer->isset_type())
-            {
-                peer->type("text/html; charset=utf-8");
-            }
-            std::string_view content = (!head && peer->compress == 0) ? std::string_view(peer->output) : std::string_view(body);
-            co_await http2_send_inline(peer, content, head);
-            clear_peer_data(peer);
+            co_await http2_send_inline_response(peer);
             co_return;
         }
         else
@@ -1543,7 +1329,6 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->parse_session();
             peer->status(200);
             peer->content_type.clear();
-            peer->type("text/html; charset=utf-8");
             peer->linktype = 0;
             peer->compress = 0;
             peer->etag.clear();
@@ -1558,42 +1343,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_return;
             }
 
-            // HEAD / 自动压缩 / 控制器预压缩三分支，正文落本地再发。
-            const bool head = peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD);
-            std::string body;
-            unsigned long long clen = 0;
-            if (head)
-            {
-                // HEAD：不做压缩、不出 body（RFC 9110 §9.3.2）；CL 仍是 GET 会发的长度
-                peer->compress = 0;
-                clen           = peer->output.size();
-                peer->length(clen);
-            }
-            else if (peer->compress == 0)
-            {
-                http2_compress_output(peer, body, clen);
-            }
-            else
-            {
-                // 控制器已预压缩（compress=1 gzip / 2 br），正文就在 peer->output，
-                // 不再自动压缩，只把 Content-Length 同源到 output。
-                clen = peer->output.size();
-                peer->length(clen);
-            }
-
-            if (peer->get_status() < 100)
-            {
-                peer->status(200);
-            }
-            if (!peer->isset_type())
-            {
-                peer->type("text/html; charset=utf-8");
-            }
             DEBUG_LOG("http2_send_content");
-            std::string_view content =
-                (!head && (peer->compress == 0 || body.empty())) ? std::string_view(peer->output) : std::string_view(body);
-            co_await http2_send_inline(peer, content, head);
-            clear_peer_data(peer);
+            co_await http2_send_inline_response(peer);
             co_return;
         }
         co_return;
@@ -2845,28 +2596,54 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
             }
             if (isstop) break;
 
+            // 批量合并发送：一次 writev 最多发出 6 帧，减少 async_write 调度开销
+            constexpr unsigned int BATCH_MAX = 6;
+
             for (;;)
             {
-                http2_send_queue_cache *q     = peer_session->http2_ring_queue.get();
-                unsigned char for_head        = 0;
+                http2_send_queue_cache *q = peer_session->http2_ring_queue.get();
+                unsigned char for_head    = 0;
+                unsigned int  batch_n     = 0;
                 {
                     std::unique_lock lk(q->http2_queue_send_mutex);
                     unsigned char h = q->head_.load(std::memory_order_acquire);
-                    if (h == q->tail_.load(std::memory_order_acquire))
+                    unsigned char t = q->tail_.load(std::memory_order_acquire);
+                    if (h == t)
                         break;
                     for_head = h;
+                    // 从 head_ 连续探测到 tail_，或凑满 BATCH_MAX 帧
+                    // （head_/tail_ 是 unsigned char，capacity_ 是 2 的幂且 <= 255，
+                    // 用 capacity_-1 做掩码即可循环下标）
+                    while (h != t && batch_n < BATCH_MAX)
+                    {
+                        h = (h + 1) & (q->capacity_ - 1);
+                        ++batch_n;
+                    }
+                }
+                if (batch_n == 0)
+                    break;
+
+                // 组装 buffer 序列（槽里的 string 在 head_ 前进前不会被生产者覆盖，安全）
+                std::vector<asio::const_buffer> bufs;
+                bufs.reserve(batch_n);
+                unsigned long long sent_bytes = 0;
+                unsigned char idx = for_head;
+                for (unsigned int i = 0; i < batch_n; ++i)
+                {
+                    const std::string &slot = q->data[idx];
+                    bufs.emplace_back(slot.data(), slot.size());
+                    sent_bytes += slot.size();
+                    idx = (idx + 1) & (q->capacity_ - 1);
                 }
 
-                const std::string &slot = q->data[for_head];
-                unsigned long long sent_bytes = slot.size();
                 if (peer_session->isssl)
-                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(slot), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->sslsocket, bufs, asio::use_awaitable);
                 else
-                    co_await asio::async_write(*peer_session->socket, asio::buffer(slot), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->socket, bufs, asio::use_awaitable);
 
                 if (q->bytes.load(std::memory_order_relaxed) >= sent_bytes)
                     q->bytes.fetch_sub(sent_bytes, std::memory_order_relaxed);
-                q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
+                q->head_.store(idx, std::memory_order_release);
             }
         }
         co_return;
@@ -2892,13 +2669,13 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 }
 
 // HTTP/2 唯一发送协程：优先写 FIFO 中的控制帧和流式帧，否则轮转拉取一个 peer，
-// 构造 HEADERS 和至多六枚 DATA。HEADERS 的 HPACK 编码在本协程内完成，动态表
+// 构造 HEADERS 和一批 DATA。HEADERS 的 HPACK 编码在本协程内完成，动态表
 // 变更顺序与帧上线顺序一致。
 asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session)
 {
     auto frame_sid = [](std::string_view frame) -> unsigned int
     {
-        return (static_cast<unsigned int>(static_cast<unsigned char>(frame[5])) << 24) |
+        return (static_cast<unsigned int>(static_cast<unsigned char>(frame[5]) & 0x7F) << 24) |
                (static_cast<unsigned int>(static_cast<unsigned char>(frame[6])) << 16) |
                (static_cast<unsigned int>(static_cast<unsigned char>(frame[7])) << 8) |
                static_cast<unsigned int>(static_cast<unsigned char>(frame[8]));

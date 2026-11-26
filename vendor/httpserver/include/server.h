@@ -148,11 +148,7 @@ class httpserver
     // void http2pool(int threadid);
     asio::awaitable<void> http2_fastcgi(std::shared_ptr<httppeer>);
     asio::awaitable<void> http2loop(std::shared_ptr<httppeer>);
-
-    asio::awaitable<void> http2_send_content(unsigned int stream_id, std::string &_send_data, const unsigned char *buffer, unsigned int begin_end, bool is_end = false);
-    asio::awaitable<void> http2_send_content(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end = false);
-    asio::awaitable<void> http2_send_content_append(unsigned int stream_id, std::string &_send_data, const unsigned char *buffer, unsigned int begin_end, bool is_end = false);
-    asio::awaitable<void> http2_send_content_append(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end = false);
+    asio::awaitable<void> http2_send_inline_response(std::shared_ptr<httppeer> peer);
 
     asio::awaitable<void> http2_co_send_file(std::shared_ptr<httppeer> peer);
     asio::awaitable<void> http2_co_send_304(std::shared_ptr<httppeer> peer, const std::string &etag, const std::string &content_type);

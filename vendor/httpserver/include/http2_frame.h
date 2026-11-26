@@ -344,7 +344,6 @@ struct hpack_enc_table
 };
 
 // http2 header make item
-bool make_http2_headers(std::string &hh_data);
 bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code);
 bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code);
 

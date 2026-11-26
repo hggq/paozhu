@@ -205,10 +205,19 @@ static std::string frame(unsigned char type, unsigned char flags, unsigned int s
     return f;
 }
 // 请求头：全字面量不插表（H=0），:method/:scheme 用静态索引
-static std::string req_headers(const std::string &path)
+static std::string req_headers(const std::string &path, bool head = false)
 {
     std::string b;
-    b.push_back((char)0x82);// :method GET
+    if (head)
+    {
+        b.push_back(0x02);// :method 名称索引 2，Literal Header Field without Indexing
+        b.push_back(0x04);
+        b.append("HEAD");
+    }
+    else
+    {
+        b.push_back((char)0x82);// :method GET
+    }
     b.push_back((char)0x86);// :scheme http
     b.push_back(0x04);      // :path 字面量不插表
     b.push_back((char)path.size());
@@ -372,6 +381,7 @@ int main(int argc, char **argv)
         CHECK(r1[1].first_headers_len > 10, "resp1 literal headers");
         std::string cl1 = field(r1[1], "content-length");
         CHECK(cl1 == std::to_string(r1[1].body.size()), "resp1 CL matches body");
+        CHECK(field(r1[1], "content-type") == "text/html; charset=utf-8", "resp1 default CT after handler");
 
         std::map<unsigned int, Resp> r2;
         r2[3] = Resp{};
@@ -416,6 +426,27 @@ int main(int argc, char **argv)
               "shrink block starts with size update");
         CHECK(field(r3[21], ":status") == "200", "after shrink status");
         CHECK(dec.max_size == 60, "decoder max 60");
+
+        ::close(fd);
+    }
+
+    // ---- 独立连接：HEAD 在 HEADERS 结束且没有 DATA ----
+    {
+        int fd = connect_to(ip, port);
+        CHECK(fd >= 0, "connect HEAD");
+        if (fd < 0)
+            return 1;
+        send_all(fd, preface + frame(0x04, 0, 0, ""));
+        MiniDec dec;
+        std::vector<unsigned int> order;
+        std::map<unsigned int, Resp> rh;
+        rh[1] = Resp{};
+        send_all(fd, frame(0x01, 0x05, 1, req_headers("/hello", true)));
+        CHECK(read_responses(fd, rh, dec, order, 5), "read HEAD response");
+        CHECK(rh[1].headers_done && rh[1].end, "HEAD ends on HEADERS");
+        CHECK(rh[1].body.empty(), "HEAD has no DATA");
+        CHECK(field(rh[1], "content-length") == "13", "HEAD keeps GET Content-Length");
+        CHECK(field(rh[1], "content-type") == "text/html; charset=utf-8", "HEAD default CT");
         ::close(fd);
     }
 
