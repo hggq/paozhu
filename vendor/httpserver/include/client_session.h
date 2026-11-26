@@ -97,7 +97,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 其中"环满 / 积压过闸"那几次会累加进 http2_ring_overflow_count；
     // 连接已关或未分配环那一类不算背压，不计数。
     bool post_write(std::string_view msg);
-    bool post_write(const unsigned char *, unsigned int);
+    bool post_write(const unsigned char *, std::size_t);
 
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
@@ -252,9 +252,9 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     bool isssl   = false;
     bool isgoway = false;
-    // 连接关闭旗：发送协程每帧读它决定还要不要发。跨线程读写，所以是原子。
+    // 关闭旗：拒绝新出站数据；发送协程排空现有环后退出。跨线程读写，所以是原子。
     std::atomic_bool isclose{false};
-    bool iserror    = false;
+    std::atomic_bool iserror{false};
     bool half_close = false;
     bool ws_deflate = false;// WebSocket 已协商 permessage-deflate（101 回带扩展头时置位）
 

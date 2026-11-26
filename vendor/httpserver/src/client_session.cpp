@@ -18,6 +18,7 @@
 #include "datetime.h"
 #include <algorithm>
 #include <cassert>
+#include <limits>
 
 namespace http
 {
@@ -2525,26 +2526,36 @@ bool client_session::post_write(std::string_view msg)
     {
         return false;
     }
-    // 条数闸：环最多积压 capacity_ - 1 条；字节闸：累计积压过 LIMIT 才拒，环空时单帧放行
-    unsigned long long backlog = http2_ring_queue->bytes.load(std::memory_order_relaxed);
-    unsigned int backlog_cnt   = http2_ring_queue->has_size();
-    if (backlog_cnt + 1 >= http2_ring_queue->capacity_)
+    if (msg.size() > std::numeric_limits<unsigned int>::max())
     {
-        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
-    if (backlog > 0 && backlog + msg.size() > MQTT_SEND_RING_BYTE_LIMIT)
+
+    auto *q = http2_ring_queue.get();
+    const unsigned long long size = static_cast<unsigned long long>(msg.size());
+    unsigned long long backlog = q->bytes.load(std::memory_order_relaxed);
+    for (;;)
     {
-        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
-        return false;
+        if (backlog > 0 && (backlog > MQTT_SEND_RING_BYTE_LIMIT ||
+                            size > MQTT_SEND_RING_BYTE_LIMIT - backlog))
+        {
+            http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
+            return false;
+        }
+        if (q->bytes.compare_exchange_weak(backlog, backlog + size,
+                                           std::memory_order_release,
+                                           std::memory_order_relaxed))
+        {
+            break;
+        }
     }
+
     // 先记账再入环：帧一旦发布到环上，消费者就可能写完并做减法；若在 push 之后才累加，
     // 消费者读到的旧值会让这一帧的字节永久留在 bytes 里，累计过闸后本连接再也写不出去。
-    http2_ring_queue->bytes.fetch_add(msg.size(), std::memory_order_relaxed);
-    if (!http2_ring_queue->push(reinterpret_cast<const unsigned char *>(msg.data()),
-                                static_cast<unsigned int>(msg.size())))
+    if (!q->push(reinterpret_cast<const unsigned char *>(msg.data()),
+                 static_cast<unsigned int>(size)))
     {
-        http2_ring_queue->bytes.fetch_sub(msg.size(), std::memory_order_relaxed);
+        q->bytes.fetch_sub(size, std::memory_order_relaxed);
         http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
@@ -2555,9 +2566,9 @@ bool client_session::post_write(std::string_view msg)
     return true;
 }
 
-bool client_session::post_write(const unsigned char *buf, unsigned int len)
+bool client_session::post_write(const unsigned char *buf, std::size_t len)
 {
-    if (isclose || iserror || !buf)
+    if (isclose || iserror || !buf || len > std::numeric_limits<unsigned int>::max())
         return false;
     return post_write(std::string_view(reinterpret_cast<const char *>(buf), len));
 }

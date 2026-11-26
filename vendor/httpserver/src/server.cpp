@@ -1964,7 +1964,8 @@ asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<clien
             has_item = in_session->http2_ring_queue->head_.load(std::memory_order_acquire) !=
                        in_session->http2_ring_queue->tail_.load(std::memory_order_acquire);
         }
-        if (has_item)
+        if (has_item || in_session->isclose.load(std::memory_order_acquire) ||
+            in_session->iserror.load(std::memory_order_acquire))
         {
             in_session->wake_ring_consumer();
         }
@@ -2571,7 +2572,7 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 {
     try
     {
-        while (isstop == false)
+        while (isstop == false && !peer_session->iserror.load(std::memory_order_acquire))
         {
             bool ring_empty = false;
             {
@@ -2601,10 +2602,8 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 
             for (;;)
             {
-                // 每批之间复查退出信号：持续入队时不再一批接一批无限写下去。
-                // half_close 刻意不在这里判：它要等环内残留（含回应对端的 CLOSE 帧）
-                // 全部发完才全关，由外层 ring_empty 分支处理。
-                if (isstop || peer_session->isclose.load(std::memory_order_relaxed))
+                // 关闭只在空环分支处理；非空环继续排空，避免外层无 await 忙循环。
+                if (isstop || peer_session->iserror.load(std::memory_order_acquire))
                     break;
 
                 http2_send_queue_cache *q = peer_session->http2_ring_queue.get();
@@ -5656,8 +5655,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         }
     }
     peer_session->isclose = true;
-    // 唤醒可能挂起的发送消费者协程，让它看到 isclose 后退出
-    peer_session->wake_ring_consumer();
+    co_await ws_drain_ring_then_stop(peer_session);
     co_return 0;
 }
 
