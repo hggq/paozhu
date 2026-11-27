@@ -10838,6 +10838,8 @@ void httpserver::run(const std::string &sysconfpath)
         }
 #endif
 
+        // 给启动期线程和常驻任务留出调度时间，避免端口刚开放就承接压测流量。
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         runtime_ready.store(true, std::memory_order_relaxed);
         if (start_accept_pool(sysconfigpath.socket_accept_num))
         {

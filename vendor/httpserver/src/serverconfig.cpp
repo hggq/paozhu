@@ -39,39 +39,6 @@ static unsigned int htmlcache_seconds(const std::string &val)
     return temp;
 }
 
-static void parse_port_list(const std::string &value,
-                            std::vector<unsigned short> &ports,
-                            unsigned short default_port)
-{
-    ports.clear();
-    std::size_t begin = 0;
-    while (begin <= value.size())
-    {
-        const std::size_t end      = value.find(',', begin);
-        const std::size_t item_end = end == std::string::npos ? value.size() : end;
-        std::string_view item(value.data() + begin, item_end - begin);
-        while (!item.empty() && (item.front() == ' ' || item.front() == '\t'))
-            item.remove_prefix(1);
-        while (!item.empty() && (item.back() == ' ' || item.back() == '\t'))
-            item.remove_suffix(1);
-
-        unsigned int port = 0;
-        const auto parsed = std::from_chars(item.data(), item.data() + item.size(), port);
-        if (parsed.ec == std::errc{} && parsed.ptr == item.data() + item.size() &&
-            port > 0 && port <= std::numeric_limits<unsigned short>::max() &&
-            std::find(ports.begin(), ports.end(), static_cast<unsigned short>(port)) == ports.end())
-        {
-            ports.push_back(static_cast<unsigned short>(port));
-        }
-
-        if (end == std::string::npos)
-            break;
-        begin = end + 1;
-    }
-    if (ports.empty())
-        ports.push_back(default_port);
-}
-
 // conf 里的钩子名（static_pre 的名字那一段、method_pre / method_after 名单）不规定写法，
 // 带不带开头的 '/' 都行；注册表的键一律带 '/'，解析期补齐，让日志和 is_static_pre 认规范名。
 // 只能用在注册名上：static_pre_lists 是 URL 前缀、rewrite_404_action / action_404_lists 是
@@ -693,8 +660,6 @@ bool serverconfig::loadserverglobalconfig()
         return false;
     }
     map_value = loadserversconfig(configfile);
-    // parse_port_list(map_value["default"]["httpport"], http_port, 80);
-    // parse_port_list(map_value["default"]["httpsport"], https_port, 443);
 
     std::string current_wwwpath = map_value["default"]["wwwpath"];
     fs::path cpath              = current_wwwpath;
