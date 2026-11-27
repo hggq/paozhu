@@ -693,8 +693,8 @@ bool serverconfig::loadserverglobalconfig()
         return false;
     }
     map_value = loadserversconfig(configfile);
-    parse_port_list(map_value["default"]["httpport"], http_port, 80);
-    parse_port_list(map_value["default"]["httpsport"], https_port, 443);
+    // parse_port_list(map_value["default"]["httpport"], http_port, 80);
+    // parse_port_list(map_value["default"]["httpsport"], https_port, 443);
 
     std::string current_wwwpath = map_value["default"]["wwwpath"];
     fs::path cpath              = current_wwwpath;
@@ -901,6 +901,92 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["wwwpath"].size() == 0)
     {
         map_value["default"]["wwwpath"] = "/usr/local/var/www/";
+    }
+
+    if (map_value["default"]["httpport"].size() > 0)
+    {
+        unsigned short port80 = 0;
+        for (size_t i = 0; i < map_value["default"]["httpport"].size(); i++)
+        {
+            if (map_value["default"]["httpport"][i] >= '0' && map_value["default"]["httpport"][i] <= '9')
+            {
+                port80 = port80 * 10 + (map_value["default"]["httpport"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["httpport"][i] == 0x20)
+            {
+                continue;
+            }
+            else if (map_value["default"]["httpport"][i] == ',')
+            {
+                 if(port80 > 0)
+                {
+                    http_port.push_back(port80);
+                    port80 = 0;
+                }
+                continue;
+            }
+            break;
+        }
+        
+        if(port80 > 0)
+        {
+            http_port.push_back(port80);
+        }
+        if(http_port.size() == 0)
+        {
+            http_port.push_back(80);
+        }
+    }
+    else
+    {
+        if(http_port.size() == 0)
+        {
+            http_port.push_back(80);
+        }
+    }
+
+    if (map_value["default"]["httpsport"].size() > 0)
+    {
+        unsigned short port80 = 0;
+        for (size_t i = 0; i < map_value["default"]["httpsport"].size(); i++)
+        {
+            if (map_value["default"]["httpsport"][i] >= '0' && map_value["default"]["httpsport"][i] <= '9')
+            {
+                port80 = port80 * 10 + (map_value["default"]["httpsport"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["httpsport"][i] == 0x20)
+            {
+                continue;
+            }
+            else if (map_value["default"]["httpsport"][i] == ',')
+            {
+                 if(port80 > 0)
+                {
+                    https_port.push_back(port80);
+                    port80 = 0;
+                }
+                continue;
+            }
+            break;
+        }
+        
+        if(port80 > 0)
+        {
+            https_port.push_back(port80);
+        }
+        if(https_port.size() == 0)
+        {
+            https_port.push_back(443);
+        }
+    }
+    else
+    {
+        if(https_port.size() == 0)
+        {
+            https_port.push_back(443);
+        }
     }
 
     static_server_var.map_value = map_value;
