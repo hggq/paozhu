@@ -2292,32 +2292,18 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             {
                                 auto *sock = peer_session->socket.get();
                                 auto total = htmlcontent.size() + tempcompress.size();
-                                if (sock != nullptr && total <= 4096 && sock->is_open())
+                                if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
                                 {
                                     std::string combined;
                                     combined.reserve(total);
                                     combined.append(htmlcontent);
                                     combined.append(tempcompress);
-                                    asio::error_code write_ec;
-                                    sock->non_blocking(true, write_ec);
-                                    if (!write_ec)
+                                    auto written = co_await http1_optimistic_write(*sock, combined);
+                                    if (!combined.empty() && written == combined.size())
                                     {
-                                        auto written = sock->write_some(asio::buffer(combined), write_ec);
-                                        if (written == total)
-                                        {
-                                            DEBUG_LOG("---  http1 compress fast-path --------");
-                                            clear_peer_data(peer);
-                                            co_return;
-                                        }
-                                        if (written > 0)
-                                        {
-                                            co_await asio::async_write(*sock,
-                                                asio::buffer(combined.data() + written, total - written),
-                                                asio::use_awaitable);
-                                            DEBUG_LOG("---  http1 compress partial --------");
-                                            clear_peer_data(peer);
-                                            co_return;
-                                        }
+                                        DEBUG_LOG("---  http1 compress fast-path --------");
+                                        clear_peer_data(peer);
+                                        co_return;
                                     }
                                 }
                             }
@@ -2343,27 +2329,14 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                 if (!peer_session->isssl)
                 {
                     auto *sock = peer_session->socket.get();
-                    if (sock != nullptr && htmlcontent.size() <= 4096 && sock->is_open())
+                    if (sock != nullptr && htmlcontent.size() <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
                     {
-                        asio::error_code write_ec;
-                        sock->non_blocking(true, write_ec);
-                        if (!write_ec)
+                        auto written = co_await http1_optimistic_write(*sock, htmlcontent);
+                        if (!htmlcontent.empty() && written == htmlcontent.size())
                         {
-                            auto written = sock->write_some(asio::buffer(htmlcontent), write_ec);
-                            if (written == htmlcontent.size())
-                            {
-                                DEBUG_LOG("---  http1 head fast-path --------");
-                                clear_peer_data(peer);
-                                co_return;
-                            }
-                            if (written > 0)
-                            {
-                                co_await asio::async_write(*sock,
-                                    asio::buffer(htmlcontent.data() + written, htmlcontent.size() - written),
-                                    asio::use_awaitable);
-                                clear_peer_data(peer);
-                                co_return;
-                            }
+                            DEBUG_LOG("---  http1 head fast-path --------");
+                            clear_peer_data(peer);
+                            co_return;
                         }
                     }
                 }
@@ -2375,32 +2348,18 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             {
                 auto *sock = peer_session->socket.get();
                 auto total = htmlcontent.size() + peer->output.size();
-                if (sock != nullptr && total <= 4096 && sock->is_open())
+                if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
                 {
                     std::string combined;
                     combined.reserve(total);
                     combined.append(htmlcontent);
                     combined.append(peer->output);
-                    asio::error_code write_ec;
-                    sock->non_blocking(true, write_ec);
-                    if (!write_ec)
+                    auto written = co_await http1_optimistic_write(*sock, combined);
+                    if (!combined.empty() && written == combined.size())
                     {
-                        auto written = sock->write_some(asio::buffer(combined), write_ec);
-                        if (written == total)
-                        {
-                            DEBUG_LOG("---  http1 output fast-path --------");
-                            clear_peer_data(peer);
-                            co_return;
-                        }
-                        if (written > 0)
-                        {
-                            co_await asio::async_write(*sock,
-                                asio::buffer(combined.data() + written, total - written),
-                                asio::use_awaitable);
-                            DEBUG_LOG("---  http1 output partial --------");
-                            clear_peer_data(peer);
-                            co_return;
-                        }
+                        DEBUG_LOG("---  http1 output fast-path --------");
+                        clear_peer_data(peer);
+                        co_return;
                     }
                 }
                 co_await peer_session->async_send_writer(htmlcontent, peer->output);

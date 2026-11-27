@@ -77,6 +77,40 @@ void h2_write_data_header(char *header, unsigned int sid, unsigned char flags, u
 // 组一枚完整 DATA 帧（9 字节帧头 + 载荷深拷贝），入环前的标准组帧形状。
 std::string h2_make_data_chunk(unsigned int sid, unsigned char flags, const char *payload, unsigned int len);
 
+inline constexpr std::size_t HTTP1_OPTIMISTIC_WRITE_LIMIT = 4096;
+
+inline asio::awaitable<std::size_t> http1_optimistic_write(asio::ip::tcp::socket &socket, std::string_view data)
+{
+    if (data.empty() || data.size() > HTTP1_OPTIMISTIC_WRITE_LIMIT || !socket.is_open())
+    {
+        co_return 0;
+    }
+    if (!socket.non_blocking())
+    {
+        asio::error_code ec;
+        socket.non_blocking(true, ec);
+        if (ec)
+        {
+            co_return 0;
+        }
+    }
+
+    asio::error_code ec;
+    auto written = socket.write_some(asio::buffer(data.data(), data.size()), ec);
+    if (written == data.size())
+    {
+        co_return written;
+    }
+    if (written > 0)
+    {
+        co_await asio::async_write(socket,
+                                   asio::buffer(data.data() + written, data.size() - written),
+                                   asio::use_awaitable);
+        co_return data.size();
+    }
+    co_return 0;
+}
+
 // post_write 字节闸：单连接发送环积压总量上限（累计闸——环空时任何单帧放行）。
 inline constexpr unsigned long long MQTT_SEND_RING_BYTE_LIMIT = 1024 * 1024;
 
