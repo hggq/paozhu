@@ -174,6 +174,7 @@ TEST_CASE(http1_optimistic_write_drains_backpressure_without_duplicates)
 
     sockets.io.poll();
     REQUIRE(!write_threw);
+    sockets.io.restart();
     if (write_done && optimistic_result == 0)
     {
         asio::co_spawn(sockets.io,
@@ -201,22 +202,22 @@ TEST_CASE(http1_optimistic_write_drains_backpressure_without_duplicates)
     deadline.expires_after(std::chrono::seconds(5));
     deadline.async_wait([&](asio::error_code timer_ec)
     {
-        if (!timer_ec)
+        if (!timer_ec && !read_done)
         {
             sockets.server.close(timer_ec);
             sockets.peer.close(timer_ec);
         }
     });
 
-    asio::co_spawn(sockets.io,
-                   [&]() -> asio::awaitable<void>
-                   {
-                       read_size = co_await asio::async_read(
-                           sockets.peer, asio::buffer(received), asio::redirect_error(asio::use_awaitable, read_ec));
-                       read_done = true;
-                       deadline.cancel();
-                   },
-                   asio::detached);
+    asio::async_read(sockets.peer,
+                     asio::buffer(received),
+                     [&](asio::error_code read_error, std::size_t bytes_read)
+                     {
+                         read_ec = read_error;
+                         read_size = bytes_read;
+                         read_done = true;
+                         deadline.cancel();
+                     });
 
     sockets.io.run();
     REQUIRE(write_done);
@@ -226,6 +227,33 @@ TEST_CASE(http1_optimistic_write_drains_backpressure_without_duplicates)
     REQUIRE_EQ(read_size, expected.size());
     REQUIRE_EQ(received, expected);
     REQUIRE(sockets.server.non_blocking());
+}
+
+TEST_CASE(http1_batch_write_then_immediate_peer_close)
+{
+    constexpr int batch_size = 512;
+    bool ok = true;
+    for (int i = 0; i < batch_size && ok; ++i)
+    {
+        socket_pair sockets;
+        std::string payload = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n" + std::to_string(i);
+        try
+        {
+            auto written = run<std::size_t>(sockets.io, http::http1_optimistic_write(sockets.server, payload));
+            ok = written == payload.size();
+        }
+        catch (...)
+        {
+            ok = false;
+        }
+
+        asio::error_code ec;
+        sockets.peer.close(ec);
+        ok = ok && !ec;
+        sockets.server.close(ec);
+        ok = ok && !ec;
+    }
+    REQUIRE(ok);
 }
 
 TEST_CASE(http1_optimistic_write_closed_socket_falls_back)
