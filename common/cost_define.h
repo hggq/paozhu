@@ -261,10 +261,9 @@
 
 // 收到 stream id = 0 的 WINDOW_UPDATE 时，抬升后是否仍然合法（true = 放行）。
 //
-// RFC 9113 §6.9.1 的 2^31-1 上限约束的是「当前可用窗口」，不是「累计获准额度」：
-// 连接级记账里 window_update_num 是累计获准、has_send_update_num 是累计已发，
-// 可用额 = 两者之差。判在累计量上，一条长连接累计发满 2GB 之后每一个合法的
-// WINDOW_UPDATE 都会被判连接级 FLOW_CONTROL_ERROR，整条连接被 GOAWAY 带走。
+// RFC 9113 §6.9.1 的 2^31-1 上限约束的是「当前可用窗口」，不是「累计获准额度」。
+// 长连接累计发送超过 2GB 后，当前窗口仍可合法补量；实现直接使用有符号当前窗口，
+// 不把累计发送量或累计获准量作为上限判断。
 //
 // 单独成 constexpr 函数是为了让测试代码能直接调用这一条算式本身，而不是照抄一份。
 // Validity check for incoming WINDOW_UPDATE on stream id = 0 (true = accept).
@@ -302,7 +301,7 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 // 内联/文件发送每轮组批的 DATA 帧数上限：一次窗口预留按字节记账，在协程栈上
 // 切成至多这么多帧后合并写出。批次只占窗口额度，不占用 FIFO 环槽。
-#define CONST_HTTP2_SEND_BATCH_FRAMES 6
+#define CONST_HTTP2_SEND_BATCH_FRAMES 8
 
 // 环满等待：基础拍长（微秒）+ 自适应边界。入参是环的积压槽数（has_size），不是剩余槽。
 // 积压 > SLOW：消费者还没排空多少，说明自己醒早了，持续翻倍加长等待；

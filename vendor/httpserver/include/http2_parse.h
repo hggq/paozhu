@@ -264,6 +264,13 @@ class http2parse
         return result;
     }
     void setsession(std::shared_ptr<client_session>);
+    std::shared_ptr<httppeer> find_stream(unsigned int sid)
+    {
+        auto it = http_data.find(sid);
+        if (it != http_data.end()) return it->second;
+        auto wit = http_data_weak.find(sid);
+        return wit == http_data_weak.end() ? nullptr : wit->second.lock();
+    }
     void readheaders(const HTTP2_PACK_DATA_T &temp_pack_data);
     // void setstaticheader(const unsigned char, unsigned int, unsigned int);
     void readsetting(const HTTP2_PACK_DATA_T &temp_pack_data);
@@ -312,8 +319,10 @@ class http2parse
         h2_error_code = 0x9;
     }
     // RST_STREAM 后回收该流的全部状态，避免 http_data/http_post_data/窗口记账随请求数无限增长，
-    // 也防止流还在 stream_list 队列时被 spawn 成孤儿。
-    void cleanup_stream(unsigned int sid);
+    // 也防止流还在 stream_list 队列时被 spawn 成孤儿。send_rst 仅由服务端流级错误置位；
+    // 客户端发来的 RST_STREAM 必须保持 false，不能回显 RST。
+    bool cleanup_stream(unsigned int sid, bool send_rst = false,
+                        unsigned int rst_code = CONST_HTTP2_STREAM_ERROR_CANCEL);
     // 复位错误状态到默认值（error=0、连接级、无流、PROTOCOL_ERROR）。
     // 流级错误处理完一轮后调用，便于主循环继续复用本解析器处理后续帧。
     void clear_error();
@@ -389,19 +398,12 @@ class http2parse
     // 窗口后停发，服务端 http_post_data 永远等不到 last_pack（静默挂死）。
     // 记账拆成「连接级 + 每流」两套独立：
     //   conn_recv_window_num  连接级剩余额度，目标是 CONST_HTTP2_LOCAL_INITIAL_WINDOW
-    //   stream_recv_window    每流剩余额度，懒初始化为同一个目标水位
+    //   httppeer::h2recv        每流剩余额度与待补量，初值为 CONST_HTTP2_LOCAL_INITIAL_WINDOW
     unsigned int conn_recv_window_num = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     // 连接级窗口是否已从 RFC 初值 65535 抬到目标水位。连接级窗口只能用
     // stream id = 0 的 WINDOW_UPDATE 抬升，且必须「只做一次」：每来一个请求就重发
     // 会让对端连接窗口顶穿 2^31-1，对端必须按 FLOW_CONTROL_ERROR 断连。
     bool conn_recv_window_raised = false;
-    std::map<unsigned int, unsigned int> stream_recv_window;
-
-    // 对端「累计授予」的连接级发送窗口额度，只在本连接收到首个 SETTINGS 时落一次
-    // RFC 初值。这个判断不能借「window_update_num 恰好等于 0」：该字段是累计值、构造即
-    // 65535 且只增不减，而 WebSocket 与原生 socket 路径还把这两个字段当 URL 数字
-    // 参数清零使用，两条不相干的路径共用同一格会把初值判断带偏。
-    bool conn_send_window_inited = false;
 
     // 客户端已使用过的最大流 id。RFC 9113 §5.1.1 要求客户端新开的流 id 必须
     // 严格递增（客户端只能使用奇数流 id），否则必须按协议错误处理。
@@ -424,7 +426,6 @@ class http2parse
 
     std::queue<unsigned int> stream_list;
 
-    std::mutex http2loop_mutex;
     std::atomic<bool> http2_loop_in = false;
 };
 }// namespace http

@@ -12,7 +12,6 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
-#include <deque>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -82,14 +81,15 @@ std::string h2_make_data_chunk(unsigned int sid, unsigned char flags, const char
 inline constexpr unsigned long long MQTT_SEND_RING_BYTE_LIMIT = 1024 * 1024;
 
 static std::string make_h2c_switch101_response();
+struct http2parse;
 class client_session : public std::enable_shared_from_this<client_session>
 {
   public:
     client_session(asio::io_context &);
     ~client_session();
-    unsigned int send_writer(const std::string &msg);
-    unsigned int send_writer(std::string_view msg);
-    unsigned int send_writer(const unsigned char *, unsigned int);
+    unsigned int send_writer(const std::string &msg, const std::shared_ptr<httppeer> &peer = {});
+    unsigned int send_writer(std::string_view msg, const std::shared_ptr<httppeer> &peer = {});
+    unsigned int send_writer(const unsigned char *, unsigned int, const std::shared_ptr<httppeer> &peer = {});
     // post_write — 跨线程入队写数据，不阻塞调用方（MQTT 定时线程 / HTTP handler 用）。
     // 数据进本连接发送环，由 消费者协程（唯一写者）串行写出。
     // 返回 false = 数据被丢弃：连接已关闭 / 未分配发送环 / 环满（capacity_）/
@@ -123,11 +123,12 @@ class client_session : public std::enable_shared_from_this<client_session>
     bool push_window_update_stream(unsigned int stmid, unsigned int up_num);
     // 补量额度先记在账上再投递。投递失败（发送环满）时额度留在账里，由本连接发送环
     // 每腾出一个槽位重投一次，所以「这一帧没发出去」不再等于「这条链路停摆」。
+    // 流级补量已移至 httppeer::grant_recv_window(peer_session, up_num)，
+    // client_session 只负责连接级 grant。
     void grant_conn_window(unsigned int up_num);
-    void grant_stream_window(unsigned int stmid, unsigned int up_num);
     bool has_pending_window_update() const
     {
-        return conn_grant_pending > 0 || stream_grant_pending.empty() == false;
+        return h2_conn_send.conn_grant_pending > 0 || h2_conn_send.grant_count > 0;
     }
     // 由 消费者协程在 head_ 前移之后调用：把记在账上、还没投递出去的补量发走。
     void flush_pending_window_update();
@@ -145,12 +146,12 @@ class client_session : public std::enable_shared_from_this<client_session>
     // include_producers=false 时只检查已排队 peer，不等待尚未注册的响应生产者。
     asio::awaitable<bool> flush_send_ring(bool include_producers = true);
 
-    asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
-    asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
+    asio::awaitable<unsigned int> async_send_writer(const std::string &msg, std::shared_ptr<httppeer> peer = {});
+    asio::awaitable<unsigned int> async_send_writer(std::string_view msg, std::shared_ptr<httppeer> peer = {});
     // 头+正文两块 buffer 一次 gather 写出，省掉把正文 append 进头串的重分配与拷贝。
     // 两个 view 指向的内存必须活过本协程的 co_await（调用方协程帧里的局部串/peer 成员）。
     asio::awaitable<unsigned int> async_send_writer(std::string_view head, std::string_view body);
-    asio::awaitable<unsigned int> async_send_writer(const unsigned char *, unsigned int);
+    asio::awaitable<unsigned int> async_send_writer(const unsigned char *, unsigned int, std::shared_ptr<httppeer> peer = {});
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
     asio::awaitable<bool> read_first(unsigned int &readnum);
     // 在已读 readnum 字节的基础上继续补读，直到累计 >= need 或出错/关闭。
@@ -169,82 +170,91 @@ class client_session : public std::enable_shared_from_this<client_session>
     // ---- h2 发送原语 ----
     // 普通响应注册为待发送 peer，由唯一发送协程按轮转顺序构造 HEADERS/DATA；
     // 控制帧和兼容流式接口的完整帧仍走同一个 FIFO 环。
-    asio::awaitable<bool> http2_wait_window_episode(unsigned int sid, const std::atomic_bool &dead);
-    void http2_cancel_conn_waiters();
-    void http2_cancel_stream_waiter(unsigned int sid);
-    void http2_cancel_all_stream_waiters();
-    void http2_close_waiters();
-    std::mutex http2_sync_window_mutex;
-    std::condition_variable http2_sync_window_cv;
-    unsigned long long http2_sync_window_gen = 0;
-    void http2_wake_sync_window_waiters();
-    asio::awaitable<bool> http2_send_rst(unsigned int s_stream_id, unsigned int stream_error_code);
+    // 窗口停等只存在于 ring_client_http2_send_loop 自己的 http2_wait_send_event；
+    // WINDOW_UPDATE / 退款只更新窗口值并唤醒发送环逐流重查。
     bool push_rst_stream(unsigned int sid, unsigned int code);
 
-    std::mutex http2_feed_mutex;
     bool push_control_frame(const unsigned char *fr, unsigned int n);
 
-    struct pending_h2_peer
+    // ---- http2 send loop perf stats (per connection) ----
+    // 循环迭代次数 / FIFO 单帧发送次数 / peer 组批发送次数
+    std::atomic<unsigned long long> h2_send_loop_iters{0};
+    std::atomic<unsigned long long> h2_send_fifo_count{0};
+    std::atomic<unsigned long long> h2_send_batch_count{0};
+    // async_write 累计耗时 (ns)
+    std::atomic<unsigned long long> h2_async_write_ns{0};
+    // wait_send_event 协程休眠累计 (ns)
+    std::atomic<unsigned long long> h2_wait_event_ns{0};
+
+    struct h2_conn_send_state_t
     {
-        std::shared_ptr<httppeer> peer;
-        // 无发送窗口时为 true；窗口恢复后重新进入可运行轮转队列。
-        bool blocked = false;
-        std::chrono::steady_clock::time_point deadline{};
-    };
-    // 待发送和暂时阻塞的 peer 共用此队列，取出可运行项后放到队尾以实现轮转。
-    std::deque<pending_h2_peer> http2_pending_peers;
-    // 一次合并写出可同时持有多份 output 视图，所有参与者都留在活跃表直到发送收尾。
-    std::vector<std::shared_ptr<httppeer>> http2_active_peers;
-    std::unordered_map<unsigned int, std::shared_ptr<httppeer>> http2_refilling_peers;
-    std::mutex http2_pending_peers_mutex;
-    void http2_register_pending_peer(const std::shared_ptr<httppeer> &peer);
+        std::int64_t window = 65535;
+        std::uint64_t reserved = 0;
+        unsigned int initial_window_size = 65535;
+        unsigned int max_frame_size = 16384;
+        httppeer *send_head = nullptr;
+        httppeer *send_tail = nullptr;
+        unsigned int send_count = 0;
+        httppeer *grant_head = nullptr;
+        httppeer *grant_tail = nullptr;
+        unsigned int grant_count = 0;
+        std::atomic<unsigned int> active_producers{0};
+        unsigned int rst_retry_count = 0;
+        unsigned int fifo_cleanup_count = 0;
+        unsigned int conn_grant_pending = 0;
+    } h2_conn_send;
+    mutable std::mutex h2_send_window_mutex;
+    void http2_enqueue_peer(const std::shared_ptr<httppeer> &peer);
+    void http2_unlink_peer(httppeer *peer);
+    void http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, unsigned int error_code);
     std::shared_ptr<httppeer> http2_take_next_peer();
-    void http2_requeue_peer(const std::shared_ptr<httppeer> &peer, bool blocked);
+    bool http2_peer_is_blocked(const std::shared_ptr<httppeer> &peer);
     bool http2_begin_peer_refill(const std::shared_ptr<httppeer> &peer);
     void http2_finish_peer_refill(const std::shared_ptr<httppeer> &peer, bool ready);
-    bool http2_has_refilling_peers();
     void http2_complete_active_peer(const std::shared_ptr<httppeer> &peer, bool success);
-    void http2_cancel_active_peer();
-    void http2_cancel_pending_peer(unsigned int sid);
     void http2_cancel_all_pending_peers(bool wake = true);
-    void http2_begin_content_stream(unsigned int sid);
-    void http2_end_content_stream(unsigned int sid);
-    std::vector<std::shared_ptr<httppeer>> http2_cancel_expired_peers();
-    void http2_unblock_pending_peers(bool connection, unsigned int sid);
+    void http2_begin_content_stream(const std::shared_ptr<httppeer> &peer);
+    void http2_end_content_stream(const std::shared_ptr<httppeer> &peer);
+    void http2_expire_blocked_peers();
     bool http2_has_pending_peers();
     bool http2_has_queued_peers();
     bool http2_has_runnable_peer();
     asio::awaitable<void> http2_wait_send_event(std::chrono::nanoseconds wait_time);
 
-    std::mutex http2_dead_streams_mutex;
-    std::set<unsigned int> http2_dead_streams;
-    std::unordered_map<unsigned int, unsigned int> http2_content_producers;
-    std::unordered_map<unsigned int, unsigned int> http2_inflight_frames;
-    void http2_mark_stream_dead(unsigned int sid);
-    bool http2_stream_is_dead(unsigned int sid);
-    void http2_try_reap_dead_mark_locked(unsigned int sid);
-    void http2_note_frame_dequeued(unsigned int sid, unsigned char type);
+    std::int64_t http2_conn_window_available() const;
+    std::int64_t http2_conn_window_available_locked() const;
+    std::int64_t http2_peer_window_available(const httppeer *peer) const;
+    unsigned long long http2_try_reserve_send_window(httppeer *peer,
+                                                     unsigned long long want,
+                                                     bool allow_sub_frame = false);
+    void http2_refund_peer_window(httppeer *peer);
+    void http2_commit_conn_window(unsigned long long bytes);
+    bool http2_apply_initial_window_size(unsigned int size, const http2parse &parser);
+
+    void http2_mark_stream_dead(const std::shared_ptr<httppeer> &peer);
     struct h2_content_producer_guard
     {
-        h2_content_producer_guard(client_session *session, unsigned int stream_id);
+        h2_content_producer_guard(client_session *session, const std::shared_ptr<httppeer> &peer);
         ~h2_content_producer_guard();
         h2_content_producer_guard(const h2_content_producer_guard &)            = delete;
         h2_content_producer_guard &operator=(const h2_content_producer_guard &) = delete;
 
       private:
         client_session *sess;
-        unsigned int sid;
+        std::shared_ptr<httppeer> peer;
     };
-    void http2_content_stream_failed(unsigned int sid, unsigned long long refund_bytes, bool rst);
-    unsigned int http2_send_content_frame(std::string_view frame);
-    asio::awaitable<unsigned int> async_http2_send_content_frame(std::string_view frame);
-    unsigned int http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
-    asio::awaitable<unsigned int> async_http2_send_data_payload(unsigned int sid, std::string_view payload, unsigned char end_flags);
-    bool http2_try_push_content_raw(std::string_view frame, std::string *owned, unsigned int sid);
-    bool http2_push_content_raw_sync(std::string &&frame, unsigned int sid);
-    bool http2_push_content_raw_sync(const char *frame, unsigned int frame_size, unsigned int sid);
-    asio::awaitable<bool> http2_push_content_raw(std::string frame, unsigned int sid);
-    asio::awaitable<bool> http2_push_content_raw(const char *frame, unsigned int frame_size, unsigned int sid);
+    void http2_content_stream_failed(const std::shared_ptr<httppeer> &peer, bool rst);
+    void http2_enqueue_grant(httppeer *peer);
+    void http2_unlink_grant(httppeer *peer);
+    unsigned int http2_send_content_frame(std::string_view frame, const std::shared_ptr<httppeer> &peer);
+    asio::awaitable<unsigned int> async_http2_send_content_frame(std::string_view frame, std::shared_ptr<httppeer> peer);
+    unsigned int http2_send_data_payload(const std::shared_ptr<httppeer> &peer, std::string_view payload, unsigned char end_flags);
+    asio::awaitable<unsigned int> async_http2_send_data_payload(std::shared_ptr<httppeer> peer, std::string_view payload, unsigned char end_flags);
+    bool http2_try_push_content_raw(std::string_view frame, std::string *owned, const std::shared_ptr<httppeer> &peer);
+    bool http2_push_content_raw_sync(std::string &&frame, const std::shared_ptr<httppeer> &peer);
+    bool http2_push_content_raw_sync(const char *frame, unsigned int frame_size, const std::shared_ptr<httppeer> &peer);
+    asio::awaitable<bool> http2_push_content_raw(std::string frame, std::shared_ptr<httppeer> peer);
+    asio::awaitable<bool> http2_push_content_raw(const char *frame, unsigned int frame_size, std::shared_ptr<httppeer> peer);
 
   public:
     unsigned char *_cache_data  = nullptr;
@@ -269,34 +279,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::strand<asio::io_context::executor_type> strand_;
 
     std::atomic<unsigned int> last_time_interval = 0;
-    // 发送侧流控窗口：拆成「连接级 + 每流」两套记账，与接收侧
-    // conn_recv_window_num / stream_recv_window 对称。两套的口径**不同**，别混用：
-    //   window_update_num      连接级「累计授予额」，初值 RFC 9113 默认 65535，
-    //                          仅由对端 stream id = 0 的 WINDOW_UPDATE 抬升，只增不减。
-    //   has_send_update_num    连接级「累计已发额」，发送 DATA 时累加。
-    //                          连接级剩余额 = window_update_num - has_send_update_num。
-    //   stream_send_window     每流「剩余额度」unsigned int（与上面相反，发送 DATA 时直接扣减），
-    //                          初值取对端 SETTINGS_INITIAL_WINDOW_SIZE；
-    //                          SETTINGS IWS 下调时地板到 0，不跟踪负值（h2spec 6.9.2 #2 依赖负值
-    //                          跟踪，但流控窗口本质是"还有多少额度可以发"，unsigned 更直接）。
-    //                          Floor to 0 on SETTINGS IWS reduction — flow-control window is
-    //                          "remaining quota", unsigned models that naturally; h2spec 6.9.2 #2
-    //                          expects negative tracking but that's a spec edge we trade for simplicity.
-    //   remote_initial_window_size  对端 SETTINGS_INITIAL_WINDOW_SIZE，新流首次
-    //                          发送/首次收到该流 WINDOW_UPDATE 时据此懒初始化。
-    // 头两个还借给 websocket 用一次：client_websocket_loop 从 URL 里取出两个数字段，
-    // 先各自清零、逐位拼好，交给注册工厂当 (myid, groupid)，交完再清一次。
-    // 借得干净的前提是两条路不重叠——websocket 只从 HTTP/1.1 升级进来，同一条连接不会
-    // 既走 http2 流控又走这段解析，所以谁也不会读到对方留下的数；反过来说，
-    // websocket 连接上这两个数不是窗口额度，是 URL 参数（收尾时被清回 0）。
-    std::atomic<unsigned long long> window_update_num    = 65535;
-    std::atomic<unsigned long long> has_send_update_num  = 0;
     std::atomic<unsigned int> remote_initial_window_size = 65535;
     // 对端 SETTINGS_MAX_FRAME_SIZE（RFC 9113 §6.5.2，合法区间 [16384, 16777215]，
     // 默认 16384）。发送侧拿它给单帧载荷封顶，超过就是对端必须拒绝的帧。
     std::atomic<unsigned int> remote_max_frame_size = 16384;
-    std::map<unsigned int, unsigned int> stream_send_window;
-    std::mutex stream_send_window_mutex;
 
     // 发送环满（push 返回 false）导致帧没能入队的次数。非零即说明发送侧出现过背压，
     // 这一片留在调用方手里等下一轮，是排查「响应缺洞 / 客户端挂死」的第一手线索。
@@ -320,10 +306,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 本端接收窗口的补量帧被发送环拒过多少次（每一次都留在账上等下一个腾出的槽位）。
     // 收尾时账上如果还有余额，说明这些额度到连接关闭都没发出去。
     std::atomic<unsigned long long> http2_window_update_requeue_count = 0;
-    // 两个欠账字段只由本连接 strand 上的两个协程读写（解帧协程记账、发送环消费协程冲刷），
-    // strand 把它们串行化，所以不需要原子量也不需要锁。
-    unsigned int conn_grant_pending = 0;
-    std::map<unsigned int, unsigned int> stream_grant_pending;
+    // 补量欠账由 strand 串行化：连接级在 h2_conn_send，流级在 peer->h2recv。
     // 旧发送闸门让路计数，现在恒 0，留着保收尾日志口径。
     // 这一支在 push() 之前就 return，所以它不体现在 overflow 里；不单独记的话
     // "环从没满过" 和 "环满了但每次都提前让路" 两种情况读起来一模一样。
@@ -332,20 +315,10 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     std::atomic_bool http2_need_wakeup = false;
     std::atomic_bool http2_fifo_write_active = false;
-    //std::string http2_ring_queue_temp;
-
-    std::mutex http2_sock_mutex;
     std::unique_ptr<http2_send_queue_cache> http2_ring_queue = nullptr;
-
-    std::mutex wake_ring_consumer_mutex;
-    std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
     std::shared_ptr<asio::steady_timer> http2_consumer_timer;
 
-    // ---- HTTP/2 停等状态（都在 strand 上）----
-    // 窗口停等登记：流级一流一个 timer；连接级按登记序 FIFO。
-    std::multimap<unsigned int, asio::steady_timer *> http2_stream_window_waiters;
-    std::vector<asio::steady_timer *> http2_conn_window_waiters;
-    // 关闭旗：置位后等待者都退出，不再有新发送。
+    // 关闭旗：置位后发送生产者在循环边界静音退出，不再有新发送。
     std::atomic_bool http2_closing{false};
     // 本连接活跃发送协程数，收尾日志用，收尾后应归零。
     std::atomic<unsigned int> http2_active_senders{0};

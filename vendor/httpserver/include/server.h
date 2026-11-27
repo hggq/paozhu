@@ -94,7 +94,9 @@ class httpserver
     httpserver() {}
     asio::awaitable<void> clientpeerfun(std::shared_ptr<client_session>, bool isssl);
     asio::awaitable<unsigned int> client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session>);
-    asio::awaitable<unsigned int> client_http2_loop(unsigned int offset, unsigned int readnum, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_http2_loop(unsigned int offset, unsigned int readnum,
+                                                    std::shared_ptr<client_session>,
+                                                    std::shared_ptr<http2parse>);
     // HTTP/2 统一入口（明文直连 / TLS ALPN h2 / h2c 升级三条路径共用）：补读并校验 24 字节连接前言、
     // 必要时追加 h2c 首帧，再分配发送环 + 启动 ring_client_http2_send_loop + 回 SETTINGS，最后进入 client_http2_loop。
     // 返回 3 表示进入失败（连接已不可用）。
@@ -190,23 +192,10 @@ class httpserver
     asio::awaitable<void> http1_fastcgi(std::shared_ptr<httppeer>);
     asio::awaitable<void> http1loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
 
-    // RFC 9113 §6.9 发送侧「查余额 + 扣减」原子预留：必须在 fread / push 之前调用。
-    // 返回实际到手额度（0 = 本次调用无额度，调用方让路，不得推进任何进度）。
-    // want 超过余额时按余额缩帧；连接级扣了、流级不够时把差额退还连接级。
-    //
-    // Atomic send-side 'check balance + deduct' reservation per RFC 9113 §6.9.
-    // MUST be called before fread / push. Returns the quota actually granted (0 = nothing this round,
-    // caller must yield; do not advance any progress). When want exceeds balance the frame shrinks
-    // to fit the balance; when the connection-level bucket is charged but the stream bucket is short,
-    // the difference is returned to the connection-level bucket.
-    unsigned long long http2_reserve_send_window(client_session *session_obj, unsigned int stream_id, unsigned long long want);
-    // 把没真正发出的额度退回两套窗口。
-    // Return quota that didn't actually go out to both window buckets.
-    void http2_refund_send_window(client_session *session_obj, unsigned int stream_id, unsigned long long back);
-
 
     // H2 专属：FIFO 控制/流式帧优先 + peer 轮转 gather + dead 复查 + WU 补发
-    asio::awaitable<void> ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session);
+    asio::awaitable<void> ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session,
+                                                     std::shared_ptr<http2parse> parser);
     // 共用：WS / MQTT client / Socket client —— 单环顺序写
     asio::awaitable<void> ring_client_send_loop(std::shared_ptr<client_session> peer_session);
 

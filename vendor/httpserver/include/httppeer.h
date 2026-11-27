@@ -213,6 +213,39 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void make_sse_header();
     void make_sse_body(std::string_view data);
     void make_sse_end();
+    unsigned long long http2_commit_send_window(unsigned long long bytes);
+
+    // ---- 流级发送状态自管 ----
+    // send_loop 和 refiller 协程通过这些方法改 h2send 内部状态，
+    // 不在外部裸写字段。封装语义（一个方法 = 一组字段的原子变迁），
+    // 便于以后加断言或扩展。
+    void enter_send_batch();
+    void leave_send_batch();
+    void mark_window_blocked(unsigned int timeout_sec);
+    // 条件置位 blocked；当 blocked=true 时按 timeout_sec 写 deadline，false 时清零 deadline
+    void set_window_blocked(bool blocked, unsigned int timeout_sec);
+    void mark_headers_sent();
+    void advance_sent_bytes(std::size_t n);
+    void reset_sent_bytes_after_refill();
+    void mark_refill_running();
+    void clear_fifo_cleanup_pending();
+
+    // ---- 流级接收窗口自管 ----
+    // 给本端接收窗口补量：peer 自己维护 h2recv.grant_pending，
+    // 自己调 socket_session 的底层组帧接口；失败时自己挂入连接级 grant 链表。
+    void grant_recv_window(unsigned int up_num);
+    // 从 grant 链表脱链 + 清所有 grant 记账（pending / prev / next / queued）
+    void grant_self_unlink();
+    // 清 grant_pending 及链表标记（不涉及脱链——调用方已确保 peer 不在链上）
+    void reset_recv_grant_pending();
+    // 可见接收窗口 = 总窗口 - 已入队未发送的补量。读协程要扣窗口时用它判额度够不够。
+    unsigned int recv_window_visible() const;
+    // 扣流级接收窗口，返回 true = 扣完后低于阈值、需要补量。
+    bool consume_recv_window(unsigned int bytes);
+    // 对端发来 WINDOW_UPDATE 抬本流发送窗口。
+    void grant_send_window(unsigned int inc);
+    // 流是否已挂在 grant 链表上
+    bool grant_is_queued() const { return h2recv.grant_queued; }
 
   public:
     std::string host;
@@ -248,15 +281,19 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 发送线程按它丢弃该流已入队的响应。置位和读取可以同时发生（流级 RST_STREAM 就走读协程），
     // 所以这一位必须是原子。
     std::atomic<bool> isclose{false};
+    // 仅由服务端主动撤流时置位；客户端发来的 RST_STREAM 只置 isclose，不回显 RST。
+    std::atomic<bool> is_rst_stream{false};
     bool isssl     = false;
     bool keepalive = true;
     bool isso      = false;
     bool iscors    = false;
     bool isfile    = false;
+
     // 仅 HTTP/1 用：Origin 早于 Host 到达时挂起判定（值已在 header["origin"] 里），
     // 等 getheaderhost() 解析出 Host、host_index 定下后补判，避免每请求都查一次 header
     bool cors_origin_pending  = false;
     bool ishas_content_length = false;
+
     // 仅 HTTP/1 chunked multipart：终止块到了但没见到闭合 boundary，尾段按既有口径丢弃。
     // 这里只做诊断标记，不改状态码；业务可据此自行决定是否拒收。
     // HTTP/1 chunked multipart only: terminal chunk reached without a closing boundary, so the
@@ -288,7 +325,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // reset_for_reuse 会清掉它，对象下一世可正常回池。
     // Pool-return discard flag: set by the h2 per-connection release when in-flight
     // timers or fastcgi callbacks remain; the deleter then destroys instead of re-pooling.
-    bool no_repool = false;
+    bool no_repool            = false;
     unsigned int request_time = 0;
     //unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;
@@ -310,7 +347,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     {
         static constexpr std::size_t INITIAL_READ_SIZE = 64 * 1024;
         static constexpr std::size_t MAX_READ_SIZE     = 256 * 1024;
-        using file_handle_t = std::unique_ptr<std::FILE, int (*)(std::FILE *)>;
+        using file_handle_t                            = std::unique_ptr<std::FILE, int (*)(std::FILE *)>;
 
         file_handle_t fp;
         unsigned long long offset    = 0;
@@ -325,25 +362,42 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     struct h2send_state_t
     {
         std::shared_ptr<h2_borrow_state> completion;
-        std::size_t sent_bytes = 0;
-        bool headers_sent = false;
-        bool end_on_headers = false;
-        bool registered = false;
-        bool raw_stream_active = false;
-        bool refill_pending = false;
+        std::weak_ptr<httppeer> queue_owner;
+        std::int64_t send_window  = 0;
+        std::uint64_t send_reserved = 0;
+        std::size_t sent_bytes      = 0;
+        std::atomic<bool> headers_sent           = false;
+        bool end_on_headers         = false;
+        bool raw_stream_active      = false;
+        bool refill_pending         = false;
+        bool refill_running         = false;
+        std::atomic<bool> stream_is_dead         = false;
+        bool fifo_cleanup_pending   = false;
+        bool rst_pending            = false;
+        bool rst_sent               = false;
+        unsigned int rst_error_code = 0;
+        bool completion_done        = false;
+        httppeer *send_prev          = nullptr;
+        httppeer *send_next          = nullptr;
+        bool send_queued            = false;
+        bool in_batch               = false;
+        bool blocked                = false;
         std::chrono::steady_clock::time_point blocked_deadline{};
-        void reset()
-        {
-            completion.reset();
-            sent_bytes = 0;
-            headers_sent = false;
-            end_on_headers = false;
-            registered = false;
-            raw_stream_active = false;
-            refill_pending = false;
-            blocked_deadline = {};
-        }
+        void reset();
     } h2send;
+    std::atomic<unsigned int> h2_producer_count{0};
+    std::atomic<unsigned int> h2_fifo_frames_pending{0};
+    // 尾帧按序入环即释放并发名额，不等 socket 写完成回调。
+    std::atomic<bool> h2_end_stream_queued{false};
+    struct h2recv_state_t
+    {
+        unsigned int recv_window   = 0;
+        unsigned int grant_pending = 0;
+        httppeer *grant_prev       = nullptr;
+        httppeer *grant_next       = nullptr;
+        bool grant_queued          = false;
+        void reset();
+    } h2recv;
     std::string sitepath;
     std::string sendfilename;
     // 路由预查「先落盘」那一步 stat 过的文件路径：get_fileinfo() 拼出的 sendfilename 与它相同时
@@ -377,19 +431,21 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     // ---- RFC 7540 §8.1.2 伪头跨状态校验标记（HTTP/2 头解析完即置 true 后不再写）----
     // Pseudo-header tracking — set during header parsing, never touched after dispatch.
-    bool h2_method_seen  = false;// :method 至少出现过一次
-    bool h2_method_dup   = false;// :method 重复出现过（h2spec 8.1.2.3 #5）
-    bool h2_scheme_seen  = false;// :scheme 至少出现过一次
-    bool h2_scheme_dup   = false;// :scheme 重复出现过（h2spec 8.1.2.3 #6）
-    bool h2_path_seen    = false;// :path 至少出现过一次
-    bool h2_path_dup     = false;// :path 重复出现过（h2spec 8.1.2.3 #7）
+    bool h2_method_seen    = false;// :method 至少出现过一次
+    bool h2_method_dup     = false;// :method 重复出现过（h2spec 8.1.2.3 #5）
+    bool h2_scheme_seen    = false;// :scheme 至少出现过一次
+    bool h2_scheme_dup     = false;// :scheme 重复出现过（h2spec 8.1.2.3 #6）
+    bool h2_path_seen      = false;// :path 至少出现过一次
+    bool h2_path_dup       = false;// :path 重复出现过（h2spec 8.1.2.3 #7）
     bool h2_authority_seen = false;// :authority 至少出现过一次（RFC 9113 §8.3.1）
     bool h2_host_seen      = false;// 普通 host 头至少出现过一次
-    bool h2_regular_seen = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
+    bool h2_regular_seen   = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
 
-  private:
     void h2_begin_raw_stream();
     void h2_end_raw_stream();
+
+  private:
+    bool h2_send_data_payload(std::string_view data);
 };
 // — v6 router —
 enum class fn_kind : uint8_t
@@ -413,9 +469,9 @@ struct reg_methold_mid_t
     // 注册条目自带的业务掩码：派发时按条目写进 httppeer::mask_code，pre 和 handler 都能读
     // 注解格式 //@urlpath(pre,handler):数字 提取，无冒号默认 0
     // business mask code; the router copies it to httppeer::mask_code before calling pre/regfun
-    unsigned int  mask_code = 0;
-    unsigned char rate_time = 0; //0 默认不限，1到255秒
-    unsigned char rate_num  = 0; //0 表示不限，1到255，rate_time的单位，ratelimit(20,5) 20秒每ip 5次 登陆
+    unsigned int mask_code  = 0;
+    unsigned char rate_time = 0;//0 默认不限，1到255秒
+    unsigned char rate_num  = 0;//0 表示不限，1到255，rate_time的单位，ratelimit(20,5) 20秒每ip 5次 登陆
 };
 
 struct SiteSlot

@@ -14,6 +14,7 @@ namespace http
 bool http2_send_queue_cache::push(const unsigned char *buffer, unsigned int buffersize)
 {
     std::unique_lock lk(http2_queue_send_mutex);
+    if (closed.load(std::memory_order_acquire)) return false;
     std::size_t tail      = tail_.load(std::memory_order_relaxed);
     std::size_t next_tail = (tail + 1) & (capacity_ - 1);
     if (next_tail != head_.load(std::memory_order_acquire))
@@ -30,6 +31,7 @@ bool http2_send_queue_cache::push(const unsigned char *buffer, unsigned int buff
 bool http2_send_queue_cache::push(const std::string &item)
 {
     std::unique_lock lk(http2_queue_send_mutex);
+    if (closed.load(std::memory_order_acquire)) return false;
     std::size_t tail      = tail_.load(std::memory_order_relaxed);
     std::size_t next_tail = (tail + 1) & (capacity_ - 1);
     if (next_tail != head_.load(std::memory_order_acquire))
@@ -45,6 +47,7 @@ bool http2_send_queue_cache::push(const std::string &item)
 bool http2_send_queue_cache::push(std::string &&item)
 {
     std::unique_lock lk(http2_queue_send_mutex);
+    if (closed.load(std::memory_order_acquire)) return false;
     std::size_t tail      = tail_.load(std::memory_order_relaxed);
     std::size_t next_tail = (tail + 1) & (capacity_ - 1);
     if (next_tail != head_.load(std::memory_order_acquire))
@@ -57,6 +60,12 @@ bool http2_send_queue_cache::push(std::string &&item)
     lk.unlock();
     return false;
 }
+void http2_send_queue_cache::close()
+{
+    std::unique_lock lk(http2_queue_send_mutex);
+    closed.store(true, std::memory_order_release);
+}
+
 unsigned char http2_send_queue_cache::has_size()
 {
 
@@ -107,6 +116,7 @@ void http2_send_queue_cache::reset()
 {
     head_ = 0;
     tail_ = 0;
+    closed.store(false, std::memory_order_release);
     bytes.store(0, std::memory_order_relaxed);
     for (auto &pd : data)
     {

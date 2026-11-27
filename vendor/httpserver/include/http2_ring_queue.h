@@ -45,12 +45,14 @@ struct http2_send_queue_cache
     // http2 直 push 点不记账，恒为 0。累加必须早于 push 发布 tail_：消费者看到帧后就会
     // 做减法，先减后加会让这一帧的字节永久留在计数里。
     std::atomic<unsigned long long> bytes{0};
+    std::atomic_bool closed{false};
 
     // push 把完整帧深拷贝进槽，入环成功后调用方可立即释放源缓冲。
     bool push(const unsigned char *buffer, unsigned int buffersize);
     bool push(const std::string &item);
     bool push(std::string &&item);
 
+    void close();
     unsigned char has_size();
     bool pop(std::string &item);
     void reset();
