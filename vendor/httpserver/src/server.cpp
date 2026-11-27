@@ -2288,25 +2288,25 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             htmlcontent.append("\r\n");
                             wrotetoclient = true;
 #ifdef BENCHMARK
-                            if (!peer_session->isssl)
-                            {
-                                auto *sock = peer_session->socket.get();
-                                auto total = htmlcontent.size() + tempcompress.size();
-                                if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
-                                {
-                                    std::string combined;
-                                    combined.reserve(total);
-                                    combined.append(htmlcontent);
-                                    combined.append(tempcompress);
-                                    auto written = co_await http1_optimistic_write(*sock, combined);
-                                    if (!combined.empty() && written == combined.size())
-                                    {
-                                        DEBUG_LOG("---  http1 compress fast-path --------");
-                                        clear_peer_data(peer);
-                                        co_return;
-                                    }
-                                }
-                            }
+                            // if (!peer_session->isssl)
+                            // {
+                            //     auto *sock = peer_session->socket.get();
+                            //     auto total = htmlcontent.size() + tempcompress.size();
+                            //     if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
+                            //     {
+                            //         std::string combined;
+                            //         combined.reserve(total);
+                            //         combined.append(htmlcontent);
+                            //         combined.append(tempcompress);
+                            //         auto written = co_await http1_optimistic_write(*sock, combined);
+                            //         if (!combined.empty() && written == combined.size())
+                            //         {
+                            //             DEBUG_LOG("---  http1 compress fast-path --------");
+                            //             clear_peer_data(peer);
+                            //             co_return;
+                            //         }
+                            //     }
+                            // }
 #endif
                             co_await peer_session->async_send_writer(htmlcontent, tempcompress);
                             DEBUG_LOG("---  http1 compress send --------");
@@ -2326,44 +2326,44 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             {
                 // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
 #ifdef BENCHMARK
-                if (!peer_session->isssl)
-                {
-                    auto *sock = peer_session->socket.get();
-                    if (sock != nullptr && htmlcontent.size() <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
-                    {
-                        auto written = co_await http1_optimistic_write(*sock, htmlcontent);
-                        if (!htmlcontent.empty() && written == htmlcontent.size())
-                        {
-                            DEBUG_LOG("---  http1 head fast-path --------");
-                            clear_peer_data(peer);
-                            co_return;
-                        }
-                    }
-                }
+                // if (!peer_session->isssl)
+                // {
+                //     auto *sock = peer_session->socket.get();
+                //     if (sock != nullptr && htmlcontent.size() <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
+                //     {
+                //         auto written = co_await http1_optimistic_write(*sock, htmlcontent);
+                //         if (!htmlcontent.empty() && written == htmlcontent.size())
+                //         {
+                //             DEBUG_LOG("---  http1 head fast-path --------");
+                //             clear_peer_data(peer);
+                //             co_return;
+                //         }
+                //     }
+                // }
 #endif
                 co_await peer_session->async_send_writer(htmlcontent);
             }
 #ifdef BENCHMARK
-            else if (!peer_session->isssl)
-            {
-                auto *sock = peer_session->socket.get();
-                auto total = htmlcontent.size() + peer->output.size();
-                if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
-                {
-                    std::string combined;
-                    combined.reserve(total);
-                    combined.append(htmlcontent);
-                    combined.append(peer->output);
-                    auto written = co_await http1_optimistic_write(*sock, combined);
-                    if (!combined.empty() && written == combined.size())
-                    {
-                        DEBUG_LOG("---  http1 output fast-path --------");
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                }
-                co_await peer_session->async_send_writer(htmlcontent, peer->output);
-            }
+            // else if (!peer_session->isssl)
+            // {
+            //     auto *sock = peer_session->socket.get();
+            //     auto total = htmlcontent.size() + peer->output.size();
+            //     if (sock != nullptr && total <= HTTP1_OPTIMISTIC_WRITE_LIMIT && sock->is_open())
+            //     {
+            //         std::string combined;
+            //         combined.reserve(total);
+            //         combined.append(htmlcontent);
+            //         combined.append(peer->output);
+            //         auto written = co_await http1_optimistic_write(*sock, combined);
+            //         if (!combined.empty() && written == combined.size())
+            //         {
+            //             DEBUG_LOG("---  http1 output fast-path --------");
+            //             clear_peer_data(peer);
+            //             co_return;
+            //         }
+            //     }
+            //     co_await peer_session->async_send_writer(htmlcontent, peer->output);
+            // }
 #endif
             else
             {
