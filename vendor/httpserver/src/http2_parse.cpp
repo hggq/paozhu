@@ -1622,6 +1622,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     // 两条路径一视同仁（静态表那 61 个名字最长不过 35 字节，碰不到这条）。
     if (header_name.size() > http::field_name_max_length)
     {
+        DEBUG_LOG("H2 HEADER NAME TOO LONG: sid=%u name_len=%zu", steam_httppeer->stream_id, header_name.size());
         set_conn_error(40164, 0x1);// 头名过长
         return;
     }

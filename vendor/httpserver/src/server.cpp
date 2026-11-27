@@ -2288,40 +2288,40 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             htmlcontent.append("\r\n");
                             wrotetoclient = true;
 #ifdef BENCHMARK
-                            if (!peer_session->isssl)
-                            {
-                                auto total = htmlcontent.size() + tempcompress.size();
-                                if (total <= 4096 && peer_session->socket->is_open())
-                                {
-                                    std::string combined;
-                                    combined.reserve(total);
-                                    combined.append(htmlcontent);
-                                    combined.append(tempcompress);
-                                    asio::error_code write_ec;
-                                    auto *sock = peer_session->socket.get();
-                                    if (!sock->non_blocking())
-                                        sock->non_blocking(true, write_ec);
-                                    auto written = sock->write_some(asio::buffer(combined), write_ec);
-                                    if (!write_ec && written == total)
-                                    {
-                                        DEBUG_LOG("---  http1 compress fast-path --------");
-                                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                                        clear_peer_data(peer);
-                                        co_return;
-                                    }
-                                    if (!write_ec && written > 0)
-                                    {
-                                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                                        co_await asio::async_write(*sock,
-                                            asio::buffer(combined.data() + written, total - written),
-                                            asio::use_awaitable);
-                                        DEBUG_LOG("---  http1 compress partial --------");
-                                        clear_peer_data(peer);
-                                        co_return;
-                                    }
-                                    asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                                }
-                            }
+                            // if (!peer_session->isssl)
+                            // {
+                            //     auto total = htmlcontent.size() + tempcompress.size();
+                            //     if (total <= 4096 && peer_session->socket->is_open())
+                            //     {
+                            //         std::string combined;
+                            //         combined.reserve(total);
+                            //         combined.append(htmlcontent);
+                            //         combined.append(tempcompress);
+                            //         asio::error_code write_ec;
+                            //         auto *sock = peer_session->socket.get();
+                            //         if (!sock->non_blocking())
+                            //             sock->non_blocking(true, write_ec);
+                            //         auto written = sock->write_some(asio::buffer(combined), write_ec);
+                            //         if (!write_ec && written == total)
+                            //         {
+                            //             DEBUG_LOG("---  http1 compress fast-path --------");
+                            //             asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                            //             clear_peer_data(peer);
+                            //             co_return;
+                            //         }
+                            //         if (!write_ec && written > 0)
+                            //         {
+                            //             asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                            //             co_await asio::async_write(*sock,
+                            //                 asio::buffer(combined.data() + written, total - written),
+                            //                 asio::use_awaitable);
+                            //             DEBUG_LOG("---  http1 compress partial --------");
+                            //             clear_peer_data(peer);
+                            //             co_return;
+                            //         }
+                            //         asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                            //     }
+                            // }
 #endif
                             co_await peer_session->async_send_writer(htmlcontent, tempcompress);
                             DEBUG_LOG("---  http1 compress send --------");
@@ -2341,70 +2341,70 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             {
                 // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
 #ifdef BENCHMARK
-                if (!peer_session->isssl && htmlcontent.size() <= 4096 && peer_session->socket->is_open())
-                {
-                    asio::error_code write_ec;
-                    auto *sock = peer_session->socket.get();
-                    if (!sock->non_blocking())
-                        sock->non_blocking(true, write_ec);
-                    auto written = sock->write_some(asio::buffer(htmlcontent), write_ec);
-                    if (!write_ec && written == htmlcontent.size())
-                    {
-                        DEBUG_LOG("---  http1 head fast-path --------");
-                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                    if (!write_ec && written > 0)
-                    {
-                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                        co_await asio::async_write(*sock,
-                            asio::buffer(htmlcontent.data() + written, htmlcontent.size() - written),
-                            asio::use_awaitable);
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                    asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                }
+                // if (!peer_session->isssl && htmlcontent.size() <= 4096 && peer_session->socket->is_open())
+                // {
+                //     asio::error_code write_ec;
+                //     auto *sock = peer_session->socket.get();
+                //     if (!sock->non_blocking())
+                //         sock->non_blocking(true, write_ec);
+                //     auto written = sock->write_some(asio::buffer(htmlcontent), write_ec);
+                //     if (!write_ec && written == htmlcontent.size())
+                //     {
+                //         DEBUG_LOG("---  http1 head fast-path --------");
+                //         asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                //         clear_peer_data(peer);
+                //         co_return;
+                //     }
+                //     if (!write_ec && written > 0)
+                //     {
+                //         asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                //         co_await asio::async_write(*sock,
+                //             asio::buffer(htmlcontent.data() + written, htmlcontent.size() - written),
+                //             asio::use_awaitable);
+                //         clear_peer_data(peer);
+                //         co_return;
+                //     }
+                //     asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+                // }
 #endif
                 co_await peer_session->async_send_writer(htmlcontent);
             }
 #ifdef BENCHMARK
-            else if (!peer_session->isssl)
-            {
-                auto total = htmlcontent.size() + peer->output.size();
-                if (total <= 4096 && peer_session->socket->is_open())
-                {
-                    std::string combined;
-                    combined.reserve(total);
-                    combined.append(htmlcontent);
-                    combined.append(peer->output);
-                    asio::error_code write_ec;
-                    auto *sock = peer_session->socket.get();
-                    if (!sock->non_blocking())
-                        sock->non_blocking(true, write_ec);
-                    auto written = sock->write_some(asio::buffer(combined), write_ec);
-                    if (!write_ec && written == total)
-                    {
-                        DEBUG_LOG("---  http1 output fast-path --------");
-                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                    if (!write_ec && written > 0)
-                    {
-                        asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                        co_await asio::async_write(*sock,
-                            asio::buffer(combined.data() + written, total - written),
-                            asio::use_awaitable);
-                        DEBUG_LOG("---  http1 output partial --------");
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                    asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
-                }
-                co_await peer_session->async_send_writer(htmlcontent, peer->output);
-            }
+            // else if (!peer_session->isssl)
+            // {
+            //     auto total = htmlcontent.size() + peer->output.size();
+            //     if (total <= 4096 && peer_session->socket->is_open())
+            //     {
+            //         std::string combined;
+            //         combined.reserve(total);
+            //         combined.append(htmlcontent);
+            //         combined.append(peer->output);
+            //         asio::error_code write_ec;
+            //         auto *sock = peer_session->socket.get();
+            //         if (!sock->non_blocking())
+            //             sock->non_blocking(true, write_ec);
+            //         auto written = sock->write_some(asio::buffer(combined), write_ec);
+            //         if (!write_ec && written == total)
+            //         {
+            //             DEBUG_LOG("---  http1 output fast-path --------");
+            //             asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+            //             clear_peer_data(peer);
+            //             co_return;
+            //         }
+            //         if (!write_ec && written > 0)
+            //         {
+            //             asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+            //             co_await asio::async_write(*sock,
+            //                 asio::buffer(combined.data() + written, total - written),
+            //                 asio::use_awaitable);
+            //             DEBUG_LOG("---  http1 output partial --------");
+            //             clear_peer_data(peer);
+            //             co_return;
+            //         }
+            //         asio::error_code rb_ec; sock->non_blocking(false, rb_ec);
+            //     }
+            //     co_await peer_session->async_send_writer(htmlcontent, peer->output);
+            // }
 #endif
             else
             {
