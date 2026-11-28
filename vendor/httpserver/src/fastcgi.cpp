@@ -213,15 +213,15 @@ asio::awaitable<void> fastcgi::async_send()
     params.push_back({"DOCUMENT_ROOT", document_root});
     params.push_back({"GATEWAY_INTERFACE", "FastCGI/1.0"});
     params.push_back({"SERVER_SOFTWARE", "Paozhu"});
-    params.push_back({"REQUEST_URI", request_url});
-    params.push_back({"QUERY_STRING", peer->querystring});
+    params.push_back({"REQUEST_URI", peer->url});
+    params.push_back({"QUERY_STRING", std::string(peer->querystring)});
     params.push_back({"SERVER_NAME", peer->host});
 
     if (peer->method == 2)
     {
         params.push_back({"REQUEST_METHOD", "POST"});
         params.push_back({"CONTENT_LENGTH", std::to_string(peer->output.size())});
-        params.push_back({"CONTENT_TYPE", peer->get_header("Content-Type")});
+        params.push_back({"CONTENT_TYPE", std::string(peer->get_header("Content-Type"))});
         //DEBUG_LOG("POST size: %zu", peer->output.size());
     }
     else if (peer->method == 3)
@@ -255,6 +255,25 @@ asio::awaitable<void> fastcgi::async_send()
     params.push_back({"REMOTE_ADDR", peer->client_ip});
     params.push_back({"REMOTE_PORT", std::to_string(peer->client_port)});
 
+    std::string cookies;
+    std::size_t line_begin = 0;
+    while (line_begin < peer->rawheader.size())
+    {
+        std::size_t line_end = peer->rawheader.find("\r\n", line_begin);
+        if (line_end == std::string::npos)
+            line_end = peer->rawheader.size();
+        const std::string_view line(peer->rawheader.data() + line_begin, line_end - line_begin);
+        if (line.size() >= 8 && str_casecmp(line.substr(0, 8), "cookie: "))
+        {
+            if (!cookies.empty())
+                cookies.append("; ");
+            cookies.append(line.substr(8));
+        }
+        line_begin = line_end + 2;
+    }
+    if (!cookies.empty())
+        params.push_back({"HTTP_COOKIE", cookies});
+
     for (const auto &[first, second] : peer->header)
     {
         if (first.size() == 0)
@@ -265,7 +284,7 @@ asio::awaitable<void> fastcgi::async_send()
         //asan crash
         if(first.size() > 0 && second.size() > 0)
         {
-            DEBUG_LOG("%s: %s", first.c_str(), second.c_str());
+            DEBUG_LOG("%.*s: %.*s", static_cast<int>(first.size()), first.data(), static_cast<int>(second.size()), second.data());
         }
 #endif
 

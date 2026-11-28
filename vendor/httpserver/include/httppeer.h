@@ -56,7 +56,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string make_http2_header(unsigned char flag_code = 0, bool index_headers = true);
     std::string make_http1_header();
     void set_header(const std::string &, const std::string &);
-    std::string get_header(std::string_view);
+    std::string_view get_header(std::string_view);
+    void begin_request_headers();
+    void add_request_header(std::string_view name, std::string_view value);
+    void finalize_request_headers();
     // 追加式写 Vary（逗号列表）：Vary 是"多值声明"，覆盖式 set_header 会把别处已经声明的
     // 那几项冲掉（CORS 的 Origin 与业务的 Accept-Language 互相吃掉），合并时按 token 去重
     void add_vary(std::string_view values);
@@ -87,7 +90,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 路由预查：带点的 URL 先落盘查一次（盘上那个文件还在、没过期就一次表都不查，让位静态文件），
     // 然后两段查表（原样名 + 扩展名剥离再查）。
     // 返回 >=0 是命中的 handler 下标（交给 router::co_resolve 直接进链），
-    // <0 是未命中或让位磁盘 —— 命中时 pathinfos/urlpath 已原地换成注册名
+    // <0 是未命中或让位磁盘；查找过程不修改 url/urlpath/pathinfos。
     int prefetch_routing();
     void goto_url(const std::string &url, unsigned char second = 0, const std::string &msg = "");
     bool isset_type();
@@ -231,15 +234,15 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string host;
     std::string url;
     std::string urlpath;
-    std::string querystring;
+    std::string_view querystring;
 
     std::string content_type;
     std::string etag;
 
     std::string chartset;
-    std::string accept_type;
     std::string rawcontent;
-    std::map<std::string, std::string> header;
+    std::string rawheader;
+    std::map<std::string_view, std::string_view, std::less<>> header;
     http::obj_val get;
     http::obj_val post;
     http::obj_val files;
@@ -248,7 +251,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     http::obj_val session;
     http::cookie cookie;
 
-    std::vector<std::string> pathinfos;
+    std::vector<std::string_view> pathinfos;
 
     bool issendheader = false;
     bool ischunked    = false;
@@ -269,8 +272,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool iscors    = false;
     bool isfile    = false;
 
-    // 仅 HTTP/1 用：Origin 早于 Host 到达时挂起判定（值已在 header["origin"] 里），
-    // 等 getheaderhost() 解析出 Host、host_index 定下后补判，避免每请求都查一次 header
+    // 仅 HTTP/1 用：Origin 早于 Host 到达时挂起判定，头块 finalize 后补判。
     bool cors_origin_pending  = false;
     bool ishas_content_length = false;
 
@@ -433,6 +435,7 @@ struct reg_methold_mid_t
     std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_regfun;
     // 路由的显示名称，来自注解 //@urlpath(pre,handler):title(名称)；没写为空串
     // route display name from the :title() annotation suffix; empty when the suffix is absent
+    std::string registered_path;
     std::string title;
     // 注册条目自带的业务掩码：派发时按条目写进 httppeer::mask_code，pre 和 handler 都能读
     // 注解格式 //@urlpath(pre,handler):数字 提取，无冒号默认 0
@@ -444,7 +447,7 @@ struct reg_methold_mid_t
 
 struct SiteSlot
 {
-    std::map<std::string, unsigned int> path_map;// path → handler idx
+    std::map<std::string, unsigned int, std::less<>> path_map;// path → handler idx
 };
 
 // v6 全局变量

@@ -956,7 +956,7 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     //   explicit cors_domain = "*" → "*"
     //   whitelist match             → echo the request Origin as-is
     //   no match / site has no whitelist → omit ACAO (preflight fails; default deny).
-    std::string req_origin = peer->get_header("origin");
+    std::string_view req_origin = peer->get_header("origin");
     std::string allow_origin;
     bool site_credentials = false;
     // Method list and credentials flag both come from this site's config; hold the
@@ -977,7 +977,7 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     // cors_allow_methods); str_casecmp is case-insensitive.
     if (site_cors != nullptr && !allow_origin.empty())
     {
-        std::string req_method = peer->get_header("access-control-request-method");
+        std::string_view req_method = peer->get_header("access-control-request-method");
         if (!req_method.empty())
         {
             bool method_allowed = false;
@@ -1014,10 +1014,10 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     // If the request has none (purely safelisted headers), reply "*" as fallback.
     // Request header names are lowercased during parsing (http_parse.cpp); get_header()
     // also looks up lowercased keys — consistent between h1 and h2.
-    std::string req_headers = peer->get_header("access-control-request-headers");
-    if (!req_headers.empty())
+    std::string_view req_headers_view = peer->get_header("access-control-request-headers");
+    if (!req_headers_view.empty())
     {
-        peer->set_header("Access-Control-Allow-Headers", req_headers);
+        peer->set_header("Access-Control-Allow-Headers", std::string(req_headers_view));
     }
     else
     {
@@ -2785,8 +2785,8 @@ static std::int64_t http2_send_window_visible(std::int64_t total_window,
 asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session,
                                                              std::shared_ptr<http2parse> parser)
 {
-    std::array<std::shared_ptr<httppeer>, 4> batch{};
-    std::array<unsigned long long, 4> batch_reserved{};
+    std::array<std::shared_ptr<httppeer>, 8> batch{};
+    std::array<unsigned long long, 8> batch_reserved{};
     std::array<std::shared_ptr<httppeer>, 6> control_write_peers{};
     std::array<unsigned long long, 6> control_write_bytes{};
     std::array<bool, 6> control_pending_counted{};
@@ -2913,6 +2913,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
 
             batch_size = 0;
             batch_reserved.fill(0);
+            std::unique_lock<std::mutex> window_lock(peer_session->h2_send_window_mutex);
             for (auto it = peer_session->http2_send_queue.begin();
                  it != peer_session->http2_send_queue.end() && batch_size < batch.size(); ++it)
             {
@@ -2927,7 +2928,6 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                                         peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD);
                 if (needs_data)
                 {
-                    std::lock_guard<std::mutex> lock(peer_session->h2_send_window_mutex);
                     const auto conn_available = http2_send_window_visible(
                         peer_session->http2_send_window.load(std::memory_order_relaxed),
                         peer_session->http2_send_totoal_bytes.load(std::memory_order_relaxed),
@@ -2940,6 +2940,7 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 batch[batch_size] = peer;
                 ++batch_size;
             }
+            window_lock.unlock();
             bool cleaned_this_iteration = false;
             if (batch_size != 0 && ++cleanup_tick >= 10)
             {
@@ -2955,13 +2956,15 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 continue;
             }
 
-            unsigned char avg_send_fr_num[4] = {2, 2, 2, 2};
-            if (batch_size == 1) avg_send_fr_num[0] = 8;
-            else if (batch_size == 2) avg_send_fr_num[0] = avg_send_fr_num[1] = 4;
-            else if (batch_size == 3)
+            unsigned char avg_send_fr_num[8] = {2, 2, 2, 2, 2, 2, 2, 2};
+            unsigned int remaining_frames = 16;
+            for (std::size_t i = 0; i < batch_size; ++i)
             {
-                avg_send_fr_num[0] = 4;
-                avg_send_fr_num[1] = avg_send_fr_num[2] = 2;
+                const std::size_t remaining_peers = batch_size - i;
+                unsigned int frames = (remaining_frames + remaining_peers - 1) / remaining_peers;
+                if ((frames & 1U) != 0) ++frames;
+                avg_send_fr_num[i] = static_cast<unsigned char>(frames);
+                remaining_frames -= frames;
             }
 
             std::vector<unsigned char> temp_send_fr;
@@ -3066,13 +3069,13 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     co_await asio::async_write(*peer_session->socket, asio::buffer(temp_send_fr), asio::use_awaitable);
             }
 
+            std::unique_lock<std::mutex> write_window_lock(peer_session->h2_send_window_mutex);
             for (std::size_t i = 0; i < batch_size; ++i)
             {
                 const auto &peer = batch[i];
                 auto &state = peer->h2send;
                 if (batch_reserved[i] != 0)
                 {
-                    std::lock_guard<std::mutex> lock(peer_session->h2_send_window_mutex);
                     peer_session->http2_send_totoal_bytes.fetch_add(batch_reserved[i], std::memory_order_relaxed);
                     const auto stream_reserved = std::min<std::uint64_t>(
                         state.send_reserved, batch_reserved[i]);
@@ -3083,6 +3086,13 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         std::memory_order_relaxed);
                     state.send_totoal_bytes += batch_reserved[i];
                 }
+            }
+            write_window_lock.unlock();
+
+            for (std::size_t i = 0; i < batch_size; ++i)
+            {
+                const auto &peer = batch[i];
+                auto &state = peer->h2send;
                 if (state.completion_done)
                     continue;
                 if (!state.in_batch) continue;
@@ -3209,7 +3219,7 @@ unsigned int httpserver::make_h2c_header(std::shared_ptr<httppeer> peer, std::sh
     // 会被 url / host / User-Agent（各自可达 16KB）冲出去，帧长度也不能截断成 8 位。
     // 这里三个字段都是 HPACK 7 位长度前缀的字符串(≤127)，先算总需求长度，
     // 单字段超长或超出缓冲一律返回 0（调用方按握手失败关连接）。
-    const std::string user_agent = peer->get_header("User-Agent");
+    const std::string_view user_agent = peer->get_header("User-Agent");
 
     if (peer->url.size() > 127 || peer->host.size() > 127 || user_agent.size() > 127)
     {
@@ -4124,7 +4134,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         // 让内置工厂返回空——判空针对的是第三方工厂，不是远程可控参数。
         if (!websockets)
         {
-            DEBUG_LOG("websocket factory returned null for path %s", peer->pathinfos[0].c_str());
+            DEBUG_LOG("websocket factory returned null for path %.*s", static_cast<int>(peer->pathinfos[0].size()), peer->pathinfos[0].data());
             log_item = ws::make_error(404);
             co_await peer_session->async_send_writer(log_item);
             peer_session->stop();
@@ -8039,10 +8049,15 @@ asio::awaitable<void> httpserver::acceptDispatch(
     }
 }
 
+asio::io_context &httpserver::pick_session_io_context()
+{
+    const std::size_t index = accept_session_ioc_cursor.fetch_add(1, std::memory_order_relaxed);
+    return *io_contexts[index % io_contexts.size()];
+}
+
 asio::awaitable<void> httpserver::acceptHttpLoop(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor)
 {
-    unsigned short session_ioc_cursor   = 0;
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
@@ -8053,7 +8068,7 @@ asio::awaitable<void> httpserver::acceptHttpLoop(
             co_return;
         try
         {
-            asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+            asio::io_context &session_ioc = pick_session_io_context();
             auto peer_session = std::make_shared<client_session>(session_ioc);
 
             asio::error_code ec;
@@ -8133,7 +8148,6 @@ asio::awaitable<void> httpserver::acceptHttpsLoop(
         co_return;
     }
 
-    unsigned short session_ioc_cursor   = 0;
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
@@ -8144,7 +8158,7 @@ asio::awaitable<void> httpserver::acceptHttpsLoop(
             co_return;
         try
         {
-            asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+            asio::io_context &session_ioc = pick_session_io_context();
             auto peer_session = std::make_shared<client_session>(session_ioc);
 
             asio::error_code ec;
@@ -8222,6 +8236,8 @@ bool httpserver::start_accept_pool(unsigned int accept_num)
     std::unique_lock<std::mutex> lock(accept_pool_mutex);
     if (accept_pool_closed || stop_requested.load(std::memory_order_relaxed))
         return false;
+
+    accept_session_ioc_cursor.store(0, std::memory_order_relaxed);
 
     try
     {

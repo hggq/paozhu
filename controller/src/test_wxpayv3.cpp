@@ -1489,10 +1489,10 @@ asio::awaitable<std::string> test_wxpay_v3_notify(std::shared_ptr<httppeer> peer
 
     // 1) 收集 V3 回调四个头（大小写不敏感，httppeer::get_header 内部已处理）
     std::map<std::string, std::string> headers;
-    headers["Wechatpay-Timestamp"] = client.get_header("Wechatpay-Timestamp");
-    headers["Wechatpay-Nonce"]     = client.get_header("Wechatpay-Nonce");
-    headers["Wechatpay-Signature"] = client.get_header("Wechatpay-Signature");
-    headers["Wechatpay-Serial"]    = client.get_header("Wechatpay-Serial");
+    headers["Wechatpay-Timestamp"] = std::string(client.get_header("Wechatpay-Timestamp"));
+    headers["Wechatpay-Nonce"]     = std::string(client.get_header("Wechatpay-Nonce"));
+    headers["Wechatpay-Signature"] = std::string(client.get_header("Wechatpay-Signature"));
+    headers["Wechatpay-Serial"]    = std::string(client.get_header("Wechatpay-Serial"));
 
     // 2) 实例化 wxpay 并加载商户凭据
     pay::wxpay p;

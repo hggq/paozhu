@@ -10,6 +10,7 @@
  *
  */
 #include <cassert>
+#include <cctype>
 #include <iostream>
 #include <cstdio>
 #include <stdexcept>
@@ -157,6 +158,7 @@ unsigned int reg_add(const std::string &site, const std::string &path, reg_metho
         return ins.first->second;
     }
     _handlers.push_back(std::move(entry));
+    _handlers.back().registered_path = key;
     return idx;
 }
 
@@ -811,7 +813,7 @@ void httppeer::cors_origin_process(std::string_view request_origin)
 {
     // host 还没解析到时按协议分流：
     //   h1：HTTP/1 不保证头顺序，Origin 早于 Host 是合法的，此刻 host_index 仍是回落值，
-    //        按它判定会拿错站点白名单，所以只挂标记，由 getheaderhost() 解出 Host 后补判。
+    //        按它判定会拿错站点白名单，所以只挂标记，由 finalize_request_headers() 补判。
     //   h2：RFC 7540 要求伪头排在普通头之前，走到这里要么客户端违序、要么整单没带
     //       :authority，两种情况路由都按回落的默认站点（index 0）走，CORS 跟着同一口径当场判定。
     if (host.empty() && httpv != 2)
@@ -886,7 +888,7 @@ bool httppeer::find_host_index()
         host_index = 0;
     }
     // 本函数只负责定位 host_index。Origin 早于 Host 到达时 cors_origin_process() 会挂起，
-    // 由 h1 的 getheaderhost() 在 host_index 确定后补判（h2 的 :authority 必在普通头之前，
+    // 由 finalize_request_headers() 在 host_index 确定后补判（h2 的 :authority 必在普通头之前，
     // 挂起分支带 httpv 守卫，h2 走的是当场判定）。
     return found;
 }
@@ -904,7 +906,7 @@ static bool html_cache_expired(const struct stat &st, const site_host_info_t &si
 // 路由预查：带点的 URL 先落盘查一次，再两段查表（原样名 → 去掉扩展名的同名）。
 // 命中返回 handler 下标（>=0），loop 带着它直接进动态链，不必再把同一个 key 查第二遍；
 // 未命中、或盘上那个文件还在有效期内（让位静态文件）都返回 -1。
-// 命中时 pathinfos/urlpath 原地改成注册名，所以返回的下标和 peer->urlpath 始终对得上同一条注册。
+// 命中返回 handler 下标，查找过程不修改 url/urlpath/pathinfos。
 int httppeer::prefetch_routing()
 {
     // 每一次预查都先清掉上一请求留下的那份 stat（keep-alive 复用同一个 peer）
@@ -963,33 +965,42 @@ int httppeer::prefetch_routing()
         return -1;
     }
 
-    // 第二道：把最后一段的扩展名去掉再查一次（/about.html ↔ 注册名 /about）
-    auto &last_seg = pathinfos.back();
-    auto dot       = last_seg.find('.');
-    if (dot == std::string::npos || dot == 0)
+    return get_router().lookup_stripped_key_in_slots(urlpath, host_index);
+}
+
+namespace
+{
+void prepend_route_segment(httppeer &peer, std::string_view segment)
+{
+    std::string rewritten;
+    rewritten.reserve(segment.size() + 1 + peer.urlpath.size());
+    if (!segment.empty())
     {
-        return -1;
+        if (segment.front() != '/')
+            rewritten.push_back('/');
+        rewritten.append(segment);
     }
-    std::string stripped = last_seg.substr(0, dot);
-    std::string orig     = last_seg;
-    auto apply_name      = [&last_seg, this](const std::string &name)
+
+    const std::size_t suffix_begin = !rewritten.empty() && rewritten.back() == '/' &&
+                                             !peer.urlpath.empty() && peer.urlpath.front() == '/'
+                                         ? 1
+                                         : 0;
+    // urlpath 已解码，直接拼接可避免把 %252F 形成的字面量 %2F 再解码一次。
+    rewritten.append(peer.urlpath, suffix_begin, std::string::npos);
+    peer.pathinfos.clear();
+    peer.urlpath.swap(rewritten);
+
+    std::size_t begin = 1;
+    for (std::size_t i = 1; i <= peer.urlpath.size(); ++i)
     {
-        last_seg   = name;
-        auto slash = urlpath.rfind('/');
-        if (slash != std::string::npos)
+        if (i == peer.urlpath.size() || peer.urlpath[i] == '/')
         {
-            urlpath.resize(slash + 1);
-            urlpath.append(name);
+            if (i > begin)
+                peer.pathinfos.emplace_back(peer.urlpath.data() + begin, i - begin);
+            begin = i + 1;
         }
-    };
-    apply_name(stripped);
-    idx = get_router().lookup_key_in_slots(urlpath, host_index);
-    if (idx < 0)
-    {
-        // 没命中，恢复带点的原名，磁盘那条路照旧
-        apply_name(orig);
     }
-    return idx;
+}
 }
 
 unsigned char httppeer::get_fileinfo()
@@ -1022,12 +1033,7 @@ unsigned char httppeer::get_fileinfo()
     {
         sendfilename.push_back('/');
     }
-    // urlpath 本身就是两个 parser 用 '/' + join(pathinfos, "/") 拼出来的那一条
-    // （http_parse.cpp:585-589、http2_parse.cpp:465-469），逐段再拼一遍是同一件事做第二遍；
-    // prefetch 落盘那次也是这么接的，两处路径都由同一个来源拼出来，不会各拼各的
-    // pathinfos 为空时不接：HPACK 静态表 index 4/5 那条捷径（http2_parse.cpp:1850-1856）只给
-    // urlpath 赋值、不跑 path_process，此时 urlpath 可以是 "/index.html" 而段表是空的，
-    // 接上去就绕过了"目录 + document_index"那个分支 —— 保持与逐段循环相同的边界
+    // 根路径没有可拼接的段；其余路径直接使用已规范化的 urlpath。
     if (!pathinfos.empty() && urlpath.size() > 1)
     {
         sendfilename.append(urlpath, 1, std::string::npos);
@@ -1136,7 +1142,7 @@ unsigned char httppeer::get_fileinfo()
                     {
                         if (pathinfos.size() < 20)
                         {
-                            pathinfos.insert(pathinfos.begin(), hostinfo.action_404_lists[k]);
+                            prepend_route_segment(*this, hostinfo.action_404_lists[k]);
                             sendfiletype = 3;
                             return sendfiletype;
                         }
@@ -1148,7 +1154,7 @@ unsigned char httppeer::get_fileinfo()
             {
                 if (pathinfos.size() < 20)
                 {
-                    pathinfos.insert(pathinfos.begin(), hostinfo.rewrite_404_action);
+                    prepend_route_segment(*this, hostinfo.rewrite_404_action);
                     sendfiletype = 3;
                 }
             }
@@ -1296,18 +1302,85 @@ void httppeer::add_vary(std::string_view values)
     }
 }
 
-std::string httppeer::get_header(std::string_view key_name)
+void httppeer::begin_request_headers()
 {
-    std::string key;
-    key.resize(key_name.size());
-    std::transform(key_name.begin(), key_name.end(), key.begin(), ::tolower);
-
-    auto iter = header.find(key);
-    if (iter != header.end())
+    header.clear();
+    if (rawheader.capacity() < 512)
     {
-        return iter->second;
+        rawheader.reserve(512);
     }
-    return "";
+    rawheader.clear();
+}
+
+void httppeer::add_request_header(std::string_view name, std::string_view value)
+{
+    for (char c : name)
+    {
+        rawheader.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+    rawheader.append(": ");
+    rawheader.append(value);
+    rawheader.append("\r\n");
+}
+
+void httppeer::finalize_request_headers()
+{
+    header.clear();
+    std::size_t line_begin = 0;
+    while (line_begin < rawheader.size())
+    {
+        std::size_t line_end = rawheader.find("\r\n", line_begin);
+        if (line_end == std::string::npos)
+        {
+            line_end = rawheader.size();
+        }
+        const std::string_view line(rawheader.data() + line_begin, line_end - line_begin);
+        const std::size_t colon = line.find(':', !line.empty() && line.front() == ':' ? 1 : 0);
+        if (colon != std::string_view::npos)
+        {
+            std::string_view name = line.substr(0, colon);
+            std::size_t value_begin = colon + 1;
+            if (value_begin < line.size() && line[value_begin] == ' ')
+            {
+                ++value_begin;
+            }
+            const std::string_view value = line.substr(value_begin);
+            if (name != "cookie")
+            {
+                header.insert_or_assign(name, value);
+            }
+        }
+        if (line_end == rawheader.size())
+        {
+            break;
+        }
+        line_begin = line_end + 2;
+    }
+
+    if (cors_origin_pending)
+    {
+        cors_origin_pending = false;
+        auto iter = header.find("origin");
+        if (iter != header.end())
+        {
+            cors_origin_allow(iter->second);
+        }
+    }
+}
+
+std::string_view httppeer::get_header(std::string_view key_name)
+{
+    char key[128];
+    if (key_name.size() >= sizeof(key))
+    {
+        return {};
+    }
+    for (std::size_t i = 0; i < key_name.size(); ++i)
+    {
+        key[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(key_name[i])));
+    }
+    auto iter = header.find(std::string_view(key, key_name.size()));
+    return iter == header.end() ? std::string_view{} : iter->second;
 }
 
 void httppeer::set_cookie(std::string key,
@@ -2361,11 +2434,11 @@ void httppeer::clear()
 {
     host.clear();
     ;
+    querystring = {};
+    pathinfos.clear();
     url.clear();
     ;
     urlpath.clear();
-    ;
-    querystring.clear();
     ;
 
     content_type.clear();
@@ -2376,13 +2449,13 @@ void httppeer::clear()
     chartset.clear();
     rawcontent.clear();
     header.clear();
+    rawheader.clear();
     get.clear();
     post.clear();
     files.clear();
     json.clear();
     val.clear();
     cookie.clear();
-    pathinfos.clear();
 
     issendheader = false;
     ischunked    = false;
@@ -2519,7 +2592,6 @@ void httppeer::reset_for_reuse()
     state.accept_html       = false;
     state.ifunmodifiedsince = 0;
 
-    accept_type.clear();
     isssl         = false;
     reject_status = 0;
 

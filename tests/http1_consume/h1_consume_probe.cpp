@@ -110,7 +110,16 @@ struct Rec
     bool state_keepalive  = false;
     unsigned char method  = 0;
     std::string url;
+    std::string querystring;
     std::string alpha;
+    std::string query_a;
+    std::string query_b;
+    std::string query_flag;
+    std::string query_group;
+    std::string query_equals;
+    std::string query_skip;
+    std::string query_empty;
+    std::string query_long;
     unsigned long long content_length = 0;
 };
 
@@ -168,7 +177,16 @@ public:
             r.state_keepalive = peer_->state.keepalive;
             r.method          = peer_->method;
             r.url             = peer_->url;
+            r.querystring     = peer_->querystring;
             r.alpha           = peer_->post["alpha"].to_string();
+            r.query_a         = peer_->get["a"].to_string();
+            r.query_b         = peer_->get["b"].to_string();
+            r.query_flag      = peer_->get["flag"].to_string();
+            r.query_group     = peer_->get["arr"]["x"].to_string();
+            r.query_equals    = peer_->get["eq"].to_string();
+            r.query_skip      = peer_->get["skip"].to_string();
+            r.query_empty     = peer_->get["empty"].to_string();
+            r.query_long      = peer_->get[std::string(72, 'A')].to_string();
             r.content_length  = peer_->content_length;
             recs_.push_back(r);
 
@@ -528,15 +546,15 @@ int main()
                          std::to_string(v9.empty() ? 0u : (v9[0].unknown ? 1u : 0u)));
     }
 
-    // ===== 组 11：请求前一行裸 CRLF 被当成一条空请求（既有语义，钉住读数防漂移）=====
+    // ===== 组 11：请求前一行裸 CRLF 被忽略，后面的有效请求照常解析 =====
     {
         Loop L;
         L.push(std::string("\r\n") + g1);
         L.run();
         const std::vector<Rec> &v = L.recs();
-        bool ok = v.size() == 1 && v[0].consumed == 2 && v[0].header_done && v[0].url.empty() &&
-                  L.closed() == "keepalive_false";
-        group_result("g11_leading_bare_crlf_parsed_as_empty_request",
+        bool ok = v.size() == 1 && v[0].consumed == g1.size() + 2 && v[0].header_done &&
+                  v[0].finished && v[0].url == "/a" && L.closed() == "idle";
+        group_result("g11_leading_bare_crlf_is_ignored",
                      ok,
                      rd("recs", v.size()) + " " + rd("consumed", v.size() > 0 ? v[0].consumed : 0) + " " +
                          rds("url", v.size() > 0 ? (v[0].url.empty() ? "<empty>" : v[0].url) : "<none>") + " " +
@@ -636,6 +654,74 @@ int main()
                      rd("segs", (all.size() + 6) / 7) + " " + rd("recs", L.recs().size()) + " " +
                          rdb("overshoot", bad) + " " + rd("total", total) + "/" + std::to_string(all.size()) + " " +
                          rd("leftover", L.leftover()) + " " + rds("urls", urls) + " " + rds("closed", L.closed()));
+    }
+
+    // ===== 组 16：查询串只保存原始字节视图，解码结果按既有规则写入 get =====
+    {
+        const std::string query =
+            "a=hello+world&b=%2F&flag&arr%5Bx%5D=y&eq=b=c&&empty=&skip==z";
+        Rec r = once(getreq("/q?" + query));
+        bool ok = r.finished && r.error == 0 && r.url == "/q?" + query && r.querystring == query &&
+                  r.query_a == "hello world" && r.query_b == "/" && r.query_flag.empty() &&
+                  r.query_group == "y" && r.query_equals == "b=c" && r.query_skip == "=z" &&
+                  r.query_empty.empty();
+        group_result("g16_query_view_decode_and_separator_semantics",
+                     ok,
+                     rds("url", r.url) + " " + rds("query", r.querystring) + " " + rds("a", r.query_a) + " " +
+                         rds("b", r.query_b) + " " + rds("flag", r.query_flag) + " " +
+                         rds("arr", r.query_group) + " " + rds("eq", r.query_equals) + " " +
+                         rds("skip", r.query_skip) + " " + rds("empty", r.query_empty) + " " +
+                         rd("err", r.error));
+    }
+
+    // ===== 组 17：key 按解码后长度限制为 72，并钉住四种越界错误码 =====
+    {
+        std::string encoded_key;
+        for (int i = 0; i < 72; ++i)
+            encoded_key += "%41";
+        Rec accepted = once(getreq("/q?" + encoded_key + "=ok"));
+        bool boundary_ok = accepted.finished && accepted.error == 0 && accepted.query_long == "ok";
+
+        const std::string long_key(73, 'k');
+        struct QueryErrorCase
+        {
+            const char *name;
+            std::string query;
+            unsigned int want;
+        };
+        const QueryErrorCase cases[] = {
+            {"amp", long_key + "&x=1", 40067},
+            {"value", long_key + "=v", 40068},
+            {"bare_after_amp", "a=1&" + long_key, 40069},
+            {"bare_only", long_key, 40070},
+        };
+        int hits = 0;
+        std::string reading;
+        for (const auto &c : cases)
+        {
+            Rec r = once(getreq("/q?" + c.query));
+            bool hit = r.error == c.want && !r.finished;
+            hits += hit;
+            reading += std::string(c.name) + ":" + std::to_string(r.error) + " ";
+        }
+        group_result("g17_query_key_decoded_length_boundary",
+                     boundary_ok && hits == 4,
+                     rdb("accept72", boundary_ok) + " hits=" + std::to_string(hits) + " " + reading);
+    }
+
+    // ===== 组 18：方法名视图的长度边界、空方法名与大小写识别 =====
+    {
+        Rec too_long = once("ABCDEFGHIJ /bad HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+        Rec too_wide = once("BADMETHOD /bad HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+        Rec empty_method = once(" /bad HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+        Rec lower_get = once("get /lower HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+        bool ok = too_long.error == 40057 && too_wide.error == 40058 && empty_method.error == 40066 &&
+                  lower_get.finished && lower_get.error == 0 && lower_get.url == "/lower";
+        group_result("g18_method_view_boundaries_and_case_insensitive_match",
+                     ok,
+                     rd("long", too_long.error) + " " + rd("wide", too_wide.error) + " " +
+                         rd("empty", empty_method.error) + " " + rdb("lower_get", lower_get.finished) + " " +
+                         rd("lower_err", lower_get.error));
     }
 
     std::cout << "SUMMARY groups=" << g_groups << " failures=" << g_failures << std::endl;

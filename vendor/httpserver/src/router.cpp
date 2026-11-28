@@ -160,34 +160,6 @@ bool route_auth_hook_ready()
     return static_cast<bool>(g_route_auth_hook);
 }
 
-// — 兜底 walk 的前缀表：由短到长，最多 6 段；超过 6 段的深路径靠 lookup_exact 原样命中，
-//    更深的前缀参数请改用 query（?aa=222&bb=444） —
-// 6 是硬上限而不是约定：段数不钳死的话，前缀表长度和 find 次数都跟着 URL 段数走，
-// 一条几百段的 URL 就能把这点开销按连接数放大 —
-// 空 pathinfos 什么前缀都不给：站点首页的注册名 "home" 归 resolve_idx 的尾巴查（见 fallback_404_home）
-// 所有前缀统一带前导 '/'，和注册 key 对齐 — all prefixed with '/' to match registration keys
-void router::build_prefixes(std::vector<std::string> const &pathinfos, std::vector<std::string> &prefixes)
-{
-    prefixes.clear();
-    // 空段表（urlpath 就是 "/"）必须在这里退出：下面是 prefixes.resize(0) 之后直接写
-    // prefixes[0]，空 vector 的 data() 是 nullptr，写进去就是一次空指针赋值。
-    // 请求 "/" 且 wwwpath 目录不在盘上（或整站没配静态根）时 get_fileinfo() 返回 0，
-    // resolve_idx 会带着空段表走到这里 —— 早退之后前缀表为空，walk 自然无命中，
-    // 由 resolve_idx 的尾巴 fallback_404_home 接着查注册的 "/home"
-    if (pathinfos.empty())
-        return;
-    unsigned int count = pathinfos.size() < 6 ? (unsigned int)pathinfos.size() : 6;
-    prefixes.resize(count);
-    prefixes[0] = "/";
-    prefixes[0].append(pathinfos[0]);
-    for (unsigned int i = 1; i < count; ++i)
-    {
-        prefixes[i] = prefixes[i - 1];
-        prefixes[i].push_back('/');
-        prefixes[i].append(pathinfos[i]);
-    }
-}
-
 unsigned int router::host_slot(unsigned int host_index)
 {
     serverconfig const &cfg = getserversysconfig();
@@ -205,15 +177,20 @@ unsigned int router::peer_slot(std::shared_ptr<httppeer> &peer)
 }
 
 // — 在一个 slot 里原样查一个 key；命中回填注册名 —
-int router::find_in_slot(unsigned int slot, const std::string &key, std::string &matched_path)
+int router::find_in_slot(unsigned int slot, std::string_view key)
 {
     if (slot >= _slots.size())
         return -1;
     auto it = _slots[slot].path_map.find(key);
-    if (it == _slots[slot].path_map.end())
-        return -1;
-    matched_path = key;
-    return checked_idx(it->second);
+    return it == _slots[slot].path_map.end() ? -1 : checked_idx(it->second);
+}
+
+int router::find_in_slot(unsigned int slot, std::string_view key, std::string &matched_path)
+{
+    int idx = find_in_slot(slot, key);
+    if (idx >= 0)
+        matched_path.assign(key);
+    return idx;
 }
 
 // — 注册名查找：本站 slot → 全局 slot 0 各一次原样查，都没中且名字不带开头的 '/' 时补一个 '/'
@@ -265,25 +242,30 @@ int router::lookup_exact(std::shared_ptr<httppeer> &peer, std::string &matched_p
 // fill_args=false 时纯只读；true 时把命中前缀之后的剩余段按注册时的 urlpath 名字表填进 peer->get
 int router::lookup_registered(std::shared_ptr<httppeer> &peer, std::string &matched_path, bool fill_args)
 {
-    std::vector<std::string> prefixes;
-    build_prefixes(peer->pathinfos, prefixes);
     matched_path.clear();
+    const std::string_view path = peer->urlpath;
+    if (path.size() <= 1)
+        return -1;
 
     unsigned int slot = peer_slot(peer);
     int matched_plen  = 0;
 
-    // 一个 slot 内由短到长；matched_plen 是命中前缀的下标，命中前缀占掉 pathinfos[0..plen]，参数段从 plen+1 起填
-    // shortest first; matched_plen is the matched prefix index, whose segments are pathinfos[0..plen]; args begin at plen+1
     auto walk_one_slot = [&](unsigned int s) -> int
     {
-        for (int plen = 0; plen < (int)prefixes.size(); ++plen)
+        std::size_t end = 1;
+        for (int plen = 0; plen < 6; ++plen)
         {
-            int hit = find_in_slot(s, prefixes[plen], matched_path);
+            end = path.find('/', end);
+            const std::size_t length = end == std::string_view::npos ? path.size() : end;
+            int hit = find_in_slot(s, path.substr(0, length), matched_path);
             if (hit >= 0)
             {
                 matched_plen = plen;
                 return hit;
             }
+            if (end == std::string_view::npos)
+                break;
+            ++end;
         }
         return -1;
     };
@@ -300,8 +282,6 @@ int router::lookup_registered(std::shared_ptr<httppeer> &peer, std::string &matc
         if (up != _urlpath_map.end())
         {
             auto const &names = up->second;
-            // prefixes[plen] 由 pathinfos[0..plen] 拼成，参数段必须从 plen+1 开始填
-            // prefixes[plen] already covers pathinfos[0..plen]; args start at plen+1
             for (unsigned int m = static_cast<unsigned int>(matched_plen) + 1; m < peer->pathinfos.size(); ++m)
             {
                 if (m < names.size() && !names[m].empty())
@@ -326,36 +306,48 @@ int router::fallback_404_home(std::shared_ptr<httppeer> &peer, std::string &matc
 // — 注册名精确探测：本站 slot → 全局 slot 0，命中返回 handler 下标，没命中返回 -1 —
 // 走 find_in_slot 所以顺带吃到 checked_idx 的越界门禁（表里有条目、_handlers 里没有对应下标时算没命中）；
 // 不建前缀表、不回落：前缀参数路由（user/info/:userid）和空 pathinfos 的 "home" 都归 resolve_idx 那条链 —
-// 命中的注册名就是传入的 key，调用方（httppeer::prefetch_routing）已把 urlpath 原地换成它，
-// 所以这里不必再带出一个 matched 名
-int router::lookup_key_in_slots(const std::string &key, unsigned int host_index)
+// 未命中返回 -1；查表只读 key，不修改请求路径。
+int router::lookup_key_in_slots(std::string_view key, unsigned int host_index)
 {
     if (key.empty())
         return -1;
 
     unsigned int slot = host_slot(host_index);
-    std::string matched;
-    int idx = find_in_slot(slot, key, matched);
+    int idx = find_in_slot(slot, key);
     if (idx < 0 && slot != 0)
-        idx = find_in_slot(0, key, matched);
+        idx = find_in_slot(0, key);
+    return idx;
+}
+
+int router::lookup_stripped_key_in_slots(std::string_view key, unsigned int host_index)
+{
+    const std::size_t slash = key.rfind('/');
+    const std::size_t dot = key.find('.', slash == std::string_view::npos ? 0 : slash + 1);
+    if (dot == std::string_view::npos || dot == 0 || (slash != std::string_view::npos && dot == slash + 1))
+        return -1;
+    const std::string_view stripped = key.substr(0, dot);
+
+    unsigned int slot = host_slot(host_index);
+    int idx = find_in_slot(slot, stripped);
+    if (idx < 0 && slot != 0)
+        idx = find_in_slot(0, stripped);
     return idx;
 }
 
 // — 路由查找：先原样精确匹配，未命中才走 404 兜底位的前缀 walk，最后才是链尾巴的 home/404 —
-// known_idx >= 0 表示 loop 的路由预查已经命中过同一条精确注册（prefetch_routing 把下标和注册名
-// 一起带回来了，注册名就是 peer->urlpath），这里直接进链，不再把同一个 key 查第二遍；
+// known_idx >= 0 表示 loop 预查已经命中，直接读取该条目保存的注册名。
 // 默认 -1 给没有预查的调用点（rpc 通路、同步链）走完整查找
 int router::resolve_idx(std::shared_ptr<httppeer> &peer, std::string &matched_path, int known_idx, bool exact_checked)
 {
     if (known_idx >= 0)
     {
-        matched_path = peer->urlpath;
+        matched_path = _handlers[known_idx].registered_path;
         return known_idx;
     }
 
     // exact_checked=true：loop 的 prefetch_routing 已经对当前 urlpath 做过一次完全相同的原样精确查表
-    // （lookup_key_in_slots，本站 slot → 全局 slot 0 各一次 find）并确认未命中，这里不必再付一次 hash 查找。
-    // 注意 urlpath 在预查剥扩展名分支若未命中会被原地还原成原值，所以和本处的 lookup_exact(urlpath) 一致。
+    // （lookup_key_in_slots，本站 slot → 全局 slot 0 各一次 find）并确认未命中，这里不必再付一次查表开销。
+    // 预查未修改 urlpath，因此可以直接复用精确查找未命中的结果。
     int idx = exact_checked ? -1 : lookup_exact(peer, matched_path);
     // — walk 只站在兜底位：本站有静态根、且磁盘上这条 URL 是目录时不抢静态页，直接进 404 链 —
     if (idx < 0 && (peer->sitepath.empty() || peer->sendfiletype != 2))

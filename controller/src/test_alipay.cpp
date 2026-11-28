@@ -1320,7 +1320,7 @@ asio::awaitable<std::string> test_alipay_return(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     client.type("text/html; charset=UTF-8");
 #ifdef ENABLE_WEBPAY
-    std::string query_str = client.querystring;
+    std::string query_str(client.querystring);
 
     pay::alipay apay;
     std::string cfgmsg;

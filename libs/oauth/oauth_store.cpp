@@ -286,7 +286,7 @@ bool authenticate_client(httppeer &client, client_record &out_rec, std::string &
     auto        hit = client.header.find("authorization");
     if (hit != client.header.end())
     {
-        auth_header = hit->second;
+        auth_header.assign(hit->second);
     }
     return authenticate_client(auth_header,
                                client.post["client_id"].to_string(),

@@ -57,7 +57,7 @@ int hexval(unsigned char c)
     return -1;
 }
 
-bool is_pct_encoded(const std::string &s)
+bool is_pct_encoded(std::string_view s)
 {
     for (size_t i = 0; i + 2 < s.size(); ++i)
     {
@@ -97,8 +97,9 @@ void rpc_parse::reset()
     ischunked        = false;
     is_send          = false;
 
-    read_key.clear();//read temp var in the header
+    read_key.clear();
     read_value.clear();
+    raw_target.clear();
     read_temp_file.clear();
     status_msg.clear();
     send_content.clear();
@@ -450,14 +451,14 @@ void rpc_parse::process(const unsigned char *buffer, unsigned int readnum)
         return;
     }
 
+    peer->querystring = {};
+    peer->pathinfos.clear();
     peer->url.clear();
     peer->urlpath.clear();
-    peer->querystring.clear();
-    peer->header.erase("urlpath");
-    peer->pathinfos.clear();
     peer->sendfilename.clear();
     read_key.clear();
     read_value.clear();
+    raw_target.clear();
     line_bytes       = 0;
     kv_num           = 0;
     kv_bytes         = 0;
@@ -490,14 +491,8 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
                 peer->get[read_key] = read_value;
                 read_key.clear();
             }
-            else if (cur_process_type == 20 && !read_key.empty())
+            else if (cur_process_type == 20)
             {
-                // 20 态行尾 = 路径最后一段；与 h1/h2 同口径，交给统一归一化
-                if (!url_segments_normalize(peer->pathinfos, read_key))
-                {
-                    iserror = true;
-                    return;
-                }
                 read_key.clear();
             }
             else if (!read_key.empty())
@@ -508,26 +503,18 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
             }
             read_value.clear();
 
-            // 与 h1/h2 同口径：由归一化后的段表组装路由键
-            peer->urlpath.clear();
-            if (peer->pathinfos.empty())
+            const std::size_t query_pos = raw_target.find('?');
+            const std::size_t path_size = query_pos == std::string::npos ? raw_target.size() : query_pos;
+            const std::string_view raw_path(raw_target.data(), path_size);
+            if (!build_urlpath(raw_path, peer->urlpath, peer->pathinfos))
             {
-                peer->urlpath = "/";
+                iserror = true;
+                return;
             }
-            else
+            peer->url = raw_target;
+            if (query_pos != std::string::npos)
             {
-                for (const auto &seg : peer->pathinfos)
-                {
-                    peer->urlpath.push_back('/');
-                    peer->urlpath.append(seg);
-                }
-            }
-            peer->header["urlpath"] = peer->urlpath;
-            peer->url               = peer->urlpath;
-            if (!peer->querystring.empty())
-            {
-                peer->url.push_back('?');
-                peer->url.append(peer->querystring);
+                peer->querystring = std::string_view(peer->url).substr(query_pos + 1);
             }
             peer->isfile = !peer->pathinfos.empty() &&
                            peer->pathinfos.back().find('.') != std::string::npos;
@@ -547,6 +534,7 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
             return;
         }
 
+        raw_target.push_back(static_cast<char>(c));
         if (++line_bytes > CONST_RPC_LINE_MAX)
         {
             iserror = true;
@@ -568,12 +556,10 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
                 }
                 read_value.clear();
                 read_key.clear();
-                peer->querystring.push_back('&');
                 cur_process_type = 21;
                 continue;
             }
             read_value.push_back(c);
-            peer->querystring.push_back(c);
             continue;
         }
 
@@ -581,24 +567,14 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
         {
             if (c == '?')
             {
-                if (!read_key.empty() && !url_segments_normalize(peer->pathinfos, read_key))
-                {
-                    iserror = true;
-                    return;
-                }
                 read_key.clear();
                 cur_process_type = 21;
                 continue;
             }
             if (c == '/')
             {
-                if (!read_key.empty() && !url_segments_normalize(peer->pathinfos, read_key))
-                {
-                    iserror = true;
-                    return;
-                }
                 read_key.clear();
-                continue;// 不再逐字节 push peer->url，行尾统一组装
+                continue;
             }
             read_key.push_back(c);
             continue;
@@ -609,18 +585,15 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
         if (c == '&')
         {
             read_key.clear();
-            peer->querystring.push_back('&');
             continue;
         }
         if (c == '=')
         {
             read_value.clear();
-            peer->querystring.push_back('=');
             cur_process_type = 22;
             continue;
         }
         read_key.push_back(c);
-        peer->querystring.push_back(c);
     }
     // 段耗尽：直接返回，状态保留
 }

@@ -277,11 +277,14 @@ std::string make_http_temp_upload_name(unsigned long long content_length);
 // 是否为框架生成的落盘临时文件名（严格匹配前缀 + 后续字符集）。
 bool is_http_temp_filename(std::string_view name);
 
-// — 统一 URL 路径段归一化 —
+// — 统一 URL 路径归一化 —
 // HTTP/1.x 和 HTTP/2 共用：解码 %XX、按 '/' 切分、处理 '.'/'..'、
 // 拦截 \0 / / / \\ 安全风险、限每段 ≤255 字节。
+// urlpath 拥有规范化路径，pathinfos 只保存指向 urlpath 的段视图。
 // 返回 false 表示路径非法（调用方应返回 400 或丢弃）。
-bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw);
+bool build_urlpath(std::string_view raw_path,
+                   std::string &urlpath,
+                   std::vector<std::string_view> &pathinfos);
 
 }// namespace http
 #endif

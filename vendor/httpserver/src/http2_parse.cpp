@@ -424,6 +424,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     steam_httppeer->content_length = 0;
     steam_httppeer->stream_id      = iter->second.stream_id;
     steam_httppeer->httpv          = 2;
+    steam_httppeer->begin_request_headers();
     steam_httppeer->socket_session = peer_session;
     steam_httppeer->h2send.send_window = peer_session->remote_initial_window_size.load(std::memory_order_relaxed);
     steam_httppeer->h2recv.recv_window = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
@@ -647,6 +648,21 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         }
     }
 
+    steam_httppeer->finalize_request_headers();
+
+    if (steam_httppeer->h2_authority_seen && steam_httppeer->h2_host_seen)
+    {
+        const auto authority = steam_httppeer->header.find(":authority");
+        const auto host      = steam_httppeer->header.find("host");
+        if (authority != steam_httppeer->header.end() &&
+            host != steam_httppeer->header.end() &&
+            authority->second != host->second)
+        {
+            set_conn_error(40173, 0x1);
+            return;
+        }
+    }
+
     if (is_body_method(steam_httppeer->method))
     {
         DEBUG_LOG("http2 post client: %s %ud", steam_httppeer->url.c_str(), header_stream_id);
@@ -694,14 +710,6 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
     std::string buffer_key;
     std::string buffer_value;
 
-    if (steam_httppeer->header["cookie"].empty())
-    {
-    }
-    else
-    {
-        steam_httppeer->header["cookie"].append("; ");
-    }
-    steam_httppeer->header["cookie"].append(header_value);
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x3D)
@@ -782,91 +790,25 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
 {
     DEBUG_LOG("path_process:%s:%s", header_name.c_str(), header_value.c_str());
 
-    std::string buffer_key;
-    std::string buffer_value;
-    unsigned char headerstep = 0;
-    steam_httppeer->pathinfos.clear();
-    steam_httppeer->url.clear();
-    unsigned int linesize = static_cast<unsigned int>(header_value.size());
-    unsigned int ioffset  = 0;
-
-    // 按原始 '/' 逐段切分，每段交给 http::url_segments_normalize()（func.cpp 统一实现）
-    for (; ioffset < linesize; ioffset++)
+    std::string decoded_key;
+    std::string decoded_value;
+    steam_httppeer->url.assign(header_value);
+    const std::size_t query_pos = header_value.find('?');
+    const std::size_t path_size = query_pos == std::string::npos
+                                      ? header_value.size()
+                                      : query_pos;
+    const std::string_view raw_path(header_value.data(), path_size);
+    if (!build_urlpath(raw_path, steam_httppeer->urlpath, steam_httppeer->pathinfos))
     {
-        if (header_value[ioffset] == 0x3F)// '?'
-        {
-            headerstep = 6;
-            break;
-        }
-        if (header_value[ioffset] == 0x2F)// '/'
-        {
-            if (buffer_key.size() > 255)
-            {
-                error = 40007;
-                return;
-            }
-            if (buffer_key.size() > 0)
-            {
-                if (!http::url_segments_normalize(steam_httppeer->pathinfos, buffer_key))
-                {
-                    error = 40095;
-                    return;
-                }
-                buffer_key.clear();
-            }
-        }
-        else
-        {
-            buffer_key.push_back(header_value[ioffset]);
-        }
-    }
-    if (buffer_key.size() > 0)
-    {
-        if (buffer_key.size() > 255)
-        {
-            error = 40090;
-            return;
-        }
-        if (!http::url_segments_normalize(steam_httppeer->pathinfos, buffer_key))
-        {
-            error = 40095;
-            return;
-        }
+        error = 40095;
+        return;
     }
 
-    steam_httppeer->header["urlpath"] = header_value.substr(0, ioffset);
-
-    if (steam_httppeer->pathinfos.size() > 0)
-    {
-        steam_httppeer->urlpath.clear();
-        steam_httppeer->urlpath.reserve(header_value.size() > 64 && header_value.size() < 10000 ? header_value.size() : 0);
-
-        for (size_t nn = 0; nn < steam_httppeer->pathinfos.size(); nn++)
-        {
-            steam_httppeer->urlpath.push_back('/');
-            steam_httppeer->urlpath.append(steam_httppeer->pathinfos[nn]);
-        }
-        if (steam_httppeer->urlpath.size() == 0)
-        {
-            steam_httppeer->urlpath = "/";
-        }
-    }
-    else
-    {
-        steam_httppeer->urlpath.clear();
-        steam_httppeer->urlpath = "/";
-    }
-
-    // 最后一段含 '.' 标记为文件请求；.php 结尾标 compress=10 交给 loop 处理 —
-    // last segment has '.' means file-like URL; .php suffix marks fastcgi candidate
     if (!steam_httppeer->pathinfos.empty())
     {
-        auto const &last       = steam_httppeer->pathinfos.back();
-        steam_httppeer->isfile = (last.find('.') != std::string::npos);
+        auto const &last = steam_httppeer->pathinfos.back();
+        steam_httppeer->isfile = last.find('.') != std::string_view::npos;
 #ifdef ENABLE_FASTCGI
-        // 超轻量：只比后缀 4 字符，不查路由表不查磁盘 —
-        // ultra-light: only check suffix, no route lookup no disk stat
-
         if (last.size() > 4 && last[last.size() - 1] == 'p' && last[last.size() - 2] == 'h' &&
             last[last.size() - 3] == 'p' && last[last.size() - 4] == '.')
         {
@@ -875,149 +817,107 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
 #endif
     }
 
-    steam_httppeer->url = steam_httppeer->urlpath;
-
-    buffer_key.clear();
-    if (headerstep == 6)
+    if (query_pos != std::string::npos)
     {
-        for (; ioffset < linesize; ioffset++)
+        const std::string_view path_value(header_value);
+        const std::string_view query = path_value.substr(query_pos + 1);
+        std::size_t token_begin = 0;
+        std::size_t value_begin = std::string_view::npos;
+        bool saw_separator      = false;
+        steam_httppeer->querystring = std::string_view(steam_httppeer->url).substr(query_pos + 1);
+        for (std::size_t pos = 0; pos < query.size(); ++pos)
         {
-            if (header_value[ioffset] == 0x3F)
+            if (query[pos] == '=' && value_begin == std::string_view::npos)
             {
-                continue;
-            }
-            break;
-        }
-        headerstep = 0;
-        steam_httppeer->querystring.clear();
-        steam_httppeer->header["querystring"].clear();
-        steam_httppeer->querystring.append(&header_value[ioffset], (linesize - ioffset));// http::url_decode(&header_value[ioffset], (linesize - ioffset));
-        steam_httppeer->header["querystring"].append(steam_httppeer->querystring);
-        steam_httppeer->url.push_back(0x3F);
-        steam_httppeer->url.append(steam_httppeer->querystring);
-        buffer_key.clear();
-        buffer_value.clear();
-        unsigned int jj = 0;
-        for (; ioffset < linesize; ioffset++)
-        {
-            if (header_value[ioffset] == 0x3D)
-            {
-                if (headerstep == 1)
-                {
-                    // 值里的 '=' 按普通字符保留：再切一次会把 ?a=b=c 存成 get["b"]="c"、丢掉前半个 key
-                    buffer_value.push_back(header_value[ioffset]);
-                    continue;
-                }
-                for (; ioffset < linesize; ioffset++)
-                {
-                    if (header_value[ioffset] == 0x3D)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        ioffset -= 1;
-                        break;
-                    }
-                }
-                buffer_key = http::url_decode(buffer_value.data(),
-                                              buffer_value.length());
-                buffer_value.clear();
-                headerstep = 1;
-                jj         = 0;
-                continue;
-            }
-            else if (header_value[ioffset] == 0x26)
-            {
-                for (; ioffset < linesize; ioffset++)
-                {
-                    if (header_value[ioffset] == 0x26)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        ioffset -= 1;
-                        break;
-                    }
-                }
-
-                // 同上：headerstep 为 0/2 时这条 token 没见过 '='，它是裸 key、值为空。
-                if (headerstep == 1)
-                {
-                    buffer_value = http::url_decode(buffer_value.data(),
-                                                    buffer_value.length());
-                }
-                else
-                {
-                    buffer_key   = http::url_decode(buffer_value.data(),
-                                                    buffer_value.length());
-                    buffer_value.clear();
-                }
-                if (buffer_key.size() > 48)
-                {
-                    error = 40173;
-                    return;
-                }
-                procssparamter(buffer_key, buffer_value, steam_httppeer);
-                buffer_key.clear();
-                buffer_value.clear();
-                headerstep = 2;
-                jj         = 0;
-                continue;
-            }
-            buffer_value.push_back(header_value[ioffset]);
-
-            if (headerstep == 0 || headerstep == 2)
-            {
-                //key name too long
-                if (jj > 72)
+                if (pos - token_begin > 73)
                 {
                     error = 40174;
                     return;
                 }
+                decoded_key = http::url_decode(query.data() + token_begin, pos - token_begin);
+                value_begin = pos + 1;
+                while (value_begin < query.size() && query[value_begin] == '=')
+                {
+                    ++value_begin;
+                }
+                saw_separator = true;
+                pos           = value_begin - 1;
             }
-            jj++;
+            else if (query[pos] == '&')
+            {
+                const std::size_t token_end = pos;
+                if (value_begin == std::string_view::npos && token_end - token_begin > 73)
+                {
+                    error = 40174;
+                    return;
+                }
+                if (value_begin == std::string_view::npos)
+                {
+                    decoded_key = http::url_decode(query.data() + token_begin, token_end - token_begin);
+                    decoded_value.clear();
+                }
+                else
+                {
+                    decoded_value = http::url_decode(query.data() + value_begin, token_end - value_begin);
+                }
+                if (decoded_key.size() > 48)
+                {
+                    error = 40173;
+                    return;
+                }
+                procssparamter(decoded_key, decoded_value, steam_httppeer);
+                while (pos < query.size() && query[pos] == '&')
+                {
+                    ++pos;
+                }
+                saw_separator = true;
+                token_begin   = pos;
+                value_begin   = std::string_view::npos;
+                --pos;
+            }
         }
 
-        if (headerstep == 1)
+        if (value_begin == std::string_view::npos && query.size() - token_begin > 73)
         {
-            // full kv
-            buffer_value = http::url_decode(buffer_value.data(),
-                                            buffer_value.length());
-            if (buffer_key.size() > 48)
+            error = 40174;
+            return;
+        }
+        if (value_begin != std::string_view::npos)
+        {
+            decoded_value = http::url_decode(query.data() + value_begin, query.size() - value_begin);
+            if (decoded_key.size() > 48)
             {
                 error = 40175;
                 return;
             }
-            procssparamter(buffer_key, buffer_value, steam_httppeer);
+            procssparamter(decoded_key, decoded_value, steam_httppeer);
         }
-        else if (headerstep == 2)
+        else if (saw_separator)
         {
-            // half k
-            buffer_key = http::url_decode(buffer_value.data(),
-                                          buffer_value.length());
-            buffer_value.clear();
-            if (buffer_key.size() > 48)
+            decoded_key   = http::url_decode(query.data() + token_begin, query.size() - token_begin);
+            decoded_value.clear();
+            if (decoded_key.size() > 48)
             {
                 error = 40176;
                 return;
             }
-            procssparamter(buffer_key, buffer_value, steam_httppeer);
+            procssparamter(decoded_key, decoded_value, steam_httppeer);
         }
-        else if (buffer_value.size() > 0)
+        else if (token_begin < query.size())
         {
-            // only one k
-            buffer_key = http::url_decode(buffer_value.data(),
-                                          buffer_value.length());
-            buffer_value.clear();
-            if (buffer_key.size() > 48)
+            decoded_key   = http::url_decode(query.data() + token_begin, query.size() - token_begin);
+            decoded_value.clear();
+            if (decoded_key.size() > 48)
             {
                 error = 40177;
                 return;
             }
-            procssparamter(buffer_key, buffer_value, steam_httppeer);
+            procssparamter(decoded_key, decoded_value, steam_httppeer);
         }
+    }
+    else
+    {
+        steam_httppeer->querystring = {};
     }
 }
 void http2parse::procssparamter(std::string_view buffer_key, std::string_view buffer_value, std::shared_ptr<httppeer> steam_httppeer)
@@ -1475,16 +1375,6 @@ bool http2parse::host_header_set(std::string &header_value, std::shared_ptr<http
             return false;
         }
         steam_httppeer->h2_authority_seen = true;
-        auto host_iter = steam_httppeer->header.find("host");
-        if (host_iter != steam_httppeer->header.end() && host_iter->second != header_value)
-        {
-            // :authority 与 Host 指向不同主机属于 malformed
-            // :authority and Host identifying different hosts is malformed
-            set_conn_error(40173, 0x1);
-            return false;
-        }
-        steam_httppeer->header["host"]       = header_value;
-        steam_httppeer->header[":authority"] = header_value;
     }
     else
     {
@@ -1494,13 +1384,6 @@ bool http2parse::host_header_set(std::string &header_value, std::shared_ptr<http
             return false;
         }
         steam_httppeer->h2_host_seen = true;
-        auto auth_iter = steam_httppeer->header.find(":authority");
-        if (auth_iter != steam_httppeer->header.end() && auth_iter->second != header_value)
-        {
-            set_conn_error(40173, 0x1);
-            return false;
-        }
-        steam_httppeer->header["host"] = header_value;
     }
     steam_httppeer->find_host_index();
     return true;
@@ -1694,6 +1577,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         return;
     }
 
+    steam_httppeer->add_request_header(header_name, header_value);
+
     // ---- RFC 7540 §8.1.2 跨状态计数（单元素校验已过，这里只计状态）----
     // 伪头在普通头之后出现 → PROTOCOL_ERROR（h2spec 8.1.2.1 #4）
     // Pseudo-headers MUST precede any regular header field.
@@ -1747,8 +1632,6 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         case 3:
             steam_httppeer->method = h2_method_from_text(header_value);
             steam_httppeer->iscors = (steam_httppeer->method == static_cast<unsigned char>(HEAD_METHOD::OPTIONS));
-            steam_httppeer->header[":method"] = header_value;
-            steam_httppeer->header["method"]  = std::move(header_value);
             break;
         case 4:
         case 5:
@@ -1764,16 +1647,12 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 return;
             }
             path_process(header_name, header_value, steam_httppeer);
-            // 与字面量路径同一个形状：path_process 写 urlpath/url/header["urlpath"]，
-            // 原始 :path 值本身也要留在 header 里给业务读
-            steam_httppeer->header[":path"] = header_value;
             break;
         case 6:
         case 7:
             // :scheme 只记账，不推导 isssl：这条连接是不是 TLS 只有 socket 知道。
             // 用头值反推的话，明文连接上对端发索引 7 就能把 is_ssl() 写成 true，
             // TLS 连接上发索引 6 又把它写成 false，路由和 secure cookie 都跟着错。
-            steam_httppeer->header[":scheme"] = std::move(header_value);
             break;
         case 16:
             getacceptencoding(header_name, header_value, steam_httppeer);
@@ -1785,10 +1664,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             getaccept(header_name, header_value, steam_httppeer);
             break;
         case 20:
-            steam_httppeer->header["access-control-allow-origin"] = std::move(header_value);
             break;
         case 23:
-            steam_httppeer->header["authorization"] = std::move(header_value);
             break;
         case 28:
         {
@@ -1807,9 +1684,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 set_stream_error(40228, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
                 return;
             }
-            steam_httppeer->content_length           = temp_cl;
-            steam_httppeer->ishas_content_length     = true;
-            steam_httppeer->header["content-length"] = std::move(header_value);
+            steam_httppeer->content_length       = temp_cl;
+            steam_httppeer->ishas_content_length = true;
             break;
         }
         case 31:
@@ -1829,28 +1705,22 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             getifnonematch(header_name, header_value, steam_httppeer);
             break;
         case 48:
-            steam_httppeer->header["proxy-authenticate"] = std::move(header_value);
             break;
         case 49:
-            steam_httppeer->header["proxy-authorization"] = std::move(header_value);
             break;
         case 50:
             range_process(header_name, header_value, steam_httppeer);
             break;
         case 51:
-            steam_httppeer->header["referer"] = std::move(header_value);
             break;
         case 58:
-            steam_httppeer->header["user-agent"] = std::move(header_value);
             break;
         case 61:
-            steam_httppeer->header["www-authenticate"] = std::move(header_value);
             break;
         }
     }
     else
     {
-        std::string lower_name = str_tolower(header_name);
         switch (header_name.size())
         {
         case 4:
@@ -1865,8 +1735,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
         case 5:
             if (str_casecmp(header_name, ":path"))
@@ -1884,7 +1753,6 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 range_process(header_name, header_value, steam_httppeer);
             }
-            steam_httppeer->header[lower_name] = std::move(header_value);
             break;
         case 6:
 
@@ -1898,8 +1766,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 }
                 else
                 {
-                    steam_httppeer->header[lower_name] = std::move(header_value);
-                }
+                        }
                 break;
             case 'a':
             case 'A':
@@ -1911,8 +1778,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 {
                     if (header_name[0] != ':')
                     {
-                        steam_httppeer->header[lower_name] = std::move(header_value);
-                    }
+                                }
                 }
                 break;
             case 'o':
@@ -1924,13 +1790,11 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                     // cors_origin_process() 在 h2 下不挂起，直接按路由回落的站点当场判定
                     steam_httppeer->cors_origin_process(header_value);
                 }
-                steam_httppeer->header[lower_name] = std::move(header_value);
-                break;
+                    break;
             default:
                 if (header_name[0] != ':')
                 {
-                    steam_httppeer->header[lower_name] = std::move(header_value);
-                }
+                        }
             }
 
             break;
@@ -1939,20 +1803,14 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 steam_httppeer->method = h2_method_from_text(header_value);
                 steam_httppeer->iscors = (steam_httppeer->method == static_cast<unsigned char>(HEAD_METHOD::OPTIONS));
-                steam_httppeer->header["method"]  = header_value;
-                steam_httppeer->header[":method"] = std::move(header_value);
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
         case 10:
-            // 字面量形式的 :authority 与静态表 1 走同一套校验：重复的 authority、
-            // 与 host 不一致，都必须在写入 peer->host 之前被拦下
-            // A literal ":authority" follows the same checks as static-table entry 1:
-            // a repeated authority, or one that disagrees with host, must be caught
-            // before it overwrites peer->host
+            // 字面量形式的 :authority 与静态表 1 走同一套校验：重复 authority 在写入
+            // peer->host 之前拦下；与 host 的一致性在头块 finalize 后统一校验。
             if (str_casecmp(header_name, ":authority"))
             {
                 if (!host_header_set(header_value, steam_httppeer, true))
@@ -1962,12 +1820,10 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
             else if (str_casecmp(header_name, "User-Agent"))
             {
-                steam_httppeer->header["user-agent"] = std::move(header_value);
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
         case 12:
             if (str_casecmp(header_name, "Content-Type"))
@@ -1976,8 +1832,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
         case 13:
             if (str_casecmp(header_name, "if-none-match"))
@@ -1986,8 +1841,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
 
         case 14:
@@ -2008,14 +1862,12 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                     set_stream_error(40228, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
                     return;
                 }
-                steam_httppeer->content_length           = temp_cl;
-                steam_httppeer->ishas_content_length     = true;
-                steam_httppeer->header["content-length"] = std::move(header_value);
+                steam_httppeer->content_length       = temp_cl;
+                steam_httppeer->ishas_content_length = true;
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
             break;
         case 15:
             if (header_name[7] == 'e' || header_name[7] == 'E')
@@ -2027,8 +1879,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 }
                 else
                 {
-                    steam_httppeer->header[lower_name] = std::move(header_value);
-                }
+                        }
             }
             else if (header_name[7] == 'L' || header_name[7] == 'l')
             {
@@ -2039,13 +1890,11 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 }
                 else
                 {
-                    steam_httppeer->header[lower_name] = std::move(header_value);
-                }
+                        }
             }
             else
             {
-                steam_httppeer->header[lower_name] = std::move(header_value);
-            }
+                }
 
             if (str_casecmp(header_name, "Accept-Encoding"))
             {
@@ -2057,15 +1906,12 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             }
 
             break;
-        default:
-            steam_httppeer->header[lower_name] = std::move(header_value);
         }
     }
 }
 
 void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    steam_httppeer->header["accept-language"] = header_value;
     unsigned int i                            = 0;
     for (; i < header_value.size(); i++)
     {
@@ -2086,13 +1932,11 @@ void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_na
 }
 void http2parse::getacceptencoding([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    steam_httppeer->header["accept-encoding"] = header_value;
     parse_accept_encoding(header_value, steam_httppeer->state);
 }
 void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i                          = 0;
-    steam_httppeer->header["if-none-match"] = header_value;
     steam_httppeer->etag.clear();
     if (header_value.size() < 2)
     {
@@ -2210,7 +2054,6 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
-    steam_httppeer->header["content-type"] = header_value;
     std::string buffer_value;
     unsigned char statetemp = 0;
     // media type 只允许识别一次：第一个分号之前，或整段没有分号时的末尾。
@@ -2313,7 +2156,6 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
-    steam_httppeer->header["accept"] = header_value;
     std::string buffer_value;
 
     for (; i < linesize; i++)
@@ -2484,7 +2326,7 @@ void http2parse::headertype1(unsigned char c,
     {
         // 静态表条目和字面量条目必须走同一个 header_process：RFC 7540 §8.1.2 的大写头名、伪头白名单、
         // 连接层头、伪头顺序与重复计数全在那里面。内联一份精简副本就会漏掉这些检测，
-        // 还会让同一个请求的两条编码路径给出不同形状（副本不写 header["method"]）。
+        // 还会让同一个请求的两条编码路径给出不同形状。
         header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a, steam_httppeer);
     }
     else
@@ -4130,109 +3972,100 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
 void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
 {
-    std::string temp_value;
-    std::string buffer_key;
-    std::string field_value;
-    unsigned int qsize    = static_cast<unsigned int>(temp_post_data.peer->rawcontent.size());
-    unsigned char partype = 0;
-    unsigned int j        = 0;
-    unsigned int jj       = 0;
-    for (j = 0; j < qsize; j++)
+    std::string decoded_key;
+    std::string decoded_value;
+    const std::string_view form(temp_post_data.peer->rawcontent);
+    std::size_t token_begin = 0;
+    std::size_t value_begin = std::string_view::npos;
+    bool saw_separator      = false;
+    for (std::size_t pos = 0; pos < form.size(); ++pos)
     {
-        if (temp_post_data.peer->rawcontent[j] == 0x3D)
+        if (form[pos] == '=' && value_begin == std::string_view::npos)
         {
-            if (partype == 1)
-            {
-                // 值里的 '=' 按普通字符保留：再切一次会把 a=b=c 存成 post["b"]="c"、丢掉前半个 key
-                temp_value.push_back(temp_post_data.peer->rawcontent[j]);
-                continue;
-            }
-            buffer_key = http::url_decode(temp_value.data(), temp_value.length());
-            temp_value.clear();
-            partype = 1;
-            jj      = 0;
-            continue;
-        }
-        else if (temp_post_data.peer->rawcontent[j] == 0x26)
-        {
-            // partype 决定 temp_value 的身份：1 时它是 '=' 之后的值，key 早在 buffer_key 里；
-            // 0 或 2 时这条 token 没见过 '='，它是裸 key、值为空——与函数尾部同一口径。
-            if (partype == 1)
-            {
-                field_value = http::url_decode(temp_value.data(), temp_value.length());
-            }
-            else
-            {
-                buffer_key    = http::url_decode(temp_value.data(), temp_value.length());
-                field_value.clear();
-            }
-            if (buffer_key.size() > 72)
-            {
-                set_stream_error(40196, temp_post_data.stream_id, 0x1);
-                return;
-            }
-            if (!buffer_key.empty())
-            {
-                post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
-            }
-            temp_value.clear();
-            field_value.clear();
-            partype = 2;
-            jj      = 0;
-            continue;
-        }
-        temp_value.push_back(temp_post_data.peer->rawcontent[j]);
-
-        if (partype == 0 || partype == 2)
-        {
-            //key name too long
-            if (jj > 72)
+            if (pos - token_begin > 73)
             {
                 set_stream_error(40197, temp_post_data.stream_id, 0x1);
                 return;
             }
+            decoded_key   = http::url_decode(form.data() + token_begin, pos - token_begin);
+            value_begin   = pos + 1;
+            saw_separator = true;
         }
-        jj++;
+        else if (form[pos] == '&')
+        {
+            const std::size_t token_end = pos;
+            if (value_begin == std::string_view::npos && token_end - token_begin > 73)
+            {
+                set_stream_error(40197, temp_post_data.stream_id, 0x1);
+                return;
+            }
+            if (value_begin == std::string_view::npos)
+            {
+                decoded_key   = http::url_decode(form.data() + token_begin, token_end - token_begin);
+                decoded_value.clear();
+            }
+            else
+            {
+                decoded_value = http::url_decode(form.data() + value_begin, token_end - value_begin);
+            }
+            if (decoded_key.size() > 72)
+            {
+                set_stream_error(40196, temp_post_data.stream_id, 0x1);
+                return;
+            }
+            if (!decoded_key.empty())
+            {
+                post_form_to_postfield(decoded_key, decoded_value, temp_post_data.peer);
+            }
+            saw_separator = true;
+            token_begin   = pos + 1;
+            value_begin   = std::string_view::npos;
+        }
     }
-    if (partype == 1)
+    if (value_begin == std::string_view::npos && form.size() - token_begin > 73)
     {
-        field_value = http::url_decode(temp_value.data(), temp_value.length());
-        if (buffer_key.size() > 72)
+        set_stream_error(40197, temp_post_data.stream_id, 0x1);
+        return;
+    }
+    if (value_begin != std::string_view::npos)
+    {
+        decoded_value = http::url_decode(form.data() + value_begin, form.size() - value_begin);
+        if (decoded_key.size() > 72)
         {
             set_stream_error(40198, temp_post_data.stream_id, 0x1);
             return;
         }
-        if (!buffer_key.empty())
+        if (!decoded_key.empty())
         {
-            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+            post_form_to_postfield(decoded_key, decoded_value, temp_post_data.peer);
         }
     }
-    else if (partype == 2)
+    else if (saw_separator)
     {
-        buffer_key = http::url_decode(temp_value.data(), temp_value.length());
-        field_value.clear();
-        if (buffer_key.size() > 72)
+        decoded_key   = http::url_decode(form.data() + token_begin, form.size() - token_begin);
+        decoded_value.clear();
+        if (decoded_key.size() > 72)
         {
             set_stream_error(40199, temp_post_data.stream_id, 0x1);
             return;
         }
-        if (!buffer_key.empty())
+        if (!decoded_key.empty())
         {
-            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+            post_form_to_postfield(decoded_key, decoded_value, temp_post_data.peer);
         }
     }
-    else if (temp_value.size() > 0)
+    else if (token_begin < form.size())
     {
-        buffer_key = http::url_decode(temp_value.data(), temp_value.length());
-        field_value.clear();
-        if (buffer_key.size() > 72)
+        decoded_key   = http::url_decode(form.data() + token_begin, form.size() - token_begin);
+        decoded_value.clear();
+        if (decoded_key.size() > 72)
         {
             set_stream_error(40200, temp_post_data.stream_id, 0x1);
             return;
         }
-        if (!buffer_key.empty())
+        if (!decoded_key.empty())
         {
-            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+            post_form_to_postfield(decoded_key, decoded_value, temp_post_data.peer);
         }
     }
 }

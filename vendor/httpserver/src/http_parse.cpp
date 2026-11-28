@@ -363,44 +363,35 @@ static bool boundary_normalize(std::string &out, const std::string &raw)
 
 void httpparse::methodprocess(std::string_view contentline)
 {
-    unsigned char headerstep = 0;
-    unsigned int ioffset     = 0, linesize;
-    unsigned int j           = 0;
-    linesize                 = contentline.size();
-    std::string header_key;
-    std::string header_value;
-    std::string header_temp;
-    for (; ioffset < linesize; ioffset++)
+    peer->begin_request_headers();
+    const std::size_t method_end = contentline.find(' ');
+    const std::size_t method_size = method_end == std::string_view::npos
+                                        ? contentline.size()
+                                        : method_end;
+    std::size_t ioffset = method_end == std::string_view::npos ? contentline.size() : method_end;
+    if (method_size > 9)
     {
-        if (contentline[ioffset] == 0x20)
-        {
-            break;
-        }
-        header_key.push_back(contentline[ioffset]);
-        j++;
-        if (j > 9)
-        {
-            error = 40057;
-            return;
-        }
+        error = 40057;
+        return;
     }
-    if (header_key.size() > 8)
+    const std::string_view method_name = contentline.substr(0, method_size);
+    if (method_name.size() > 8)
     {
         error = 40058;
         return;
     }
-    if (header_key.empty())
+    if (method_name.empty())
     {
         // 请求行以空格开头：这一行根本不是 method，属于格式错误而不是未实现的方法。
         error = 40066;
         return;
     }
     method = HEAD_METHOD::UNKNOW;
-    switch (header_key[0])
+    switch (method_name[0])
     {
     case 'c':
     case 'C':
-        if (str_casecmp(header_key, "CONNECT"))
+        if (str_casecmp(method_name, "CONNECT"))
         {
             method = HEAD_METHOD::CONNECT;
         }
@@ -411,7 +402,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 'd':
     case 'D':
-        if (str_casecmp(header_key, "delete"))
+        if (str_casecmp(method_name, "delete"))
         {
             method = HEAD_METHOD::DELETE;
         }
@@ -423,7 +414,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 'h':
     case 'H':
-        if (str_casecmp(header_key, "HEAD"))
+        if (str_casecmp(method_name, "HEAD"))
         {
             method = HEAD_METHOD::HEAD;
         }
@@ -434,7 +425,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 'g':
     case 'G':
-        if (str_casecmp(header_key, "GET"))
+        if (str_casecmp(method_name, "GET"))
         {
             method = HEAD_METHOD::GET;
         }
@@ -446,11 +437,11 @@ void httpparse::methodprocess(std::string_view contentline)
     case 'p':
     case 'P':
 
-        if (str_casecmp(header_key, "POST"))
+        if (str_casecmp(method_name, "POST"))
         {
             method = HEAD_METHOD::POST;
         }
-        else if (str_casecmp(header_key, "PUT"))
+        else if (str_casecmp(method_name, "PUT"))
         {
             method = HEAD_METHOD::PUT;
         }
@@ -462,7 +453,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 'o':
     case 'O':
-        if (str_casecmp(header_key, "OPTIONS"))
+        if (str_casecmp(method_name, "OPTIONS"))
         {
             method = HEAD_METHOD::OPTIONS;
         }
@@ -473,7 +464,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 'q':
     case 'Q':
-        if (str_casecmp(header_key, "QUERY"))
+        if (str_casecmp(method_name, "QUERY"))
         {
             method = HEAD_METHOD::QUERY;
         }
@@ -484,7 +475,7 @@ void httpparse::methodprocess(std::string_view contentline)
         break;
     case 't':
     case 'T':
-        if (str_casecmp(header_key, "TRACE"))
+        if (str_casecmp(method_name, "TRACE"))
         {
             method = HEAD_METHOD::TRACE;
         }
@@ -530,8 +521,7 @@ void httpparse::methodprocess(std::string_view contentline)
         // 其它（无版本 token / HTTP/1.9 / 非法）：保持 headstate_t 默认 keepalive=false
     }
     peer->keepalive = peer->state.keepalive;
-    headerstep      = 1;
-    for (; ioffset < linesize; ioffset++)
+    for (; ioffset < contentline.size(); ioffset++)
     {
         if (contentline[ioffset] == 0x20)
         {
@@ -539,101 +529,43 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         break;
     }
-    header_value.clear();
-    header_key.clear();
-    header_temp.clear();
-    // pathinfo.clear();
-    //  url.clear();
     peer->pathinfos.clear();
 
-    // 按原始 / 逐段切分，每段交给 http::url_segments_normalize()（func.cpp 统一实现）
-    unsigned int p_begin = ioffset;
-    for (; ioffset < linesize; ioffset++)
+    std::size_t target_begin = ioffset;
+    const std::size_t target_space = contentline.rfind(' ');
+    std::size_t target_end = target_space == std::string_view::npos
+                                 ? contentline.size()
+                                 : target_space;
+    if (target_end <= target_begin)
     {
-        if (contentline[ioffset] == 0x20)
-        {
-            if ((ioffset + 10) >= linesize)
-            {
-                headerstep = 2;
-                break;
-            }
-        }
-        if (contentline[ioffset] == 0x3F)
-        {
-            headerstep = 6;
-            break;
-        }
-        if (contentline[ioffset] == 0x2F)
-        {
-            if (header_temp.size() > 255)
-            {
-                error = 40007;
-                return;
-            }
-            if (header_temp.size() > 0)
-            {
-                if (!url_segments_normalize(peer->pathinfos, header_temp))
-                {
-                    error = 40095;
-                    return;
-                }
-                header_temp.clear();
-            }
-        }
-        else
-        {
-            header_temp.push_back(contentline[ioffset]);
-        }
+        error = 40059;
+        return;
     }
-    if (header_temp.size() > 0)
-    {
-        if (header_temp.size() > 255)
-        {
-            error = 40090;
-            return;
-        }
-        if (!url_segments_normalize(peer->pathinfos, header_temp))
-        {
-            error = 40095;
-            return;
-        }
-    }
-    unsigned int p_pos_offset = ioffset - p_begin;
-    peer->header["urlpath"]   = contentline.substr(p_begin, p_pos_offset);
-    if (peer->pathinfos.size() > 0)
-    {
-        peer->urlpath.clear();
-        if (p_pos_offset > 64 && p_pos_offset < 10000)
-        {
-            peer->urlpath.reserve(p_pos_offset);
-        }
 
-        for (unsigned int nn = 0; nn < peer->pathinfos.size(); nn++)
-        {
-            peer->urlpath.push_back('/');
-            peer->urlpath.append(peer->pathinfos[nn]);
-        }
-        if (peer->urlpath.size() == 0)
-        {
-            peer->urlpath = "/";
-        }
+    std::string_view target = contentline.substr(target_begin, target_end - target_begin);
+    const std::size_t query_pos = target.find('?');
+    std::string_view raw_path = target.substr(0, query_pos);
+    peer->url.assign(target);
+    if (query_pos != std::string_view::npos)
+    {
+        peer->querystring = std::string_view(peer->url).substr(query_pos + 1);
     }
     else
     {
-        peer->urlpath.clear();
-        peer->urlpath = "/";
+        peer->querystring = {};
     }
 
-    // 最后一段含 '.' 标记为文件请求；.php 结尾标 compress=10 交给 loop 处理 —
-    // last segment has '.' means file-like URL; .php suffix marks fastcgi candidate
+    if (!build_urlpath(raw_path, peer->urlpath, peer->pathinfos))
+    {
+        error = 40095;
+        return;
+    }
+
     if (!peer->pathinfos.empty())
     {
         auto const &last = peer->pathinfos.back();
-        peer->isfile     = (last.find('.') != std::string::npos);
+        peer->isfile = last.find('.') != std::string_view::npos;
 #ifdef ENABLE_FASTCGI
-        // 超轻量：只比后缀 4 字符，不查路由表不查磁盘 —
-        // ultra-light: only check suffix, no route lookup no disk stat
-
         if (last.size() > 4 && last[last.size() - 1] == 'p' && last[last.size() - 2] == 'h' &&
             last[last.size() - 3] == 'p' && last[last.size() - 4] == '.')
         {
@@ -642,88 +574,35 @@ void httpparse::methodprocess(std::string_view contentline)
 #endif
     }
 
-    header_key.clear();
-    if (headerstep == 6)
+    if (query_pos != std::string_view::npos)
     {
-        for (; ioffset < linesize; ioffset++)
-        {
-            if (contentline[ioffset] == 0x3F)
-            {
-                continue;
-            }
-            break;
-        }
-        p_pos_offset = ioffset;
-        for (; ioffset < linesize; ioffset++)
-        {
-            if (contentline[ioffset] == 0x20)
-            {
-                if ((ioffset + 10) >= linesize)
-                {
-                    headerstep = 7;
-                    break;
-                }
-            }
-        }
-        header_key = contentline.substr(p_pos_offset, ioffset - p_pos_offset);
-        peer->url  = peer->urlpath;
-        peer->url.push_back(0x3F);
-        peer->url.append(header_key);
-        peer->querystring = header_key;
-    }
-    else
-    {
-        peer->url = peer->urlpath;
-        peer->querystring.clear();
-    }
-
-    if (headerstep == 7)
-    {
-        // parameter
-        header_value.clear();
-        header_temp.clear();
-        header_temp.clear();
+        const std::string_view query = target.substr(query_pos + 1);
         std::string url_keyname;
-        unsigned int qsize    = header_key.size();
-        unsigned char partype = 0;
-        for (j = 0; j < qsize; j++)
+        std::string decoded_value;
+        std::size_t token_begin = 0;
+        std::size_t value_begin = std::string_view::npos;
+        bool saw_separator      = false;
+        for (std::size_t pos = 0; pos < query.size(); ++pos)
         {
-            if (header_key[j] == 0x3D)
+            if (query[pos] == '=' && value_begin == std::string_view::npos)
             {
-                if (partype == 1)
-                {
-                    // 值里的 '=' 按普通字符保留：跳过它会让 ?a=b=c 切成 get["b"]="c"、丢掉后半截 token
-                    header_value.push_back(header_key[j]);
-                    continue;
-                }
-                url_keyname = http::url_decode(header_value.data(), header_value.length());
-                header_value.clear();
-                partype = 1;
-                continue;
+                url_keyname = http::url_decode(query.data() + token_begin, pos - token_begin);
+                value_begin = pos + 1;
             }
-            else if (header_key[j] == 0x26)
+            else if (query[pos] == '&')
             {
-                for (; j < qsize; j++)
+                const std::size_t token_end = pos;
+                while (pos < query.size() && query[pos] == '&')
                 {
-                    if (header_key[j] == 0x26)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        j -= 1;
-                        break;
-                    }
+                    ++pos;
                 }
-                // 同上：partype 为 0/2 时这条 token 没见过 '='，它是裸 key、值为空。
-                if (partype == 1)
+                if (value_begin == std::string_view::npos)
                 {
-                    header_temp = http::url_decode(header_value.data(), header_value.length());
+                    url_keyname = http::url_decode(query.data() + token_begin, token_end - token_begin);
                 }
                 else
                 {
-                    url_keyname = http::url_decode(header_value.data(), header_value.length());
-                    header_temp.clear();
+                    decoded_value = http::url_decode(query.data() + value_begin, token_end - value_begin);
                 }
 
                 if (url_keyname.size() > 72)
@@ -731,28 +610,28 @@ void httpparse::methodprocess(std::string_view contentline)
                     error = 40067;
                     return;
                 }
-                procssparamter(url_keyname, header_temp);
-                header_value.clear();
-                url_keyname.clear();
-                partype = 2;
-                continue;
+                procssparamter(url_keyname,
+                               value_begin == std::string_view::npos ? std::string_view{}
+                                                                     : std::string_view(decoded_value));
+                saw_separator = true;
+                token_begin   = pos;
+                value_begin   = std::string_view::npos;
+                --pos;
             }
-            header_value.push_back(header_key[j]);
         }
-        if (partype == 1)
+        if (value_begin != std::string_view::npos)
         {
-            header_temp = http::url_decode(header_value.data(), header_value.length());
+            decoded_value = http::url_decode(query.data() + value_begin, query.size() - value_begin);
             if (url_keyname.size() > 72)
             {
                 error = 40068;
                 return;
             }
-            procssparamter(url_keyname, header_temp);
+            procssparamter(url_keyname, decoded_value);
         }
-        else if (partype == 2)
+        else if (saw_separator)
         {
-            url_keyname = http::url_decode(header_value.data(), header_value.length());
-
+            url_keyname = http::url_decode(query.data() + token_begin, query.size() - token_begin);
             if (url_keyname.size() > 72)
             {
                 error = 40069;
@@ -760,9 +639,9 @@ void httpparse::methodprocess(std::string_view contentline)
             }
             procssparamter(url_keyname, "");
         }
-        else if (header_value.size() > 0)
+        else if (token_begin < query.size())
         {
-            url_keyname = http::url_decode(header_value.data(), header_value.length());
+            url_keyname = http::url_decode(query.data() + token_begin, query.size() - token_begin);
             if (url_keyname.size() > 72)
             {
                 error = 40070;
@@ -771,8 +650,6 @@ void httpparse::methodprocess(std::string_view contentline)
             procssparamter(url_keyname, "");
         }
     }
-
-    headerstep = 8;
 }
 
 void httpparse::callposttype(std::string_view buffer_value)
@@ -782,79 +659,70 @@ void httpparse::callposttype(std::string_view buffer_value)
     case 33:
         if (str_casecmp(buffer_value, "application/x-www-form-urlencoded"))
         {
-            peer->accept_type = "application/x-www-form-urlencoded";
-            posttype          = 1;
-            peer->posttype    = 1;
+            posttype       = 1;
+            peer->posttype = 1;
             return;
         }
         break;
     case 24:
         if (str_casecmp(buffer_value, "application/octet-stream"))
         {
-            peer->accept_type = "application/octet-stream";
-            posttype          = 5;
-            peer->posttype    = 5;
+            posttype       = 5;
+            peer->posttype = 5;
             return;
         }
         break;
     case 19:
         if (str_casecmp(buffer_value, "multipart/form-data"))
         {
-            peer->accept_type = "multipart/form-data";
-            peer->posttype    = 2;
-            posttype          = 2;
+            peer->posttype = 2;
+            posttype       = 2;
             return;
         }
         break;
     case 20:
         if (str_casecmp(buffer_value, "application/xslt+xml"))
         {
-            peer->accept_type = "application/xslt+xml";
-            peer->posttype    = 4;
-            posttype          = 4;
+            peer->posttype = 4;
+            posttype       = 4;
             return;
         }
         break;
     case 16:
         if (str_casecmp(buffer_value, "application/json"))
         {
-            peer->accept_type = "application/json";
-            peer->posttype    = 3;
-            posttype          = 3;
+            peer->posttype = 3;
+            posttype       = 3;
             return;
         }
         break;
     case 15:
         if (str_casecmp(buffer_value, "application/xml"))
         {
-            peer->accept_type = "application/xml";
-            peer->posttype    = 4;
-            posttype          = 4;
+            peer->posttype = 4;
+            posttype       = 4;
             return;
         }
         break;
     case 8:
         if (str_casecmp(buffer_value, "text/xml"))
         {
-            peer->accept_type = "text/xml";
-            peer->posttype    = 4;
-            posttype          = 4;
+            peer->posttype = 4;
+            posttype       = 4;
             return;
         }
         break;
     case 6:
         if (str_casecmp(buffer_value, "binary"))
         {
-            peer->accept_type = "binary";
-            peer->posttype    = 5;
-            posttype          = 5;
+            peer->posttype = 5;
+            posttype       = 5;
             return;
         }
         break;
     default:
-        peer->accept_type = buffer_value;
-        peer->posttype    = 5;
-        posttype          = 5;
+        peer->posttype = 5;
+        posttype       = 5;
         return;
     }
 
@@ -1020,11 +888,7 @@ void httpparse::process_header_line(std::string_view line_str)
         return value;
     };
 
-    std::string key;
-    key.resize(header_key.size());
-    std::transform(header_key.begin(), header_key.end(), key.begin(), [](unsigned char c)
-                   { return std::tolower(c); });
-    peer->header.insert_or_assign(std::move(key), header_value);
+    peer->add_request_header(header_key, header_value);
 
     switch (header_key.size())
     {
@@ -1816,18 +1680,6 @@ void httpparse::getheaderhost(std::string_view header_value)
         return;
     }
     peer->find_host_index();
-    // Origin 早于 Host 到达时（HTTP/1 不保证头顺序），cors_origin_process() 因 host 未定
-    // 而挂起，这里在 host_index 确定后补判一次。OPTIONS 预检的 Allow-Origin 由
-    // send_cors_domain() 按站点白名单重新判定并覆盖，不受此处影响。
-    if (peer->cors_origin_pending)
-    {
-        peer->cors_origin_pending = false;
-        auto iter                 = peer->header.find("origin");
-        if (iter != peer->header.end())
-        {
-            peer->cors_origin_allow(iter->second);
-        }
-    }
     if (ishasport == 1)
     {
         // 端口只能是 1~5 位十进制数字，冒号后为空或混入其他字符都按非法 Host 处理
@@ -1881,6 +1733,7 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
                     return;
                 }
                 isfinish_header = true;
+                peer->finalize_request_headers();
                 return;
             }
             process_header_line(header_line);
@@ -1920,6 +1773,7 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
                         return;
                     }
                     isfinish_header = true;
+                    peer->finalize_request_headers();
                     return;
                 }
                 http_content_length += header_line.size() + 2;
@@ -4325,8 +4179,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                     return;
                 }
                 // CORS：OPTIONS 预检的 ACAO 由 send_cors_domain() 按白名单判定输出；
-                // 普通请求的 ACAO 在解析到 origin 头时就判定了（process_header_line 的头名长度 6 分支），
-                // Origin 早于 Host 时由 getheaderhost() 补判，这里不再需要任何 CORS 处理
+                // 普通请求的 ACAO 在 finalize_request_headers() 中判定，Origin 早于 Host 时也在那里补判
                 // 响应头用的 peer->keepalive 取自 state.keepalive，两处关闭判断用同一个值，不各看一半
                 peer->keepalive = peer->state.keepalive;
                 if (method == HEAD_METHOD::POST || method == HEAD_METHOD::QUERY)
@@ -4396,7 +4249,7 @@ void httpparse::clear()
     method_not_allowed = false;
     method_unknown     = false;
 
-    posttype          = 0;
+    posttype       = 0;
     http_action_setup = 0;
     headerfinish      = 0;
     port              = 0;

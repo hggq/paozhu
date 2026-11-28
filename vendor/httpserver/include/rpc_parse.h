@@ -53,6 +53,7 @@ class rpc_parse : public std::enable_shared_from_this<rpc_parse>
 
     std::string read_key;
     std::string read_value;
+    std::string raw_target;
     std::string read_temp_file;
     std::string status_msg;
     std::string send_content;

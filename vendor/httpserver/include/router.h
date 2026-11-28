@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <asio/awaitable.hpp>
@@ -44,7 +45,8 @@ class router
     // 纯查表，一次 map find，不建前缀表、不回落；命中的注册名就是传入的 key
     // host_index 对应的 slot 就是 alias_domain（conf 里写了 alias_domain 用它，没写用 mainhost）
     //    分组出来的本站 slot —
-    int lookup_key_in_slots(const std::string &key, unsigned int host_index);
+    int lookup_key_in_slots(std::string_view key, unsigned int host_index);
+    int lookup_stripped_key_in_slots(std::string_view key, unsigned int host_index);
 
     // — 跳转目标 / 钩子名查找：本 domain slot → slot 0，找不到返回 -1 —
     int find_sitecontent(std::shared_ptr<httppeer> &peer, const std::string &sitecontent);
@@ -86,14 +88,13 @@ class router
     void validate_site_hooks();
 
   private:
-    // 兜底 walk 的前缀表：由短到长（user、user/info、user/info/7…），最多 6 段
-    static void build_prefixes(std::vector<std::string> const &pathinfos, std::vector<std::string> &prefixes);
     // host_index → 本站 slot（越界或 slot 不存在都回落全局 slot 0）
     static unsigned int host_slot(unsigned int host_index);
     static unsigned int peer_slot(std::shared_ptr<httppeer> &peer);
 
     // 在一个 slot 里原样查一个 key，命中就把注册名回填进 matched_path
-    static int find_in_slot(unsigned int slot, const std::string &key, std::string &matched_path);
+    static int find_in_slot(unsigned int slot, std::string_view key);
+    static int find_in_slot(unsigned int slot, std::string_view key, std::string &matched_path);
 
     // 注册名（钩子名、跳转名、home/404）查找：本站 slot → 全局 slot 0，先按原样查，
     // 未命中且名字不以 '/' 开头时补一个 '/' 再查一次；matched_name 回填真正命中的那个键名。

@@ -216,6 +216,32 @@ foreach(test_src IN LISTS test_cpp_files)
     target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/jwt.cpp")
   endif()
 
+  if(test_name MATCHES "^(test_request_views|test_router_views|test_http2_form_views)$")
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/httppeer.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/func.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/datetime.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/urlcode.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/cookie.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/serverconfig.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/server_localvar.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_frame.cpp"
+    )
+    if(test_name STREQUAL "test_http2_form_views")
+      target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_parse.cpp")
+    elseif(test_name STREQUAL "test_router_views")
+      target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/router.cpp")
+    elseif(test_name STREQUAL "test_request_views")
+      target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/rpc_parse.cpp")
+    endif()
+    target_compile_options(${test_name} PRIVATE -ffunction-sections -fdata-sections)
+    if(APPLE)
+      target_link_options(${test_name} PRIVATE -Wl,-dead_strip)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+      target_link_options(${test_name} PRIVATE -Wl,--gc-sections)
+    endif()
+  endif()
+
   # 文件名安全单测：把 func.cpp + datetime.cpp 编进去，覆盖 safe_filename / str2safefile / get_filename
   # Filename-safety tests: compile func.cpp + datetime.cpp (rand_string is in datetime.cpp,
   # pulled in by temp_name_uniq_tail inside func.cpp).
@@ -265,9 +291,8 @@ endforeach()
 # The oauth_store_1028 probe lives in a sub-directory outside the discovery GLOB;
 # build it here with the extra business sources it depends on.
 # ---------------------------------------------------------------------------
-add_executable(oauth_store_probe "${CMAKE_CURRENT_SOURCE_DIR}/orm/oauth_store_1028/oauth_store_probe.cpp")
-target_link_libraries(oauth_store_probe PRIVATE ${paozhu_test_common_libs})
-target_sources(oauth_store_probe PRIVATE
+set(oauth_probe_sources
+  "${CMAKE_CURRENT_SOURCE_DIR}/orm/oauth_store_1028/oauth_store_probe.cpp"
   "${CMAKE_SOURCE_DIR}/libs/oauth/oauth_store.cpp"
   "${CMAKE_SOURCE_DIR}/libs/oauth/oauth_config.cpp"
   "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/jwt.cpp"
@@ -280,8 +305,20 @@ target_sources(oauth_store_probe PRIVATE
   "${CMAKE_SOURCE_DIR}/models/cms/OauthCode.cpp"
   "${CMAKE_SOURCE_DIR}/models/cms/OauthRefresh.cpp"
 )
-add_test(NAME oauth_store_probe COMMAND oauth_store_probe)
-set_tests_properties(oauth_store_probe PROPERTIES
-  LABELS "unit;oauth"
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  TIMEOUT 120)
+set(oauth_probe_missing FALSE)
+foreach(source IN LISTS oauth_probe_sources)
+  if(NOT EXISTS "${source}")
+    set(oauth_probe_missing TRUE)
+  endif()
+endforeach()
+if(oauth_probe_missing)
+  message(STATUS "ENABLE_TESTS=ON: oauth_store_probe skipped (source files missing)")
+else()
+  add_executable(oauth_store_probe ${oauth_probe_sources})
+  target_link_libraries(oauth_store_probe PRIVATE ${paozhu_test_common_libs})
+  add_test(NAME oauth_store_probe COMMAND oauth_store_probe)
+  set_tests_properties(oauth_store_probe PROPERTIES
+    LABELS "unit;oauth"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    TIMEOUT 120)
+endif()

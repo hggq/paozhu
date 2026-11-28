@@ -56,7 +56,7 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
         bearer_denied(client, "missing or non-Bearer Authorization header");
         return "@exit";
     }
-    std::string token = found->second.substr(7);
+    std::string token(found->second.substr(7));
 
     oauth::oauth_settings   settings = oauth::oauth_settings_cached();
     oauth::signing_material keys     = oauth::signing_material_cached();

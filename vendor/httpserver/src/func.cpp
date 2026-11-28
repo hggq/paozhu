@@ -2824,103 +2824,95 @@ bool is_http_temp_filename(std::string_view name)
     }
 }
 
-// —— 路径段专用解码（内部实现，不把 + 转空格）——
-// 和 url_decode() 同逻辑，唯一区别：保留 "+" 字面量
-// 因为只有 query string (a+b=1) 里 + 才表空格，路径里 + 就是 +
-static std::string url_decode_path_impl(const char *str, int len)
+bool build_urlpath(std::string_view raw_path,
+                   std::string &urlpath,
+                   std::vector<std::string_view> &pathinfos)
 {
-    std::string url;
-    if (len > 0)
-        url.reserve(len);
-    auto ishex = [](char c)
-    {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-    };
-    for (int i = 0; i < len; i++)
-    {
-        if (str[i] == '%' && (i + 2) < len && str[i + 1] != '%')
-        {
-            char h1 = str[i + 1], h2 = str[i + 2];
-            if (ishex(h1) && ishex(h2))
-            {
-                // 合法 %XX → 解码
-                auto hexval = [](char c) -> unsigned char
-                {
-                    if (c >= '0' && c <= '9')
-                        return c - '0';
-                    if (c >= 'a' && c <= 'f')
-                        return c - 'a' + 10;
-                    if (c >= 'A' && c <= 'F')
-                        return c - 'A' + 10;
-                    return 0;
-                };
-                url.push_back(static_cast<char>(hexval(h1) * 16 + hexval(h2)));
-                i += 2;
-            }
-            else
-            {
-                // 非法 hex 序列 → 保留原样（不解码，不跳过 % 后面的字符）
-                // RFC 3986：非法 percent-encoding 应保留原样
-                url.push_back(str[i]);
-            }
-        }
-        else
-        {
-            url.push_back(str[i]);
-        }
-    }
-    return url;
-}
+    pathinfos.clear();
+    urlpath.clear();
+    urlpath.reserve(raw_path.size() + 1);
 
-bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw)
-{
-    // URL path segment normalization (HTTP/1.x & HTTP/2 shared)
-    // Caller splits on original "/" first; each segment:
-    //   1. %XX decode via url_decode_path_impl() (does NOT turn "+" into space)
-    //   2. After decode, segment must not contain NUL, "/", "\" or any control
-    //      byte (0x00-0x1f, 0x7f) — blocks %00/%2f/%5c and %0d/%0a bypass.
-    //      Bytes >= 0x80 stay allowed so UTF-8 paths keep working.
-    //   3. "." skipped, ".." pops previous segment
-    //   4. Segment length <= 255 bytes
-    // Returns false = invalid segment; caller should return 400.
-    unsigned int seg_begin = 0;
-    for (unsigned int k = 0; k <= raw.size(); k++)
+    auto hex_value = [](char c) -> unsigned char
     {
-        if (k < raw.size() && raw[k] != '/')
+        if (c >= '0' && c <= '9') return static_cast<unsigned char>(c - '0');
+        if (c >= 'a' && c <= 'f') return static_cast<unsigned char>(c - 'a' + 10);
+        if (c >= 'A' && c <= 'F') return static_cast<unsigned char>(c - 'A' + 10);
+        return 0;
+    };
+    auto is_hex = [](char c)
+    {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+               (c >= 'A' && c <= 'F');
+    };
+
+    std::size_t seg_begin = 0;
+    for (std::size_t k = 0; k <= raw_path.size(); ++k)
+    {
+        if (k < raw_path.size() && raw_path[k] != '/')
             continue;
-        unsigned int seg_len = k - seg_begin;
-        std::string raw_seg  = raw.substr(seg_begin, seg_len);
-        seg_begin            = k + 1;
+
+        std::string_view raw_seg = raw_path.substr(seg_begin, k - seg_begin);
+        seg_begin = k + 1;
         if (raw_seg.empty())
             continue;
 
-        // %XX decode (reuses url_decode_path_impl, path keeps "+" literal)
-        std::string decoded = url_decode_path_impl(raw_seg.c_str(), (int)raw_seg.size());
+        const std::size_t content_begin = urlpath.size();
+        const bool add_separator = !urlpath.empty();
+        if (add_separator)
+            urlpath.push_back('/');
+        const std::size_t decoded_begin = urlpath.size();
 
-        // Security check: no NUL, no slash, no backslash, and no control
-        // character in a decoded segment (CR/LF/TAB would be logged raw)
-        for (char c : decoded)
+        for (std::size_t i = 0; i < raw_seg.size(); ++i)
         {
-            unsigned char u = static_cast<unsigned char>(c);
-            if (u == '\x00' || u == '/' || u == '\\' || u < 0x20 || u == 0x7f)
+            char c = raw_seg[i];
+            if (c == '%' && i + 2 < raw_seg.size() &&
+                is_hex(raw_seg[i + 1]) && is_hex(raw_seg[i + 2]))
+            {
+                c = static_cast<char>((hex_value(raw_seg[i + 1]) << 4) |
+                                      hex_value(raw_seg[i + 2]));
+                i += 2;
+            }
+
+            const unsigned char u = static_cast<unsigned char>(c);
+            if (u == 0 || u == '/' || u == '\\' || u < 0x20 || u == 0x7f)
                 return false;
+            urlpath.push_back(c);
         }
 
-        // "." / ".."
-        if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
+        std::string_view decoded(urlpath.data() + decoded_begin,
+                                 urlpath.size() - decoded_begin);
+        if (decoded.size() > 255)
+            return false;
+
+        if (decoded == ".")
         {
-            if (pathinfos.size() > 0)
-                pathinfos.pop_back();
+            urlpath.resize(content_begin);
         }
-        else if (decoded.size() == 1 && decoded[0] == '.')
+        else if (decoded == "..")
         {
-            // "." skip
+            urlpath.resize(content_begin);
+            const auto slash = urlpath.rfind('/');
+            urlpath.resize(slash == std::string::npos ? 0 : slash);
         }
-        else if (!decoded.empty())
+    }
+
+    if (urlpath.empty())
+    {
+        urlpath.push_back('/');
+    }
+    else
+    {
+        urlpath.insert(urlpath.begin(), '/');
+    }
+
+    std::size_t begin = 1;
+    for (std::size_t i = 1; i <= urlpath.size(); ++i)
+    {
+        if (i == urlpath.size() || urlpath[i] == '/')
         {
-            if (decoded.size() > 255)
-                return false;
-            pathinfos.emplace_back(std::move(decoded));
+            if (i > begin)
+                pathinfos.emplace_back(urlpath.data() + begin, i - begin);
+            begin = i + 1;
         }
     }
     return true;

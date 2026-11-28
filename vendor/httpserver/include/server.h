@@ -234,6 +234,7 @@ class httpserver
     asio::ssl::context make_ssl_context();
     asio::awaitable<void> acceptHttpLoop(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
     asio::awaitable<void> acceptHttpsLoop(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
+    asio::io_context &pick_session_io_context();
     asio::awaitable<void> acceptDispatch(std::shared_ptr<client_session> peer_session, bool isssl);
     void ratelimiter();
 
@@ -400,6 +401,8 @@ class httpserver
     // io_contexts[0] 就是上面的兼容成员 io_context：框架自身的定时循环、同步取连接、
     // client_context 都留在它上面。ORM 启动时注入并共用这一组 ioc。
     std::vector<std::shared_ptr<asio::io_context>> io_contexts;
+    // 所有 HTTP/HTTPS 监听协程共用，避免各自从 0 开始造成会话倾斜。
+    std::atomic_size_t accept_session_ioc_cursor{0};
     std::vector<std::unique_ptr<asio::io_context>> accept_iocs_;
     std::vector<std::thread> accept_threads_;
     std::vector<asio::executor_work_guard<asio::io_context::executor_type>> accept_works_;
