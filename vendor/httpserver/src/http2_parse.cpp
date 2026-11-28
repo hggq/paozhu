@@ -26,6 +26,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <limits>
 
 #include "http2_frame.h"
 #include "http2_parse.h"
@@ -406,7 +407,6 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
                 }
                 http_post_data.erase(post_iter);
             }
-            live_iter->second->grant_self_unlink();
             live_iter->second->isfinish = true;
             stream_list.emplace(trailer_sid);
         }
@@ -425,7 +425,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     steam_httppeer->stream_id      = iter->second.stream_id;
     steam_httppeer->httpv          = 2;
     steam_httppeer->socket_session = peer_session;
-    steam_httppeer->h2send.send_window = peer_session->h2_conn_send.initial_window_size;
+    steam_httppeer->h2send.send_window = peer_session->remote_initial_window_size.load(std::memory_order_relaxed);
     steam_httppeer->h2recv.recv_window = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     // isssl 的唯一事实来源是 socket（h1 侧也是从 socket 取值）。它原先由 :scheme 的头值反推，
     // 于是明文连接上对端发索引 7（:scheme https）就能把 is_ssl() 伪造成 true，TLS 连接上发索引 6
@@ -447,8 +447,9 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         {
             steam_httppeer->reject_status = limit_status;
             steam_httppeer->isfinish      = true;
-            // 正文收集状态必须一并撤掉：留着它，随后到达的 DATA 会被当成 body 收下，
-            // 收尾那条 content-length 比对就把连接级错误引出来了。
+            // 超限请求立即回包并回收流，不保留状态丢弃正文到 END_STREAM，避免攻击者持续上传耗尽带宽和连接窗口。
+            // 响应结束后的 DATA 按已关闭流返回 RST_STREAM(STREAM_CLOSED)，促使客户端停发。
+            // 正文收集状态也必须撤掉，否则后续 DATA 会被误当 body 并触发 content-length 连接级错误。
             http_post_data.erase(steam_httppeer->stream_id);
             // HEADERS 自带 END_STREAM 的 POST 没有正文，headers_parse 已经就地派发过一次。
             if (!iter->second.flags.END_STREAM)
@@ -617,7 +618,7 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         // 且当前流已经插入 http_data，因此总数包含本条新流，上限判断必须是 > 而不是 >=。
         if (http_data.size() + http_data_weak.size() > CONST_HTTP2_MAX_CONCURRENT_STREAMS)
         {
-            // 已把 END_STREAM/RST 按序交给发送环的流不再占并发名额。
+            // 已把 END_STREAM/RST 按序交给 HTTP/2 发送协程的流不再占并发名额。
             unsigned int live_streams = 0;
             for (const auto &entry : http_data)
             {
@@ -3139,7 +3140,6 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             setting_data.max_frame_size = ident_value;
             // 发送分片要按对端上限封顶，所以这个值必须镜像到连接上（发送侧读得到）。
             peer_session->remote_max_frame_size.store(ident_value);
-            peer_session->h2_conn_send.max_frame_size = ident_value;
             break;
 
         case HTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
@@ -3204,6 +3204,21 @@ void http2parse::readgoaway(const HTTP2_PACK_DATA_T &temp_pack_data)
     peer_session->isgoway = true;
 }
 
+static bool h2_send_window_can_grow(std::int64_t total_window,
+                                    std::uint64_t sent_bytes,
+                                    unsigned int increment)
+{
+    if (total_window < 0) return true;
+    if (total_window > std::numeric_limits<std::int64_t>::max() -
+                           static_cast<std::int64_t>(increment))
+        return false;
+    const auto granted = static_cast<std::uint64_t>(total_window);
+    const auto max_increment = static_cast<unsigned int>(CONST_HTTP2_MAX_WINDOW);
+    if (granted >= sent_bytes)
+        return granted - sent_bytes <= max_increment - increment;
+    return true;
+}
+
 void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     DEBUG_LOG("readwinupdate %zu", temp_pack_data.payload.size());
@@ -3251,13 +3266,15 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         }
         {
             std::lock_guard<std::mutex> lock(peer_session->h2_send_window_mutex);
-            const auto next = peer_session->h2_conn_send.window + static_cast<std::int64_t>(ident_stream);
-            if (next > CONST_HTTP2_MAX_WINDOW)
+            if (!h2_send_window_can_grow(peer_session->http2_send_window.load(std::memory_order_relaxed),
+                                         peer_session->http2_send_totoal_bytes.load(std::memory_order_relaxed),
+                                         ident_stream))
             {
                 set_conn_error(40036, 0x3);
                 return;
             }
-            peer_session->h2_conn_send.window += static_cast<std::int64_t>(ident_stream);
+            peer_session->http2_send_window.fetch_add(static_cast<std::int64_t>(ident_stream),
+                                                       std::memory_order_relaxed);
         }
         // 连接级发送窗口抬升：只唤醒 ring loop，由它逐流重查两级窗口。
         peer_session->wake_ring_consumer();
@@ -3307,8 +3324,9 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 
         {
             std::lock_guard<std::mutex> lock(peer_session->h2_send_window_mutex);
-            const auto next = peer->h2send.send_window + static_cast<std::int64_t>(ident_stream);
-            if (next > CONST_HTTP2_MAX_WINDOW)
+            if (!h2_send_window_can_grow(peer->h2send.send_window,
+                                         peer->h2send.send_totoal_bytes,
+                                         ident_stream))
             {
                 set_stream_error(40221, wu_sid, CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL);
                 return;
@@ -3341,11 +3359,7 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
             _recvack[i + 9] = temp_pack_data.payload[i];
         }
     }
-    if (!peer_session->http2_ring_queue->push(_recvack, 17))
-    {
-        peer_session->http2_ring_queue_drop_count++;
-    }
-    else if (peer_session->http2_need_wakeup)
+    if (peer_session->push_control_frame(_recvack, 17) && peer_session->http2_need_wakeup)
     {
         peer_session->wake_ring_consumer();
     }
@@ -3449,9 +3463,7 @@ bool http2parse::cleanup_stream(unsigned int sid, bool send_rst, unsigned int rs
     const bool send_active = temp_peer &&
         (temp_peer->h2send.send_queued || temp_peer->h2send.in_batch ||
          temp_peer->h2send.refill_pending || temp_peer->h2send.refill_running ||
-         (temp_peer->h2send.rst_pending && !temp_peer->h2send.rst_sent) ||
-         temp_peer->h2_producer_count.load(std::memory_order_acquire) != 0 ||
-         (temp_peer->h2send.completion && !temp_peer->h2send.completion_done));
+         (temp_peer->h2send.rst_pending && !temp_peer->h2send.rst_sent));
     if (temp_peer)
     {
         // 客户端 RST 只关闭本端发送；服务端 RST 由 http2_mark_peer_rst() 原子认领 isclose。
@@ -3461,11 +3473,6 @@ bool http2parse::cleanup_stream(unsigned int sid, bool send_rst, unsigned int rs
             temp_peer->is_rst_stream.store(false, std::memory_order_release);
         }
     }
-    if (temp_peer)
-    {
-        temp_peer->grant_self_unlink();
-    }
-
     bool rst_queued = true;
     if (send_rst)
     {
@@ -3476,13 +3483,13 @@ bool http2parse::cleanup_stream(unsigned int sid, bool send_rst, unsigned int rs
         }
         else
         {
-            // 没有 peer 的流级错误仍须回 RST；直接入控制环，发送环只负责写出。
+            // 没有 peer 的流级错误仍须回 RST；直接入控制帧链表，发送协程只负责写出。
             rst_queued = peer_session->push_rst_stream(sid, rst_code);
         }
     }
-    // 标记 FIFO 中该流的残留 DATA/HEADERS；发送环消费 RST 或 FIFO 排空后释放索引。
+    // 标记控制帧链表中该流的残留 DATA/HEADERS；发送协程消费 RST 或链表排空后释放索引。
     if (temp_peer) peer_session->http2_mark_stream_dead(temp_peer);
-    if (temp_peer && temp_peer->h2send.fifo_cleanup_pending)
+    if (temp_peer && temp_peer->h2send.control_cleanup_pending)
     {
         http_data_weak.erase(sid);
         http_data[sid] = temp_peer;
@@ -5528,7 +5535,8 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    // 这条流在头块阶段就被站点限额拒掉了：正文一律丢弃，不落盘、也不再派发第二份响应。
+    // 这里只覆盖响应尚未完成、流状态仍在的短暂窗口：正文丢弃，不落盘、不重复响应。
+    // 不长期保留被拒流排空正文；流回收后的 DATA 按 closed-stream 分支重置，避免持续接收攻击流量。
     // 丢弃不等于可以不记账：连接级窗口的扣减与补量照正常路径走一遍，只跳过越限判定。
     // 「直接原额发 WINDOW_UPDATE」是错的——本端计数没扣就补量，等于每丢一帧就把对端的
     // 连接窗口往上顶一截，攒久了超 2^31-1，对端必须按 FLOW_CONTROL_ERROR 断连。
@@ -5642,17 +5650,14 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     // 先判连接级：GOAWAY 后连接立刻拆除，不必为这条流新建窗口记账条目；
     // 也不要再 consume_conn_window() 补量——刚判定对端流控违规就给它抬连接窗口，
     // 语义相反，GOAWAY 之前多发的这帧 WINDOW_UPDATE 也毫无用处。
-    const auto visible_conn_window = static_cast<std::int64_t>(conn_recv_window_num) -
-                                     static_cast<std::int64_t>(peer_session->h2_conn_send.conn_grant_pending);
-    if (fc_bytes > visible_conn_window)
+    if (fc_bytes > conn_recv_window_num)
     {
         set_conn_error(40234, 0x3);// 0x3 = FLOW_CONTROL_ERROR（连接级 → GOAWAY）
         return;
     }
 
     auto *peer = iter->second.get();
-    const unsigned int visible_window = peer->recv_window_visible();
-    if (fc_bytes > visible_window)
+    if (fc_bytes > peer->h2recv.recv_window)
     {
         consume_conn_window(fc_bytes);
         set_stream_error(40210, temp_pack_data.stream_id, 0x3);
@@ -5688,7 +5693,6 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         }
 
         http_post_data.erase(post_iter);
-        iter->second->grant_self_unlink();
         iter->second->isfinish = true;
         stream_list.emplace(temp_pack_data.stream_id);
     }
@@ -6010,17 +6014,17 @@ std::shared_ptr<httppeer> http2parse::acquire_peer_from_pool()
 
 void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer> p)
 {
-    bool fifo_cleanup_pending = p->h2send.fifo_cleanup_pending;
-    if (!fifo_cleanup_pending && p->socket_session &&
-        p->h2_fifo_frames_pending.load(std::memory_order_acquire) != 0)
+    bool control_cleanup_pending = p->h2send.control_cleanup_pending;
+    if (!control_cleanup_pending && p->socket_session &&
+        p->h2_control_frames_pending.load(std::memory_order_acquire) != 0)
     {
-        fifo_cleanup_pending = true;
-        p->h2send.fifo_cleanup_pending = true;
-        ++p->socket_session->h2_conn_send.fifo_cleanup_count;
+        control_cleanup_pending = true;
+        p->h2send.control_cleanup_pending = true;
+        ++p->socket_session->http2_control_cleanup_count;
         p->socket_session->wake_ring_consumer();
     }
-    // 复用现有强索引持有 peer，直到发送环写完该 sid 的 FIFO 残留帧。
-    if (fifo_cleanup_pending)
+    // 复用现有强索引持有 peer，直到发送协程写完该 sid 的控制帧残留。
+    if (control_cleanup_pending)
     {
         http_data_weak.erase(sid);
         http_data[sid] = p;
@@ -6031,10 +6035,6 @@ void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer
     // 2) 禁止入池检查——reset_for_reuse 里没有这些检查，必须在这里前置。
     //    置 no_repool 后出作用域销毁：deleter 见真只销毁、不回全局池，
     //    防止在途定时器/fastcgi 回调的残留状态被新请求继承。
-    if (p->socket_session && p->grant_is_queued())
-    {
-        p->grant_self_unlink();
-    }
     if (p->socket_session && p->h2send.send_queued && !p->h2send.in_batch &&
         !p->h2send.refill_pending && !p->h2send.refill_running)
         p->socket_session->http2_complete_active_peer(p, false);
@@ -6056,14 +6056,14 @@ void http2parse::release_peer_to_pool(unsigned int sid, std::shared_ptr<httppeer
     }
 
     if (p->h2send.send_queued || p->h2send.in_batch || p->h2send.refill_pending ||
-        p->h2send.refill_running || p->h2_producer_count.load(std::memory_order_acquire) != 0 || p->grant_is_queued() ||
-        p->h2send.rst_pending || (p->h2send.completion && !p->h2send.completion_done))
+        p->h2send.refill_running ||
+        p->h2send.rst_pending)
     {
         peer_pool.discard_total++;
         p->no_repool = true;
         return;
     }
-    if (fifo_cleanup_pending) return;
+    if (control_cleanup_pending) return;
     // 3) reset_for_reuse——清 socket_session 等所有应清零字段
     p->reset_for_reuse();
 

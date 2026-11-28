@@ -299,59 +299,21 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 #define CONST_HTTP2_SEND_FRAME_BUF 15360
 
-// 内联/文件发送每轮组批的 DATA 帧数上限：一次窗口预留按字节记账，在协程栈上
-// 切成至多这么多帧后合并写出。批次只占窗口额度，不占用 FIFO 环槽。
-#define CONST_HTTP2_SEND_BATCH_FRAMES 8
-
-// 环满等待：基础拍长（微秒）+ 自适应边界。入参是环的积压槽数（has_size），不是剩余槽。
-// 积压 > SLOW：消费者还没排空多少，说明自己醒早了，持续翻倍加长等待；
-// 积压 < FAST：环几乎空了，说明上一觉睡过头（等待过长），持续减半缩短等待。
-// 持续朝同一方向推就持续指数退避，直到 MIN / MAX 封顶。
-// Base ring-full wait (μs) + adaptive bounds. Input is ring BACKLOG (has_size), not remaining
-// slots. Backlog > SLOW: consumer barely drained, we woke too early — keep doubling the wait;
-// backlog < FAST: ring nearly empty, we overslept — keep halving it. Capped at MIN / MAX.
-#define CONST_HTTP2_RING_FULL_WAIT_BASE     1000
-#define CONST_HTTP2_RING_FULL_WAIT_MIN      100       // 100μs
-#define CONST_HTTP2_RING_FULL_WAIT_MAX      200000    // 200ms
-#define CONST_HTTP2_RING_FULL_WAIT_FAST     3         // backlog < 3 → 睡过头，减半
-#define CONST_HTTP2_RING_FULL_WAIT_SLOW     18        // backlog > 18 → 醒早了，翻倍
-
-// 根据当前间隔 + 环积压槽数，算出下一次等待间隔（微秒）。
-// Compute next wait interval (μs) from current value + ring backlog (has_size).
-constexpr unsigned int http2_ring_wait_adjust_us(unsigned int current_us, unsigned char backlog_slots)
-{
-    if (backlog_slots < CONST_HTTP2_RING_FULL_WAIT_FAST)
-    {
-        if (current_us > CONST_HTTP2_RING_FULL_WAIT_MIN)
-            current_us /= 2;
-        if (current_us < CONST_HTTP2_RING_FULL_WAIT_MIN)
-            current_us = CONST_HTTP2_RING_FULL_WAIT_MIN;
-    }
-    else if (backlog_slots > CONST_HTTP2_RING_FULL_WAIT_SLOW)
-    {
-        if (current_us < CONST_HTTP2_RING_FULL_WAIT_MAX)
-            current_us *= 2;
-        if (current_us > CONST_HTTP2_RING_FULL_WAIT_MAX)
-            current_us = CONST_HTTP2_RING_FULL_WAIT_MAX;
-    }
-    return current_us;
-}
-
 // h1 文件直发单块尺寸（fread + 一次写）。原 4096 让 100KB 文件付 26 次写 syscall；
 // 64KB 块降到 2~3 次。心跳必须每块刷：64KB 在 6.2KB/s 慢客户端下约 10s 一块，
 // 对 httpwatch 的 now-60s idle 阈值留足余量（旧 %16 拍在 64KB 块下会变成 1MB 一刷）。
 // 池化 content 缓冲常驻容量随之涨到 64KB/对象，回池 clear() 不释放，属有意保留的热容量。
 #define CONST_HTTP1_FILE_CHUNK_BYTES 65536
 
-// 每连接 HTTP/2 发送环的槽数。三条硬约束：
+// WebSocket、原生 Socket 与 MQTT 共用的发送环槽数。三条硬约束：
 //   1. 必须是 2 的幂 —— 下标推进用 & (capacity_ - 1)，非 2 的幂会算出错误的下一格；
 //   2. 不能超过 255 —— head_/tail_ 是 unsigned char；
 //   3. 环里永远留一个空槽做满/空判定（head == tail 为空），所以实际可排队 capacity - 1 帧。
 // 每槽容量不回收，常驻上界按连接数 × capacity × 单帧大小算（16KB 帧、32 槽约 496KB/连接）。
-// Per-connection HTTP/2 send-ring slots. MUST be a power of two (index uses & (capacity_-1)),
+// Shared send-ring slots. MUST be a power of two (index uses & (capacity_-1)),
 // MUST fit unsigned char (head_/tail_), and one slot stays empty for the full/empty test,
 // so capacity-1 frames are queueable.
-#define CONST_HTTP2_RING_QUEUE_CAPACITY 32
+#define CONST_SEND_RING_QUEUE_CAPACITY 32
 
 // 一次窗口停等的总预算：到期 RST(CANCEL) 撤流，连接保留。按次重算，不是整条响应的
 // 预算；被 WU 叫醒后用剩余量重挂，小增量不续命。

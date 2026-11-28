@@ -180,10 +180,10 @@ foreach(test_src IN LISTS test_cpp_files)
     set_tests_properties(${test_name} PROPERTIES TIMEOUT 600)
   endif()
 
-  # http2_ring 用例把发送环实现直接编进测试目标（server.cpp 不参与测试构建）
-  # http2_ring tests compile the ring implementation in directly (server.cpp stays out).
-  if(test_name MATCHES "http2_ring")
-    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_ring_queue.cpp")
+  # send_ring 用例把普通协议共用发送环实现直接编进测试目标（server.cpp 不参与测试构建）
+  # send_ring tests compile the shared ring implementation in directly (server.cpp stays out).
+  if(test_name MATCHES "send_ring")
+    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/send_ring_queue.cpp")
   endif()
 
   # http2 HEADERS 切片用例：帧构造/切片实现编进测试目标。http2_frame.cpp 对框架内唯一的

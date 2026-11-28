@@ -114,7 +114,7 @@ class mqtt_session : public std::enable_shared_from_this<mqtt_session>
     // 出站 QoS1/2：投递 PUBLISH 时登记，收到 PUBACK/PUBREC/PUBCOMP 时清理
     // 带 props 的重载会把可转发的 MQTT 5 属性写进出站 PUBLISH（§3.3.2.3）
     // 发送环满时成品帧挂本会话 pending 队列，由全局分发协程（httpserver::mqtt_send_loop）
-    // 按 FIFO 回灌（http2 生产者 standby 同款）。队列界 = CONST_MQTT_SESSION_BODY_SIZE：
+    // 按 FIFO 回灌。队列界 = CONST_MQTT_SESSION_BODY_SIZE：
     // 超界丢最旧、新帧总要，所以本方法只在连接已关 / inflight 配额满 / 帧超过客户端
     // 宣告的 Maximum Packet Size 时返回 false。
     bool deliver(const std::string &topic, const mqtt_payload_ptr &payload, uint8_t qos, bool retain);

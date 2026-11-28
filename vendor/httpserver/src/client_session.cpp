@@ -10,7 +10,7 @@
 #include "directory_fun.h"
 #include "http_header.h"
 #include "clientdatacache.h"
-#include "http2_ring_queue.h"
+#include "send_ring_queue.h"
 #include "http2_sender_count_guard.h"
 #include "debug_log.h"
 #include "base64.h"
@@ -90,11 +90,11 @@ client_session::~client_session()
         cc.back_data_ptr(_cache_data);
     }
 
-    if (http2_ring_queue)
+    if (send_ring_queue)
     {
-        auto &cc = get_http2_ring_queue_obj();
-        cc.back_cache_ptr(std::move(http2_ring_queue));
-        http2_ring_queue = nullptr;
+        auto &cc = get_send_ring_pool();
+        cc.back_cache_ptr(std::move(send_ring_queue));
+        send_ring_queue = nullptr;
     }
     http2_cancel_all_pending_peers(false);
 }
@@ -522,46 +522,6 @@ bool client_session::isopensocket()
     }
 }
 
-bool client_session::send_switch101()
-{
-    try
-    {
-        std::string tempswitch = make_h2c_switch101_response();
-        if (isssl)
-        {
-            if (sslsocket->lowest_layer().is_open())
-            {
-                asio::write(*sslsocket, asio::buffer(tempswitch));
-            }
-            else
-            {
-                isclose = true;
-                return false;
-            }
-        }
-        else
-        {
-            if (socket->is_open())
-            {
-                asio::write(*socket, asio::buffer(tempswitch));
-            }
-            else
-            {
-                isclose = true;
-                return false;
-            }
-        }
-        return true;
-    }
-    catch (std::exception &)
-    {
-        isclose = true;
-        iserror = true;
-        cancel();
-        return false;
-    }
-}
-
 asio::awaitable<bool> client_session::co_send_switch101()
 {
     if (isclose)
@@ -614,50 +574,28 @@ asio::awaitable<void> client_session::co_send_setting()
     // 承诺值和入站执行同源：超过承诺的流按流级 REFUSED_STREAM 拒绝（http2_parse.cpp），
     // CONST_HTTP2_MAX_STREAMS=2048 只是头部块未完成等异常路径的连接级兜底。
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, CONST_HTTP2_MAX_CONCURRENT_STREAMS, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-    if (!push_control_frame(_recvack, 21))
-    {
-        http2_ring_queue_drop_count++;
-    }
-    // 生产者契约：消费者可能已挂起（注册后的复查只封住「先入队」那一侧），
-    // 入队成功后必须查 need_wakeup 唤醒，否则 SETTINGS 拖到下一次活动才写出。
-    // 入队失败不唤：环满时消费者不可能在空环上挂起。
-    else if (http2_need_wakeup)
+    if (push_control_frame(_recvack, 21) && http2_need_wakeup)
     {
         wake_ring_consumer();
     }
     co_return;
 }
 
-asio::awaitable<void> client_session::http2_send_ping()
+asio::awaitable<bool> client_session::flush_http2_send_queue(bool include_cleanup)
 {
-    unsigned char _recvack[] =
-        {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (push_control_frame(_recvack, 17) && http2_need_wakeup)
-        wake_ring_consumer();
-    co_return;
-}
-
-void client_session::send_ping()
-{
-    unsigned char _recvack[] =
-        {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (push_control_frame(_recvack, 17) && http2_need_wakeup)
-        wake_ring_consumer();
-}
-
-asio::awaitable<bool> client_session::flush_send_ring(bool include_producers)
-{
-    // 有界排空：等 FIFO 环和待发送 peer 列表同时空，活跃写入也计入未排空状态。
+    // 有界排空：等控制帧链表和待发送 peer 列表同时空，活跃写入也计入未排空状态。
     // 消费者协程是唯一 socket 写者。
-    auto drained = [this, include_producers]()
+    auto drained = [this, include_cleanup]()
     {
-        if (http2_fifo_write_active.load(std::memory_order_acquire))
+        {
+            std::lock_guard<std::mutex> lock{http2_send_control_frame_mutex};
+            if (!http2_send_control_frame_list.empty()) return false;
+        }
+        if (http2_control_write_active.load(std::memory_order_acquire))
             return false;
-        if (http2_ring_queue != nullptr && http2_ring_queue->has_size() != 0)
-            return false;
-        return !(include_producers ? http2_has_pending_peers() : http2_has_queued_peers());
+        return !(include_cleanup ? http2_has_pending_peers() : http2_has_queued_peers());
     };
-    // 空环快路径：绝大多数响应到这里环已排空，省掉每响应一次 timer 构造。
+    // 空链表快路径：绝大多数响应到这里已经排空，省掉每响应一次 timer 构造。
     if (drained())
     {
         co_return true;
@@ -665,7 +603,7 @@ asio::awaitable<bool> client_session::flush_send_ring(bool include_producers)
     // strand_ 本身作 timer 的 executor：到期回调仍在本连接 strand 串行域内跑，
     // 不能用 strand_.context()——那是 execution_context，没有 get_executor，编不过。
     asio::steady_timer drain_timer(strand_);
-    // 2 秒上限、20 毫秒粒度：本地环排空通常在毫秒级；客户端停读时不无限拖住 teardown。
+    // 2 秒上限、20 毫秒粒度：本地发送队列排空通常在毫秒级；客户端停读时不无限拖住 teardown。
     for (unsigned int tick = 0; tick < 100; tick++)
     {
         // 消费者遇 isclose/iserror 会退出，环再无人排空；
@@ -686,13 +624,12 @@ asio::awaitable<bool> client_session::flush_send_ring(bool include_producers)
         drain_timer.expires_after(std::chrono::milliseconds(20));
         co_await drain_timer.async_wait(asio::use_awaitable);
     }
-    // 超时仍未排空：调用方不能接着直写 HEADERS，否则会抢在环内 SETTINGS 前面。
+    // 超时仍未排空：调用方无法确认握手 SETTINGS 已经写出，不能继续进入业务帧处理。
     co_return drained();
 }
 
 asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
 {
-    // GOAWAY 入控制环，环满就地自适应重试，2 秒预算——客户端停读时不无限拖住 teardown。
     unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     fr[9]                = (last_stream_id >> 24) & 0x7F;
     fr[10]               = (last_stream_id >> 16) & 0xFF;
@@ -702,41 +639,18 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
     fr[14]               = (error_code >> 16) & 0xFF;
     fr[15]               = (error_code >> 8) & 0xFF;
     fr[16]               = error_code & 0xFF;
-    // 先等在途响应写出再投 GOAWAY：发送协程优先处理控制帧，GOAWAY 入环后会
-    // 抢在 FIFO 排队帧之前上线；部分客户端收到非零错误码的 GOAWAY 后立即停读。
-    // flush 自带 2 秒预算，排不空也继续投 GOAWAY，由它通知对端收尾。
-    co_await flush_send_ring();
-    asio::steady_timer timer(co_await asio::this_coro::executor);
-    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
-    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-    for (;;)
+    // 先等在途响应写出再投 GOAWAY；flush 自带 2 秒预算，排不空也继续通知对端收尾。
+    co_await flush_http2_send_queue();
+    if (!isclose.load(std::memory_order_relaxed) && !iserror.load(std::memory_order_relaxed) &&
+        push_control_frame(fr, sizeof(fr)))
     {
-        if (isclose || iserror)
-            break;
-        if (push_control_frame(fr, 17))
+        if (http2_need_wakeup)
+            wake_ring_consumer();
+        // 调用方随后会 cancel()，必须等 GOAWAY 真正写出或达到排空预算。
+        if (!co_await flush_http2_send_queue(false))
         {
-            if (http2_need_wakeup)
-                wake_ring_consumer();
-            // 等 GOAWAY 真的写出再返回：调用方随后 cancel()，不等就把环里的
-            // GOAWAY 与在途响应一起杀掉。超时未排空时后续 cancel() 仍会丢帧，
-            // 记一条日志留诊断线索。
-            if (!co_await flush_send_ring(false))
-            {
-                DEBUG_LOG("http2 goaway flush timeout last_sid=%u err=%u", last_stream_id, error_code);
-            }
-            break;
+            DEBUG_LOG("http2 goaway flush timeout last_sid=%u err=%u", last_stream_id, error_code);
         }
-        http2_ring_queue_drop_count++;
-        if (std::chrono::steady_clock::now() >= deadline)
-            break;
-        const unsigned char backlog = http2_ring_queue->has_size();
-        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
-        // 有空槽就立即重试打满，不睡；只有环仍满才按自适应间隔等。
-        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
-            continue;
-        timer.expires_after(std::chrono::microseconds(wait_interval_us));
-        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
-        (void)wait_ec;
     }
     // 关闭冲刷：置 closing + 撤掉全部 pending peer，发送生产者在循环边界静音退出。
     http2_closing.store(true, std::memory_order_relaxed);
@@ -747,11 +661,7 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
 void client_session::send_recv_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
-    if (!push_control_frame(_recvack, 9))
-    {
-        http2_ring_queue_drop_count++;
-    }
-    else if (http2_need_wakeup)
+    if (push_control_frame(_recvack, 9) && http2_need_wakeup)
     {
         wake_ring_consumer();
     }
@@ -810,14 +720,11 @@ bool client_session::push_window_update_stream(unsigned int stmid, unsigned int 
 void client_session::grant_conn_window(unsigned int up_num)
 {
     if (up_num == 0) return;
-    h2_conn_send.conn_grant_pending += up_num;
-    if (push_window_update_conn(h2_conn_send.conn_grant_pending))
-        h2_conn_send.conn_grant_pending = 0;
-    else
-        http2_window_update_requeue_count++;
+    push_window_update_conn(up_num);
 }
 
-bool client_session::push_rst_stream(unsigned int sid, unsigned int code)
+bool client_session::push_rst_stream(unsigned int sid, unsigned int code,
+                                     const std::shared_ptr<httppeer> &peer)
 {
     if (sid == 0 || isclose.load(std::memory_order_relaxed) ||
         http2_closing.load(std::memory_order_relaxed)) return false;
@@ -830,59 +737,10 @@ bool client_session::push_rst_stream(unsigned int sid, unsigned int code)
     frame[10] = static_cast<unsigned char>((code >> 16) & 0xFF);
     frame[11] = static_cast<unsigned char>((code >> 8) & 0xFF);
     frame[12] = static_cast<unsigned char>(code & 0xFF);
-    if (!push_control_frame(frame, sizeof(frame)))
-    {
-        http2_ring_queue_drop_count++;
+    if (!push_control_frame(frame, sizeof(frame), peer))
         return false;
-    }
     if (http2_need_wakeup) wake_ring_consumer();
     return true;
-}
-
-void client_session::http2_enqueue_grant(httppeer *peer)
-{
-    // 流级前置条件（stream_dead / queued / isclose）由 httppeer::grant_recv_window
-    // 在调用前自行判定，connection 层只管把 peer 挂入连接级 grant 链表头。
-    peer->h2recv.grant_prev = h2_conn_send.grant_tail;
-    if (h2_conn_send.grant_tail) h2_conn_send.grant_tail->h2recv.grant_next = peer;
-    else h2_conn_send.grant_head = peer;
-    h2_conn_send.grant_tail = peer;
-    h2_conn_send.grant_count++;
-    peer->h2recv.grant_queued = true;
-}
-
-void client_session::http2_unlink_grant(httppeer *peer)
-{
-    if (!peer->h2recv.grant_queued) return;
-    if (peer->h2recv.grant_prev) peer->h2recv.grant_prev->h2recv.grant_next = peer->h2recv.grant_next;
-    else h2_conn_send.grant_head = peer->h2recv.grant_next;
-    if (peer->h2recv.grant_next) peer->h2recv.grant_next->h2recv.grant_prev = peer->h2recv.grant_prev;
-    else h2_conn_send.grant_tail = peer->h2recv.grant_prev;
-    h2_conn_send.grant_count--;
-    // prev / next / queued / grant_pending 的清零交给 httppeer::grant_self_unlink / reset_recv_grant_pending。
-}
-
-void client_session::flush_pending_window_update()
-{
-    if (h2_conn_send.conn_grant_pending > 0)
-    {
-        if (!push_window_update_conn(h2_conn_send.conn_grant_pending))
-        {
-            http2_window_update_requeue_count++;
-            return;
-        }
-        h2_conn_send.conn_grant_pending = 0;
-    }
-    while (h2_conn_send.grant_head)
-    {
-        auto *peer = h2_conn_send.grant_head;
-        if (!push_window_update_stream(peer->stream_id, peer->h2recv.grant_pending))
-        {
-            http2_window_update_requeue_count++;
-            break;
-        }
-        peer->grant_self_unlink();
-    }
 }
 
 unsigned int client_session::send_writer(const unsigned char *buffer, unsigned int buffersize,
@@ -933,44 +791,43 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
     }
 }
 
+bool client_session::http2_send_queue_add(std::shared_ptr<httppeer> peer)
+{
+    if (!peer || peer->h2send.send_queued || peer->h2send.completion_done || peer->h2send.stream_is_dead ||
+        peer->h2send.rst_pending || peer->isclose.load(std::memory_order_relaxed) ||
+        isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        return false;
+
+    auto timer = std::make_shared<asio::steady_timer>(strand_);
+    timer->expires_after(std::chrono::hours(8));
+    peer->h2send.completion_timer = std::move(timer);
+    peer->h2send.send_queued = true;
+
+    http2_send_queue.push_back(std::move(peer));
+    wake_ring_consumer();
+    return true;
+}
+
+asio::awaitable<bool> client_session::http2_wait_peer_completion(const std::shared_ptr<httppeer> &peer)
+{
+    auto timer = peer->h2send.completion_timer;
+    if (!timer) co_return false;
+    auto [wait_ec] = co_await timer->async_wait(asio::as_tuple(asio::use_awaitable));
+    (void)wait_ec;
+    if (!peer->h2send.completion_done)
+    {
+        http2_mark_stream_dead(peer);
+        co_return false;
+    }
+    co_return peer->isfinish && !peer->isclose.load(std::memory_order_relaxed);
+}
+
 void client_session::wake_ring_consumer()
 {
     auto timer = std::atomic_load(&http2_consumer_timer);
     if (!timer) return;
     auto executor = timer->get_executor();
     asio::post(executor, [timer = std::move(timer)]() mutable { timer->cancel(); });
-}
-
-void client_session::http2_enqueue_peer(const std::shared_ptr<httppeer> &peer)
-{
-    if (!peer) return;
-    auto &state = peer->h2send;
-    if (state.send_queued || state.in_batch || state.completion_done ||
-        state.stream_is_dead || state.rst_pending || peer->isclose.load(std::memory_order_relaxed) ||
-        isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed)) return;
-    state.queue_owner = peer;
-    state.send_prev = h2_conn_send.send_tail;
-    if (h2_conn_send.send_tail) h2_conn_send.send_tail->h2send.send_next = peer.get();
-    else h2_conn_send.send_head = peer.get();
-    h2_conn_send.send_tail = peer.get();
-    h2_conn_send.send_count++;
-    state.send_queued = true;
-    wake_ring_consumer();
-}
-
-void client_session::http2_unlink_peer(httppeer *peer)
-{
-    auto &state = peer->h2send;
-    if (!state.send_queued) return;
-    if (state.send_prev) state.send_prev->h2send.send_next = state.send_next;
-    else h2_conn_send.send_head = state.send_next;
-    if (state.send_next) state.send_next->h2send.send_prev = state.send_prev;
-    else h2_conn_send.send_tail = state.send_prev;
-    h2_conn_send.send_count--;
-    state.send_prev = nullptr;
-    state.send_next = nullptr;
-    state.send_queued = false;
-    state.queue_owner.reset();
 }
 
 void client_session::http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, unsigned int error_code)
@@ -981,9 +838,7 @@ void client_session::http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, 
     state.rst_pending = true;
     state.rst_error_code = error_code;
     peer->is_rst_stream.store(true, std::memory_order_release);
-    http2_unlink_peer(peer.get());
-    peer->grant_self_unlink();
-    if (push_rst_stream(peer->stream_id, error_code))
+    if (push_rst_stream(peer->stream_id, error_code, peer))
     {
         state.rst_sent = true;
         state.rst_pending = false;
@@ -991,7 +846,7 @@ void client_session::http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, 
     else if (!isclose.load(std::memory_order_relaxed) && !http2_closing.load(std::memory_order_relaxed))
     {
         // RST 重试独立于正常 DATA 队列，死流因此不会再次成为可运行 peer。
-        ++h2_conn_send.rst_retry_count;
+        ++http2_rst_retry_count;
         try
         {
             asio::co_spawn(strand_,
@@ -1008,7 +863,7 @@ void client_session::http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, 
                                !self->isclose.load(std::memory_order_relaxed) &&
                                !self->http2_closing.load(std::memory_order_relaxed))
                         {
-                            if (self->push_rst_stream(peer->stream_id, retry_state.rst_error_code))
+                            if (self->push_rst_stream(peer->stream_id, retry_state.rst_error_code, peer))
                             {
                                 retry_state.rst_sent = true;
                                 break;
@@ -1023,48 +878,20 @@ void client_session::http2_mark_peer_rst(const std::shared_ptr<httppeer> &peer, 
                     {
                     }
                     retry_state.rst_pending = false;
-                    --self->h2_conn_send.rst_retry_count;
+                    --self->http2_rst_retry_count;
                     if (!retry_state.in_batch)
-                    {
-                        self->http2_refund_peer_window(peer.get());
                         self->http2_complete_active_peer(peer, false);
-                    }
                 },
                 asio::detached);
         }
         catch (...)
         {
             state.rst_pending = false;
-            --h2_conn_send.rst_retry_count;
+            --http2_rst_retry_count;
         }
     }
     else state.rst_pending = false;
     wake_ring_consumer();
-}
-
-std::shared_ptr<httppeer> client_session::http2_take_next_peer()
-{
-    auto *peer = h2_conn_send.send_head;
-    if (!peer) return nullptr;
-    auto result = peer->h2send.queue_owner.lock();
-    http2_unlink_peer(peer);
-    return result;
-}
-
-bool client_session::http2_peer_is_blocked(const std::shared_ptr<httppeer> &peer)
-{
-    auto &state = peer->h2send;
-    if (state.stream_is_dead || peer->isclose.load(std::memory_order_relaxed) || state.rst_pending) return false;
-    if (state.refill_pending || state.refill_running) return true;
-    if (!state.headers_sent)
-    {
-        if (state.end_on_headers || !peer->output.empty() || peer->h2file) return false;
-        return true;
-    }
-    if (state.end_on_headers ||
-        (state.sent_bytes == peer->output.size() && (!peer->h2file || peer->h2file->remaining == 0)))
-        return false;
-    return http2_peer_window_available(peer.get()) <= 0 || http2_conn_window_available() == 0;
 }
 
 bool client_session::http2_begin_peer_refill(const std::shared_ptr<httppeer> &peer)
@@ -1081,123 +908,56 @@ void client_session::http2_finish_peer_refill(const std::shared_ptr<httppeer> &p
     auto &state = peer->h2send;
     state.refill_pending = false;
     state.refill_running = false;
-    state.blocked = !ready;
-    state.blocked_deadline = {};
     if (ready && !state.stream_is_dead && !state.rst_pending && !state.completion_done &&
         !peer->isclose.load(std::memory_order_relaxed) &&
         !isclose.load(std::memory_order_relaxed) && !http2_closing.load(std::memory_order_relaxed))
     {
-        if (state.send_queued) http2_unlink_peer(peer.get());
-        http2_enqueue_peer(peer);
+        wake_ring_consumer();
     }
 }
 
 void client_session::http2_complete_active_peer(const std::shared_ptr<httppeer> &peer, bool success)
 {
     auto &state = peer->h2send;
-    std::shared_ptr<h2_borrow_state> completion;
+    std::shared_ptr<asio::steady_timer> completion_timer;
     {
         std::lock_guard<std::mutex> lock(h2_send_window_mutex);
         if (state.completion_done) return;
-        http2_unlink_peer(peer.get());
-        peer->grant_self_unlink();
-        h2_conn_send.reserved -= std::min<unsigned long long>(
-            state.send_reserved, h2_conn_send.reserved);
+        http2_send_reserved.fetch_sub(std::min<unsigned long long>(
+            state.send_reserved, http2_send_reserved.load(std::memory_order_relaxed)),
+            std::memory_order_relaxed);
         state.in_batch = false;
-        state.blocked = false;
         state.send_reserved = 0;
         state.completion_done = true;
         peer->isfinish = success;
-        completion = state.completion;
+        completion_timer = state.completion_timer;
     }
-    if (completion)
-    {
-        if (success) completion->release();
-        else completion->cancel();
-    }
+    if (completion_timer) completion_timer->cancel();
 }
 
 void client_session::http2_cancel_all_pending_peers(bool wake)
 {
-    while (h2_conn_send.send_head)
+    while (!http2_send_queue.empty())
     {
-        auto peer = http2_take_next_peer();
-        if (peer) http2_complete_active_peer(peer, false);
+        auto it = http2_send_queue.begin();
+        auto peer = *it;
+        http2_send_queue.erase(it);
+        peer->h2send.send_queued = false;
+        http2_complete_active_peer(peer, false);
     }
-    while (h2_conn_send.grant_head)
-    {
-        auto *peer = h2_conn_send.grant_head;
-        peer->grant_self_unlink();
-    }
-    h2_conn_send.conn_grant_pending = 0;
     if (wake) wake_ring_consumer();
-}
-
-void client_session::http2_begin_content_stream(const std::shared_ptr<httppeer> &peer)
-{
-    if (!peer) return;
-    peer->h2_producer_count.fetch_add(1, std::memory_order_release);
-    h2_conn_send.active_producers.fetch_add(1, std::memory_order_release);
-}
-
-void client_session::http2_end_content_stream(const std::shared_ptr<httppeer> &peer)
-{
-    if (!peer) return;
-    assert(peer->h2_producer_count.load(std::memory_order_acquire) > 0);
-    peer->h2_producer_count.fetch_sub(1, std::memory_order_release);
-    assert(h2_conn_send.active_producers.load(std::memory_order_acquire) > 0);
-    h2_conn_send.active_producers.fetch_sub(1, std::memory_order_release);
-}
-
-client_session::h2_content_producer_guard::h2_content_producer_guard(
-    client_session *session, const std::shared_ptr<httppeer> &stream_peer)
-    : sess(session), peer(stream_peer)
-{
-    sess->http2_begin_content_stream(peer);
-}
-
-client_session::h2_content_producer_guard::~h2_content_producer_guard()
-{
-    sess->http2_end_content_stream(peer);
-}
-
-void client_session::http2_expire_blocked_peers()
-{
-    const auto now = std::chrono::steady_clock::now();
-    for (auto *p = h2_conn_send.send_head; p;)
-    {
-        auto *next = p->h2send.send_next;
-        auto peer = p->h2send.queue_owner.lock();
-        if (peer && peer->h2send.blocked &&
-            peer->h2send.blocked_deadline != std::chrono::steady_clock::time_point{} &&
-            now >= peer->h2send.blocked_deadline)
-        {
-            http2_mark_peer_rst(peer, CONST_HTTP2_STREAM_ERROR_CANCEL);
-            http2_mark_stream_dead(peer);
-        }
-        p = next;
-    }
 }
 
 bool client_session::http2_has_pending_peers()
 {
-    return h2_conn_send.send_count > 0 || h2_conn_send.active_producers > 0 ||
-           h2_conn_send.rst_retry_count > 0 || h2_conn_send.fifo_cleanup_count > 0;
+    return !http2_send_queue.empty() ||
+           http2_rst_retry_count.load(std::memory_order_acquire) > 0 ||
+           http2_control_cleanup_count.load(std::memory_order_acquire) > 0;
 }
 
 bool client_session::http2_has_queued_peers()
 {
-    return h2_conn_send.send_count > 0 || h2_conn_send.rst_retry_count > 0;
-}
-
-bool client_session::http2_has_runnable_peer()
-{
-    for (auto *p = h2_conn_send.send_head; p; p = p->h2send.send_next)
-    {
-        auto peer = p->h2send.queue_owner.lock();
-        if (peer && !http2_peer_is_blocked(peer)) return true;
-    }
-    return false;
+    return !http2_send_queue.empty() || http2_rst_retry_count.load(std::memory_order_acquire) > 0;
 }
 
 asio::awaitable<void> client_session::http2_wait_send_event(std::chrono::nanoseconds wait_time)
@@ -1212,71 +972,47 @@ asio::awaitable<void> client_session::http2_wait_send_event(std::chrono::nanosec
     (void)wait_ec;
 }
 
-std::int64_t client_session::http2_conn_window_available() const
+static std::int64_t h2_window_remaining(std::int64_t total_window, std::uint64_t sent_bytes)
 {
-    std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    return http2_conn_window_available_locked();
+    if (total_window <= 0) return total_window;
+    const auto granted = static_cast<std::uint64_t>(total_window);
+    if (granted >= sent_bytes)
+    {
+        const auto remaining = granted - sent_bytes;
+        return remaining > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())
+                   ? std::numeric_limits<std::int64_t>::max()
+                   : static_cast<std::int64_t>(remaining);
+    }
+    const auto deficit = sent_bytes - granted;
+    if (deficit > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+        return std::numeric_limits<std::int64_t>::min();
+    return -static_cast<std::int64_t>(deficit);
 }
 
-std::int64_t client_session::http2_conn_window_available_locked() const
+static std::int64_t h2_window_visible(std::int64_t total_window,
+                                      std::uint64_t sent_bytes,
+                                      std::uint64_t reserved)
 {
-    const auto available = h2_conn_send.window - static_cast<std::int64_t>(h2_conn_send.reserved);
-    return available > 0 ? available : 0;
-}
-
-std::int64_t client_session::http2_peer_window_available(const httppeer *peer) const
-{
-    if (!peer) return 0;
-    std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    return peer->h2send.send_window - static_cast<std::int64_t>(peer->h2send.send_reserved);
-}
-
-unsigned long long client_session::http2_try_reserve_send_window(httppeer *peer,
-                                                                  unsigned long long want,
-                                                                  bool allow_sub_frame)
-{
-    if (!peer || want == 0) return 0;
-    std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    if (peer->h2send.stream_is_dead) return 0;
-    const auto stream_available = peer->h2send.send_window - static_cast<std::int64_t>(peer->h2send.send_reserved);
-    const auto conn_available = http2_conn_window_available_locked();
-    const auto available = std::min(stream_available, conn_available);
-    if (available <= 0) return 0;
-    const auto cap = h2_conn_send.max_frame_size;
-    if (!allow_sub_frame && want <= cap && static_cast<unsigned long long>(available) < want) return 0;
-    const auto take = std::min<unsigned long long>(want, static_cast<unsigned long long>(available));
-    peer->h2send.send_reserved += take;
-    h2_conn_send.reserved += take;
-    return take;
-}
-
-void client_session::http2_refund_peer_window(httppeer *peer)
-{
-    if (!peer) return;
-    std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    h2_conn_send.reserved -= std::min<unsigned long long>(
-        peer->h2send.send_reserved, h2_conn_send.reserved);
-    peer->h2send.send_reserved = 0;
-}
-
-void client_session::http2_commit_conn_window(unsigned long long bytes)
-{
-    if (bytes == 0) return;
-    std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    bytes = std::min<unsigned long long>(bytes, h2_conn_send.reserved);
-    h2_conn_send.reserved -= bytes;
-    h2_conn_send.window -= static_cast<std::int64_t>(bytes);
+    const auto remaining = h2_window_remaining(total_window, sent_bytes);
+    if (remaining <= 0) return 0;
+    const auto available = static_cast<std::uint64_t>(remaining);
+    if (available <= reserved) return 0;
+    return static_cast<std::int64_t>(available - reserved);
 }
 
 bool client_session::http2_apply_initial_window_size(unsigned int size, const http2parse &parser)
 {
     std::lock_guard<std::mutex> lock(h2_send_window_mutex);
-    const auto old_size = h2_conn_send.initial_window_size;
+    const auto old_size = remote_initial_window_size.load(std::memory_order_relaxed);
     const auto delta = static_cast<std::int64_t>(size) - static_cast<std::int64_t>(old_size);
     if (delta != 0)
     {
         auto valid = [delta](const httppeer *peer) {
-            return peer->h2send.send_window + delta <= CONST_HTTP2_MAX_WINDOW;
+            const auto remaining = h2_window_remaining(peer->h2send.send_window,
+                                                       peer->h2send.send_totoal_bytes);
+            if (delta > 0 && remaining > CONST_HTTP2_MAX_WINDOW - delta) return false;
+            if (peer->h2send.send_window < -delta) return false;
+            return true;
         };
         for (auto &item : parser.http_data)
             if (!item.second->h2send.stream_is_dead && !valid(item.second.get())) return false;
@@ -1290,19 +1026,30 @@ bool client_session::http2_apply_initial_window_size(unsigned int size, const ht
         for (auto &item : parser.http_data_weak)
             if (auto peer = item.second.lock()) apply(peer.get());
     }
-    h2_conn_send.initial_window_size = size;
     remote_initial_window_size.store(size, std::memory_order_relaxed);
     wake_ring_consumer();
     return true;
 }
 
-bool client_session::push_control_frame(const unsigned char *fr, unsigned int n)
+bool client_session::push_control_frame(const unsigned char *fr, unsigned int n,
+                                        const std::shared_ptr<httppeer> &peer)
 {
-    return http2_ring_queue->push(fr, n);
+    if (!fr || n == 0 || isclose.load(std::memory_order_relaxed) ||
+        iserror.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        return false;
+    h2_control_frame_t item;
+    item.stream_peer = peer;
+    item.content.assign(fr, fr + n);
+    std::lock_guard<std::mutex> lock{http2_send_control_frame_mutex};
+    if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
+        return false;
+    http2_send_control_frame_list.push_back(std::move(item));
+    http2_control_frames_ready.store(true, std::memory_order_release);
+    return true;
 }
 
-// ---- 单一 FIFO：HTTP/2 控制帧与流式响应帧 ----
-// 流式 DATA 分片并预留窗口后入环，HEADERS 帧链整块入环；发送协程优先消费控制帧。
+// ---- HTTP/2 控制帧与 httppeer 同步流式帧链表 ----
+// 流式 DATA 分片并预留窗口后入链表，HEADERS 帧链整块入链表；发送协程优先消费控制帧。
 
 static unsigned int h2_frame_sid(std::string_view f)
 {
@@ -1346,19 +1093,12 @@ void client_session::http2_mark_stream_dead(const std::shared_ptr<httppeer> &pee
     if (!state.stream_is_dead)
     {
         state.stream_is_dead = true;
-        state.fifo_cleanup_pending = true;
-        ++h2_conn_send.fifo_cleanup_count;
-        state.blocked = false;
-        state.blocked_deadline = {};
+        state.control_cleanup_pending = true;
+        ++http2_control_cleanup_count;
         peer->isclose.store(true, std::memory_order_release);
-        http2_unlink_peer(peer.get());
-        peer->grant_self_unlink();
     }
     if (!state.in_batch && !state.rst_pending)
-    {
-        http2_refund_peer_window(peer.get());
         http2_complete_active_peer(peer, false);
-    }
     wake_ring_consumer();
 }
 
@@ -1379,30 +1119,41 @@ static void h2_content_fail(client_session *sess, const std::shared_ptr<httppeer
     });
 }
 
-// 裸内容帧入环，一次尝试：owned 非空时移动槽内存储，否则直接拷贝调用方帧头。
-// 环满 / 流已死 / 连接已关都返回 false。调用方决定 retry 策略和预算。
+// 裸内容帧入链表，一次尝试：owned 非空时拷贝其存储，否则直接拷贝调用方帧头。
+// 流已死 / 连接已关返回 false；链表不做容量判断。
 bool client_session::http2_try_push_content_raw(std::string_view frame, std::string *owned,
                                                 const std::shared_ptr<httppeer> &peer)
 {
-    if (!peer || isclose.load(std::memory_order_relaxed) ||
+    if (!peer || frame.size() < 9 || isclose.load(std::memory_order_relaxed) ||
         http2_closing.load(std::memory_order_relaxed) || peer->h2send.stream_is_dead)
         return false;
-    bool pushed = false;
-    peer->h2_fifo_frames_pending.fetch_add(1, std::memory_order_release);
+    h2_control_frame_t item;
+    item.stream_peer = peer;
     if (owned)
-        pushed = http2_ring_queue->push(std::move(*owned));
+        item.content.assign(owned->begin(), owned->end());
     else
-        pushed = http2_ring_queue->push(reinterpret_cast<const unsigned char *>(frame.data()),
-                                           static_cast<unsigned int>(frame.size()));
-    if (pushed)
+        item.content.assign(frame.begin(), frame.end());
+    peer->h2_control_frames_pending.fetch_add(1, std::memory_order_release);
+    try
     {
-        if (http2_need_wakeup)
-            wake_ring_consumer();
-        return true;
+        std::lock_guard<std::mutex> lock{http2_send_control_frame_mutex};
+        if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed) ||
+            peer->h2send.stream_is_dead)
+        {
+            peer->h2_control_frames_pending.fetch_sub(1, std::memory_order_release);
+            return false;
+        }
+        http2_send_control_frame_list.push_back(std::move(item));
+        http2_control_frames_ready.store(true, std::memory_order_release);
     }
-    peer->h2_fifo_frames_pending.fetch_sub(1, std::memory_order_release);
-    http2_ring_overflow_count++;
-    return false;
+    catch (...)
+    {
+        peer->h2_control_frames_pending.fetch_sub(1, std::memory_order_release);
+        throw;
+    }
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 bool client_session::http2_push_content_raw_sync(std::string &&frame, const std::shared_ptr<httppeer> &peer)
@@ -1415,78 +1166,37 @@ bool client_session::http2_push_content_raw_sync(const char *frame, unsigned int
 {
     return http2_try_push_content_raw(std::string_view(frame, frame_size), nullptr, peer);
 }
-// async 版：timer 挂在本连接 strand 上，每次让出都让消费者协程的写完成推进，不会互锁。
-// 失败收尾可从业务线程直接标死流，喂入锁内必须复查死流。
 asio::awaitable<bool> client_session::http2_push_content_raw(std::string frame,
                                                               std::shared_ptr<httppeer> peer)
 {
-    asio::steady_timer timer(co_await asio::this_coro::executor);
-    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
-    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-    for (;;)
-    {
-        if (!peer || isclose.load(std::memory_order_relaxed) ||
-            http2_closing.load(std::memory_order_relaxed) || peer->h2send.stream_is_dead)
-            co_return false;
-        if (http2_try_push_content_raw(frame, &frame, peer))
-            co_return true;
-        if (std::chrono::steady_clock::now() >= deadline)
-            co_return false;
-        const unsigned char backlog = http2_ring_queue->has_size();
-        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
-        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
-            continue;
-        timer.expires_after(std::chrono::microseconds(wait_interval_us));
-        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
-        (void)wait_ec;
-    }
+    co_return http2_try_push_content_raw(frame, &frame, peer);
 }
 
 asio::awaitable<bool> client_session::http2_push_content_raw(const char *frame, unsigned int frame_size,
                                                               std::shared_ptr<httppeer> peer)
 {
-    asio::steady_timer timer(co_await asio::this_coro::executor);
-    unsigned int wait_interval_us = CONST_HTTP2_RING_FULL_WAIT_BASE;
-    const auto deadline           = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-    for (;;)
-    {
-        if (!peer || isclose.load(std::memory_order_relaxed) ||
-            http2_closing.load(std::memory_order_relaxed) || peer->h2send.stream_is_dead)
-            co_return false;
-        if (http2_try_push_content_raw(std::string_view(frame, frame_size), nullptr, peer))
-            co_return true;
-        if (std::chrono::steady_clock::now() >= deadline)
-            co_return false;
-        const unsigned char backlog = http2_ring_queue->has_size();
-        wait_interval_us            = http2_ring_wait_adjust_us(wait_interval_us, backlog);
-        if (backlog < CONST_HTTP2_RING_QUEUE_CAPACITY - 1)
-            continue;
-        timer.expires_after(std::chrono::microseconds(wait_interval_us));
-        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
-        (void)wait_ec;
-    }
+    co_return http2_try_push_content_raw(std::string_view(frame, frame_size), nullptr, peer);
 }
 
 unsigned int client_session::http2_send_content_frame(std::string_view frame,
                                                        const std::shared_ptr<httppeer> &peer)
 {
-    // 自保活：sync 路径的入环重试循环期间若 peer 引用断链，session 不能析构。
-    // Self-preserve: keep session alive during sync push retry loops.
+    // 自保活：sync 路径入控制帧链表期间若 peer 引用断链，session 不能析构。
+    // Self-preserve: keep session alive during sync control-frame enqueue loops.
     auto self = shared_from_this();
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         return 0;
-    if (frame.size() < 9 || http2_ring_queue == nullptr)
+    if (frame.size() < 9)
         return 0;
     const unsigned int sid         = h2_frame_sid(frame);
     const unsigned char ftype      = static_cast<unsigned char>(frame[3]);
     const unsigned char fflags     = static_cast<unsigned char>(frame[4]);
     const unsigned int payload_len = h2_frame_payload_len(frame);
 
-    // HEADERS 帧链：整块入环，不做窗口记账。
+    // HEADERS 帧链：整块入控制帧链表，不做窗口记账。
     if (ftype != 0x00)
     {
         if (!peer || peer->stream_id != sid) return 0;
-        h2_content_producer_guard producer_guard{this, peer};
         if (peer->h2send.stream_is_dead)
             return 0;
         std::string headers_frame(frame);
@@ -1495,24 +1205,6 @@ unsigned int client_session::http2_send_content_frame(std::string_view frame,
             peer->h2send.headers_sent.store(true, std::memory_order_release);
             if (fflags & 0x01) peer->h2_end_stream_queued.store(true, std::memory_order_release);
             return static_cast<unsigned int>(frame.size());
-        }
-        // retry：环满 sleep 等消费者腾槽，死流/连接关不 retry。push 拒收保留源缓冲，
-        // 复用同一帧。HEADERS 丢了响应就没有头，宁可等满预算再撤也不能第一次 false 就丢。
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-        for (;;)
-        {
-            if (peer->h2send.stream_is_dead || isclose.load(std::memory_order_relaxed) ||
-                http2_closing.load(std::memory_order_relaxed))
-                return 0;
-            if (std::chrono::steady_clock::now() >= deadline)
-                break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            if (http2_push_content_raw_sync(std::move(headers_frame), peer))
-            {
-                peer->h2send.headers_sent.store(true, std::memory_order_release);
-                if (fflags & 0x01) peer->h2_end_stream_queued.store(true, std::memory_order_release);
-                return static_cast<unsigned int>(frame.size());
-            }
         }
         if (!peer->h2send.stream_is_dead && !isclose.load(std::memory_order_relaxed) &&
             !http2_closing.load(std::memory_order_relaxed))
@@ -1537,30 +1229,20 @@ unsigned int client_session::http2_send_data_payload(const std::shared_ptr<httpp
     auto self = shared_from_this();
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         return 0;
-    if (http2_ring_queue == nullptr)
-        return 0;
 
-    h2_content_producer_guard producer_guard{this, peer};
-
-    // 零长 DATA（END_STREAM 收尾）：不占窗口额度，整帧入环；入环失败按预算重试。
+    // 零长 DATA（END_STREAM 收尾）：不占窗口额度，整帧入链表。
     if (payload.empty())
     {
         if (peer->h2send.stream_is_dead)
             return 0;
         char header[9];
         h2_write_data_header(header, sid, end_flags, 0);
-        const auto push_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-        while (!http2_push_content_raw_sync(header, sizeof(header), peer))
+        if (!http2_push_content_raw_sync(header, sizeof(header), peer))
         {
-            if (peer->h2send.stream_is_dead || isclose.load(std::memory_order_relaxed) ||
-                http2_closing.load(std::memory_order_relaxed))
-                return 0;
-            if (std::chrono::steady_clock::now() >= push_deadline)
-            {
+            if (!peer->h2send.stream_is_dead && !isclose.load(std::memory_order_relaxed) &&
+                !http2_closing.load(std::memory_order_relaxed))
                 h2_content_fail(this, peer, true);
-                return 0;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            return 0;
         }
         if (end_flags & 0x01) peer->h2_end_stream_queued.store(true, std::memory_order_release);
         return 0;
@@ -1577,25 +1259,38 @@ unsigned int client_session::http2_send_data_payload(const std::shared_ptr<httpp
         const unsigned int cap =
             std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
         const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
-        unsigned long long got = http2_try_reserve_send_window(peer.get(), want, true);
+        unsigned long long got = 0;
+        {
+            std::lock_guard<std::mutex> lock(h2_send_window_mutex);
+            if (!peer->h2send.stream_is_dead)
+            {
+                const auto stream_available = h2_window_visible(peer->h2send.send_window,
+                                                                peer->h2send.send_totoal_bytes,
+                                                                peer->h2send.send_reserved);
+                const auto conn_available = h2_window_visible(http2_send_window.load(std::memory_order_relaxed),
+                                                              http2_send_totoal_bytes.load(std::memory_order_relaxed),
+                                                              http2_send_reserved.load(std::memory_order_relaxed));
+                const auto available = std::min(stream_available, conn_available);
+                if (available > 0)
+                {
+                    got = std::min<unsigned long long>(want, static_cast<unsigned long long>(available));
+                    peer->h2send.send_reserved += got;
+                    http2_send_reserved.fetch_add(got, std::memory_order_relaxed);
+                }
+            }
+        }
         // 非阻塞：窗口不够就把已收字节数还给调用方，由它决定稍后再发；停等只在 ring loop。
         if (got == 0)
             return static_cast<unsigned int>(accepted);
         const bool last   = (off + got >= payload.size());
         std::string chunk = h2_make_data_chunk(sid, last ? end_flags : static_cast<unsigned char>(end_flags & ~0x01), payload.data() + off, static_cast<unsigned int>(got));
-        const auto push_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
-        while (!http2_push_content_raw_sync(std::move(chunk), peer))
+        if (!http2_push_content_raw_sync(std::move(chunk), peer))
         {
             const bool gone = peer->h2send.stream_is_dead || isclose.load(std::memory_order_relaxed) ||
                               http2_closing.load(std::memory_order_relaxed);
-            if (gone)
-                return static_cast<unsigned int>(accepted);
-            if (std::chrono::steady_clock::now() >= push_deadline)
-            {
+            if (!gone)
                 h2_content_fail(this, peer, true);
-                return static_cast<unsigned int>(accepted);
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            return static_cast<unsigned int>(accepted);
         }
         off += static_cast<size_t>(got);
         accepted += got;
@@ -1613,7 +1308,7 @@ asio::awaitable<unsigned int> client_session::async_http2_send_content_frame(
     http2_sender_count_guard count_guard(this);
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         co_return 0;
-    if (frame.size() < 9 || http2_ring_queue == nullptr)
+    if (frame.size() < 9)
         co_return 0;
     const unsigned int sid         = h2_frame_sid(frame);
     const unsigned char ftype      = static_cast<unsigned char>(frame[3]);
@@ -1623,7 +1318,6 @@ asio::awaitable<unsigned int> client_session::async_http2_send_content_frame(
     if (ftype != 0x00)
     {
         if (!peer || peer->stream_id != sid) co_return 0;
-        h2_content_producer_guard producer_guard{this, peer};
         if (peer->h2send.stream_is_dead)
             co_return 0;
         if (co_await http2_push_content_raw(std::string(frame), peer))
@@ -1654,10 +1348,6 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(
     http2_sender_count_guard count_guard(this);
     if (isclose.load(std::memory_order_relaxed) || http2_closing.load(std::memory_order_relaxed))
         co_return 0;
-    if (http2_ring_queue == nullptr)
-        co_return 0;
-
-    h2_content_producer_guard producer_guard{this, peer};
 
     if (payload.empty())
     {
@@ -1688,7 +1378,26 @@ asio::awaitable<unsigned int> client_session::async_http2_send_data_payload(
         const unsigned int cap =
             std::min(remote_max_frame_size.load(), static_cast<unsigned int>(CONST_HTTP2_SEND_FRAME_BUF));
         const size_t want      = std::min(payload.size() - off, static_cast<size_t>(cap));
-        unsigned long long got = http2_try_reserve_send_window(peer.get(), want, true);
+        unsigned long long got = 0;
+        {
+            std::lock_guard<std::mutex> lock(h2_send_window_mutex);
+            if (!peer->h2send.stream_is_dead)
+            {
+                const auto stream_available = h2_window_visible(peer->h2send.send_window,
+                                                                peer->h2send.send_totoal_bytes,
+                                                                peer->h2send.send_reserved);
+                const auto conn_available = h2_window_visible(http2_send_window.load(std::memory_order_relaxed),
+                                                              http2_send_totoal_bytes.load(std::memory_order_relaxed),
+                                                              http2_send_reserved.load(std::memory_order_relaxed));
+                const auto available = std::min(stream_available, conn_available);
+                if (available > 0)
+                {
+                    got = std::min<unsigned long long>(want, static_cast<unsigned long long>(available));
+                    peer->h2send.send_reserved += got;
+                    http2_send_reserved.fetch_add(got, std::memory_order_relaxed);
+                }
+            }
+        }
         if (got == 0)
         {
             if (std::chrono::steady_clock::now() >= stall_deadline)
@@ -2040,7 +1749,7 @@ void client_session::stop()
     DEBUG_LOG("socket stop");
     isclose = true;
     // 跨线程调用只置原子旗（cancel 必须在 strand 上，留给 async_stop/等待者预算到期）；
-    // 内联发送协程最迟 10 秒预算到即见旗退出。
+    // HTTP/2 响应协程最迟 10 秒预算到即见旗退出。
     http2_closing.store(true, std::memory_order_relaxed);
     // 唤醒挂起中的发送消费者协程，让它看到 isclose 后退出
     wake_ring_consumer();
@@ -2295,7 +2004,7 @@ unsigned int client_session::getlocalport()
 
 bool client_session::post_write(std::string_view msg)
 {
-    if (isclose || iserror || !http2_ring_queue)
+    if (isclose || iserror || !send_ring_queue)
     {
         return false;
     }
@@ -2304,15 +2013,15 @@ bool client_session::post_write(std::string_view msg)
         return false;
     }
 
-    auto *q = http2_ring_queue.get();
+    auto *q = send_ring_queue.get();
     const unsigned long long size = static_cast<unsigned long long>(msg.size());
     unsigned long long backlog = q->bytes.load(std::memory_order_relaxed);
     for (;;)
     {
-        if (backlog > 0 && (backlog > MQTT_SEND_RING_BYTE_LIMIT ||
-                            size > MQTT_SEND_RING_BYTE_LIMIT - backlog))
+        if (backlog > 0 && (backlog > SEND_RING_BYTE_LIMIT ||
+                            size > SEND_RING_BYTE_LIMIT - backlog))
         {
-            http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
+            send_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
             return false;
         }
         if (q->bytes.compare_exchange_weak(backlog, backlog + size,
@@ -2329,7 +2038,7 @@ bool client_session::post_write(std::string_view msg)
                  static_cast<unsigned int>(size)))
     {
         q->bytes.fetch_sub(size, std::memory_order_relaxed);
-        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
+        send_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
     if (http2_need_wakeup)

@@ -213,39 +213,19 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void make_sse_header();
     void make_sse_body(std::string_view data);
     void make_sse_end();
-    unsigned long long http2_commit_send_window(unsigned long long bytes);
-
     // ---- 流级发送状态自管 ----
     // send_loop 和 refiller 协程通过这些方法改 h2send 内部状态，
     // 不在外部裸写字段。封装语义（一个方法 = 一组字段的原子变迁），
     // 便于以后加断言或扩展。
     void enter_send_batch();
     void leave_send_batch();
-    void mark_window_blocked(unsigned int timeout_sec);
-    // 条件置位 blocked；当 blocked=true 时按 timeout_sec 写 deadline，false 时清零 deadline
-    void set_window_blocked(bool blocked, unsigned int timeout_sec);
-    void mark_headers_sent();
-    void advance_sent_bytes(std::size_t n);
-    void reset_sent_bytes_after_refill();
     void mark_refill_running();
-    void clear_fifo_cleanup_pending();
+    void clear_control_cleanup_pending();
 
     // ---- 流级接收窗口自管 ----
-    // 给本端接收窗口补量：peer 自己维护 h2recv.grant_pending，
-    // 自己调 socket_session 的底层组帧接口；失败时自己挂入连接级 grant 链表。
     void grant_recv_window(unsigned int up_num);
-    // 从 grant 链表脱链 + 清所有 grant 记账（pending / prev / next / queued）
-    void grant_self_unlink();
-    // 清 grant_pending 及链表标记（不涉及脱链——调用方已确保 peer 不在链上）
-    void reset_recv_grant_pending();
-    // 可见接收窗口 = 总窗口 - 已入队未发送的补量。读协程要扣窗口时用它判额度够不够。
-    unsigned int recv_window_visible() const;
     // 扣流级接收窗口，返回 true = 扣完后低于阈值、需要补量。
     bool consume_recv_window(unsigned int bytes);
-    // 对端发来 WINDOW_UPDATE 抬本流发送窗口。
-    void grant_send_window(unsigned int inc);
-    // 流是否已挂在 grant 链表上
-    bool grant_is_queued() const { return h2recv.grant_queued; }
 
   public:
     std::string host;
@@ -273,7 +253,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool issendheader = false;
     bool ischunked    = false;
     bool isfinish     = false;
-    // 流响应是否已收尾。发送线程在最后一帧入环后置真，连接级读协程遍历挂着的流时会读它
+    // 流响应是否已收尾。发送线程在最后一帧入控制帧链表后置真，连接级读协程遍历挂着的流时会读它
     // （http2parse::clsoesend）。和 isclose 一样是跨线程读写，所以放成原子：
     // 普通 bool 时读侧可能永远看不到置位，也可能读到写一半的状态。
     std::atomic<bool> issend{false};
@@ -361,41 +341,32 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 每个 HTTP/2 流独立保存发送进度；完成通知和补读状态随流创建、随清理复位。
     struct h2send_state_t
     {
-        std::shared_ptr<h2_borrow_state> completion;
-        std::weak_ptr<httppeer> queue_owner;
-        std::int64_t send_window  = 0;
-        std::uint64_t send_reserved = 0;
-        std::size_t sent_bytes      = 0;
+        std::shared_ptr<asio::steady_timer> completion_timer;
+        std::int64_t send_window  = 0;         // 累计发送额度：初始窗口 + 收到的 WINDOW_UPDATE + SETTINGS 调整
+        std::uint64_t send_totoal_bytes = 0;   // 累计已发送正文字节数；send_window - send_totoal_bytes - send_reserved 为剩余额度
+        std::uint64_t send_reserved = 0;        // 已预留但尚未提交为已发送的正文字节数
+        std::uint64_t send_pos = 0;            // 当前正文偏移，补读后归零
+        std::string send_content;
+        bool is_send_content        = false;
         std::atomic<bool> headers_sent           = false;
-        bool end_on_headers         = false;
-        bool raw_stream_active      = false;
         bool refill_pending         = false;
         bool refill_running         = false;
         std::atomic<bool> stream_is_dead         = false;
-        bool fifo_cleanup_pending   = false;
+        bool control_cleanup_pending = false;
         bool rst_pending            = false;
         bool rst_sent               = false;
         unsigned int rst_error_code = 0;
         bool completion_done        = false;
-        httppeer *send_prev          = nullptr;
-        httppeer *send_next          = nullptr;
         bool send_queued            = false;
         bool in_batch               = false;
-        bool blocked                = false;
-        std::chrono::steady_clock::time_point blocked_deadline{};
         void reset();
     } h2send;
-    std::atomic<unsigned int> h2_producer_count{0};
-    std::atomic<unsigned int> h2_fifo_frames_pending{0};
-    // 尾帧按序入环即释放并发名额，不等 socket 写完成回调。
+    std::atomic<unsigned int> h2_control_frames_pending{0};
+    // 尾帧按序入控制帧链表即释放并发名额，不等 socket 写完成回调。
     std::atomic<bool> h2_end_stream_queued{false};
     struct h2recv_state_t
     {
-        unsigned int recv_window   = 0;
-        unsigned int grant_pending = 0;
-        httppeer *grant_prev       = nullptr;
-        httppeer *grant_next       = nullptr;
-        bool grant_queued          = false;
+        unsigned int recv_window = 0;
         void reset();
     } h2recv;
     std::string sitepath;
@@ -440,9 +411,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool h2_authority_seen = false;// :authority 至少出现过一次（RFC 9113 §8.3.1）
     bool h2_host_seen      = false;// 普通 host 头至少出现过一次
     bool h2_regular_seen   = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
-
-    void h2_begin_raw_stream();
-    void h2_end_raw_stream();
 
   private:
     bool h2_send_data_payload(std::string_view data);

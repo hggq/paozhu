@@ -2272,18 +2272,6 @@ void httppeer::clsoesend()
     }
 }
 
-unsigned long long httppeer::http2_commit_send_window(unsigned long long bytes)
-{
-    if (bytes == 0) return 0;
-    auto *sess = socket_session.get();
-    if (!sess) return 0;
-    std::lock_guard<std::mutex> lock(sess->h2_send_window_mutex);
-    bytes = std::min<unsigned long long>(bytes, h2send.send_reserved);
-    h2send.send_reserved -= bytes;
-    h2send.send_window -= static_cast<std::int64_t>(bytes);
-    return bytes;
-}
-
 // ---- 流级接收窗口自管 ----
 // Per-stream receive window self-management.
 void httppeer::grant_recv_window(unsigned int up_num)
@@ -2292,56 +2280,7 @@ void httppeer::grant_recv_window(unsigned int up_num)
     if (h2send.stream_is_dead || isclose.load(std::memory_order_relaxed)) return;
     auto *sess = socket_session.get();
     if (!sess) return;
-    h2recv.grant_pending += up_num;
-    if (sess->push_window_update_stream(stream_id, h2recv.grant_pending))
-    {
-        h2recv.grant_pending = 0;
-    }
-    else
-    {
-        // 组帧入环失败：交给 session 的 grant 链表头入链，
-        // peer 自己判断 stream_dead / queued 等流级前置条件。
-        sess->http2_window_update_requeue_count++;
-        if (!h2recv.grant_queued)
-            sess->http2_enqueue_grant(this);
-    }
-}
-
-void httppeer::grant_self_unlink()
-{
-    auto *sess = socket_session.get();
-    if (!sess)
-    {
-        reset_recv_grant_pending();
-        return;
-    }
-    if (!h2recv.grant_queued)
-    {
-        // 没挂链也清掉记账（peer 可能从未入链但有 pending 残留）
-        h2recv.grant_pending = 0;
-        h2recv.grant_prev    = nullptr;
-        h2recv.grant_next    = nullptr;
-        return;
-    }
-    sess->http2_unlink_grant(this);
-    h2recv.grant_pending = 0;
-    h2recv.grant_prev    = nullptr;
-    h2recv.grant_next    = nullptr;
-    h2recv.grant_queued  = false;
-}
-
-void httppeer::reset_recv_grant_pending()
-{
-    h2recv.grant_pending = 0;
-    h2recv.grant_prev    = nullptr;
-    h2recv.grant_next    = nullptr;
-    h2recv.grant_queued  = false;
-}
-
-unsigned int httppeer::recv_window_visible() const
-{
-    // grant_pending 是无符号；总窗口减去已入队未发的补量。
-    return h2recv.recv_window >= h2recv.grant_pending ? h2recv.recv_window - h2recv.grant_pending : 0;
+    sess->push_window_update_stream(stream_id, up_num);
 }
 
 bool httppeer::consume_recv_window(unsigned int bytes)
@@ -2351,85 +2290,38 @@ bool httppeer::consume_recv_window(unsigned int bytes)
     return h2recv.recv_window < CONST_HTTP2_WINDOW_UPDATE_THRESHOLD;
 }
 
-void httppeer::grant_send_window(unsigned int inc)
-{
-    auto *sess = socket_session.get();
-    if (!sess) return;
-    std::lock_guard<std::mutex> lock(sess->h2_send_window_mutex);
-    h2send.send_window += static_cast<std::int64_t>(inc);
-}
-
 // ---- 流级发送状态自管 ----
 void httppeer::enter_send_batch()              { h2send.in_batch = true; }
 void httppeer::leave_send_batch()             { h2send.in_batch = false; }
-void httppeer::mark_headers_sent()            { h2send.headers_sent.store(true, std::memory_order_release); }
-void httppeer::advance_sent_bytes(std::size_t n) { h2send.sent_bytes += n; }
-void httppeer::reset_sent_bytes_after_refill()  { h2send.sent_bytes = 0; }
 void httppeer::mark_refill_running()          { h2send.refill_running = true; }
-void httppeer::clear_fifo_cleanup_pending()   { h2send.fifo_cleanup_pending = false; }
-
-void httppeer::mark_window_blocked(unsigned int timeout_sec)
-{
-    set_window_blocked(true, timeout_sec);
-}
-
-void httppeer::set_window_blocked(bool blocked, unsigned int timeout_sec)
-{
-    h2send.blocked = blocked;
-    h2send.blocked_deadline = blocked
-        ? std::chrono::steady_clock::now() + std::chrono::seconds(timeout_sec)
-        : std::chrono::steady_clock::time_point{};
-}
+void httppeer::clear_control_cleanup_pending()   { h2send.control_cleanup_pending = false; }
 
 void httppeer::h2send_state_t::reset()
 {
-    assert(!send_queued && !in_batch && !refill_pending && !refill_running && !fifo_cleanup_pending);
-    completion.reset();
-    queue_owner.reset();
+    assert(!send_queued && !in_batch && !refill_pending && !refill_running && !control_cleanup_pending);
+    completion_timer.reset();
     send_window = 0;
+    send_totoal_bytes = 0;
     send_reserved = 0;
-    sent_bytes = 0;
+    send_pos = 0;
+    send_content.clear();
+    is_send_content = false;
     headers_sent.store(false, std::memory_order_release);
-    end_on_headers = false;
-    raw_stream_active = false;
     refill_pending = false;
     refill_running = false;
     stream_is_dead.store(false, std::memory_order_release);
-    fifo_cleanup_pending = false;
+    control_cleanup_pending = false;
     rst_pending = false;
     rst_sent = false;
     rst_error_code = 0;
     completion_done = false;
-    send_prev = nullptr;
-    send_next = nullptr;
     send_queued = false;
     in_batch = false;
-    blocked = false;
-    blocked_deadline = {};
 }
 
 void httppeer::h2recv_state_t::reset()
 {
-    assert(!grant_queued && grant_pending == 0);
     *this = h2recv_state_t{};
-}
-
-void httppeer::h2_begin_raw_stream()
-{
-    if (httpv == 2 && socket_session && !h2send.raw_stream_active)
-    {
-        socket_session->http2_begin_content_stream(shared_from_this());
-        h2send.raw_stream_active = true;
-    }
-}
-
-void httppeer::h2_end_raw_stream()
-{
-    if (h2send.raw_stream_active && socket_session)
-    {
-        h2send.raw_stream_active = false;
-        socket_session->http2_end_content_stream(shared_from_this());
-    }
 }
 
 bool httppeer::h2_send_data_payload(std::string_view data)
@@ -2467,7 +2359,6 @@ bool httppeer::h2_send_data_payload(std::string_view data)
 
 void httppeer::clear()
 {
-    h2_end_raw_stream();
     host.clear();
     ;
     url.clear();
@@ -2645,10 +2536,8 @@ void httppeer::reset_for_reuse()
     linktype = 0;
 
     socket_session = nullptr;
-    assert(h2_producer_count.load(std::memory_order_acquire) == 0);
-    h2_producer_count.store(0, std::memory_order_release);
-    assert(h2_fifo_frames_pending.load(std::memory_order_acquire) == 0);
-    h2_fifo_frames_pending.store(0, std::memory_order_release);
+    assert(h2_control_frames_pending.load(std::memory_order_acquire) == 0);
+    h2_control_frames_pending.store(0, std::memory_order_release);
 
     // 丢弃旗随复位一起清掉：本对象下一世允许正常回池
     no_repool = false;
@@ -2780,7 +2669,6 @@ void httppeer::send_make_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str, shared_from_this());
@@ -2816,7 +2704,6 @@ void httppeer::send_make_end()
     }
     // HTTP/1.1: Content-Length 模式下，浏览器按长度读取完毕自动结束，无需额外操作
     // 发完后置 ischunked = true，让 server.cpp 那边直接返回
-    h2_end_raw_stream();
     ischunked = true;
 }
 
@@ -2841,7 +2728,6 @@ asio::awaitable<void> httppeer::async_send_make_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str, shared_from_this());
@@ -2877,7 +2763,6 @@ asio::awaitable<void> httppeer::async_send_make_end()
             co_await socket_session->async_http2_send_data_payload(shared_from_this(), std::string_view(), HTTP2_DATA_END_STREAM);
         }
     }
-    h2_end_raw_stream();
     ischunked = true;
     co_return;
 }
@@ -2905,7 +2790,6 @@ void httppeer::send_chunk_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str, shared_from_this());
@@ -2960,7 +2844,6 @@ void httppeer::send_chunk_end()
             socket_session->send_writer(std::string_view("0\r\n\r\n"));
         }
     }
-    h2_end_raw_stream();
     ischunked = true;
 }
 
@@ -2986,7 +2869,6 @@ asio::awaitable<void> httppeer::async_send_chunk_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str, shared_from_this());
@@ -3043,7 +2925,6 @@ asio::awaitable<void> httppeer::async_send_chunk_end()
             co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
         }
     }
-    h2_end_raw_stream();
     ischunked = true;
     co_return;
 }
@@ -3073,7 +2954,6 @@ asio::awaitable<void> httppeer::async_make_sse_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         co_await socket_session->async_send_writer(header_str, shared_from_this());
@@ -3105,7 +2985,6 @@ void httppeer::make_sse_header()
         header_str.append("\r\n");
     }
 
-    h2_begin_raw_stream();
     if (socket_session)
     {
         socket_session->send_writer(header_str, shared_from_this());
@@ -3197,7 +3076,6 @@ asio::awaitable<void> httppeer::async_make_sse_end()
             co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
         }
     }
-    h2_end_raw_stream();
     co_return;
 }
 
@@ -3217,7 +3095,6 @@ void httppeer::make_sse_end()
             socket_session->send_writer(std::string_view("0\r\n\r\n"));
         }
     }
-    h2_end_raw_stream();
 }
 
 }// namespace http

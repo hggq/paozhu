@@ -3,7 +3,7 @@
  * 覆盖：trimmed_hooks 截断、run_site_hooks 的"非空即拒绝"判定、check_upload_limit 边界守卫的算法等价性、resolve() try/catch 结构。
  *
  * 输出：每组一行 PASS/FAIL，末行 SUMMARY；全过退出码 0，任一失败退出码 1。
- * 与项目其它 tests/ 用例风格对齐（http2_ring_queue 等）。
+ * 与项目其它 tests/ 用例风格对齐（send_ring_queue 等）。
  */
 #include <iostream>
 #include <string>
