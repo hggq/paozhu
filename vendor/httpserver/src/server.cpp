@@ -345,10 +345,10 @@ asio::awaitable<void> httpserver::http2_send_response(std::shared_ptr<httppeer> 
     {
         co_await sess->async_http2_send_data_payload(peer, std::string_view(), HTTP2_DATA_END_STREAM);
     }
-    else if (sess->http2_send_queue_add(peer) &&
-             co_await sess->http2_wait_peer_completion(peer))
+    else if (sess->http2_send_queue_add(peer))
     {
-        clear_peer_data(peer);
+        if (co_await sess->http2_wait_peer_completion(peer))
+            clear_peer_data(peer);
     }
 }
 
